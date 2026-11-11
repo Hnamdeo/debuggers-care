@@ -4,6 +4,7 @@ import { UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTri
 import { useTenant, PageHead, Card, Table, Pill, SearchBox, Avatar, Tabs, Stat } from '../components/ui'
 import { PatientForm, BookAppointment, NewBill, AdmitForm } from '../components/forms'
 import { PrescriptionDoc, ReportDoc, InvoiceDoc } from '../components/docs'
+import { VideoPlayer, whatsappLink } from '../components/videos'
 import { fmtDate, fmtTime, age, money, billTotal, billStatus } from '../lib/utils'
 
 export default function Patients() {
@@ -96,9 +97,10 @@ export function PatientHeader({ p, children }) {
 
 // Full health record: used by staff (patient profile) and by the patient portal.
 export function PatientRecord({ p, canCollect }) {
-  const { list, staff } = useTenant()
+  const { list, staff, user } = useTenant()
   const [tab, setTab] = useState('overview')
   const [doc, setDoc] = useState(null)
+  const [play, setPlay] = useState(null)
   const mine = (c) => list(c).filter((r) => r.patientId === p.id)
   const appts = mine('appointments').sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
   const rxs = mine('prescriptions').sort((a, b) => b.date.localeCompare(a.date))
@@ -108,6 +110,8 @@ export function PatientRecord({ p, canCollect }) {
   const billed = bills.reduce((s, b) => s + billTotal(b), 0)
   const due = bills.reduce((s, b) => s + Math.max(0, billTotal(b) - b.paid), 0)
   const beds = list('beds')
+  const vids = list('videos')
+  const shared = mine('shares').sort((a, b) => b.date.localeCompare(a.date)).map((sh) => ({ ...sh, v: vids.find((v) => v.id === sh.videoId) })).filter((x) => x.v)
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
@@ -116,6 +120,7 @@ export function PatientRecord({ p, canCollect }) {
     { id: 'reports', label: 'Reports', count: reps.length },
     { id: 'bills', label: 'Bills', count: bills.length },
     ...(adms.length ? [{ id: 'admissions', label: 'Admissions', count: adms.length }] : []),
+    ...(shared.length ? [{ id: 'videos', label: 'Videos', count: shared.length }] : []),
   ]
 
   const rxCols = [
@@ -193,6 +198,18 @@ export function PatientRecord({ p, canCollect }) {
           { label: 'Status', render: (a) => <Pill status={a.status} /> },
         ]} /></Card>
       )}
+      {tab === 'videos' && (
+        <Card title="Videos from your doctor">
+          {shared.map((x) => (
+            <div key={x.id} className="vid-row">
+              <div style={{ flex: 1, minWidth: 160 }}><div style={{ fontWeight: 600 }}>{x.v.title}</div><div className="small muted">Shared by {staff(x.doctorId)?.name || 'your doctor'} on {fmtDate(x.date)}</div></div>
+              <button className="btn sm primary" onClick={() => setPlay(x.v)}>Watch</button>
+              {user.role !== 'patient' && <a className="btn sm" href={whatsappLink(p.phone, `Hello ${p.name.split(' ')[0]}, here is the video your doctor shared: ${x.v.title} ${x.v.url}`)} target="_blank" rel="noreferrer">Send on WhatsApp</a>}
+            </div>
+          ))}
+        </Card>
+      )}
+      {play && <VideoPlayer video={play} onClose={() => setPlay(null)} />}
       {doc?.k === 'rx' && <PrescriptionDoc rx={doc.v} onClose={() => setDoc(null)} />}
       {doc?.k === 'rep' && <ReportDoc rep={doc.v} onClose={() => setDoc(null)} />}
       {doc?.k === 'bill' && <InvoiceDoc bill={list('bills').find((b) => b.id === doc.v.id)} canCollect={canCollect} onClose={() => setDoc(null)} />}

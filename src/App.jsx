@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
-  Lock, LogOut, Menu, Stethoscope, HeartPulse, CalendarPlus, FileHeart,
+  Lock, LogOut, Menu, MonitorPlay, Stethoscope, HeartPulse, CalendarPlus, FileHeart,
 } from 'lucide-react'
 import { db, auth, useDb } from './lib/store'
 import { hasModule, ROLE_MODULES, ROLE_LABEL, PLANS, planFor, MODULES } from './lib/plans'
@@ -24,8 +24,9 @@ import Payroll from './pages/Payroll'
 import Settings from './pages/Settings'
 import { PatientHome, PatientBook, PatientAppointments, PatientBills } from './pages/PatientPortal'
 import Locked from './pages/Locked'
+import Education from './pages/Education'
 
-const ICONS = { dashboard: LayoutDashboard, patients: Users, appointments: CalendarDays, prescriptions: PillIcon, reports: FlaskConical, ipd: BedDouble, emergency: Siren, pharmacy: Store, billing: Receipt, staff: IdCard, payroll: Wallet }
+const ICONS = { dashboard: LayoutDashboard, patients: Users, appointments: CalendarDays, prescriptions: PillIcon, reports: FlaskConical, education: MonitorPlay, ipd: BedDouble, emergency: Siren, pharmacy: Store, billing: Receipt, staff: IdCard, payroll: Wallet }
 
 const Router = import.meta.env.MODE === 'single' ? MemoryRouter : HashRouter
 
@@ -172,6 +173,7 @@ function Shell() {
               <Route path="consult/:id" element={guard('appointments', <Consult />)} />
               <Route path="prescriptions" element={guard('prescriptions', <Prescriptions />)} />
               <Route path="reports" element={guard('reports', <Reports />)} />
+              <Route path="education" element={guard('education', <Education />)} />
               <Route path="ipd" element={guard('ipd', <IPD />)} />
               <Route path="emergency" element={guard('emergency', <Emergency />)} />
               <Route path="pharmacy" element={guard('pharmacy', <Pharmacy />)} />

@@ -5,7 +5,7 @@
 import { useSyncExternalStore } from 'react'
 import { buildSeed } from './seed'
 
-const KEY = 'debuggers-care-hms:v2'
+const KEY = 'debuggers-care-hms:v3'
 const SESSION_KEY = 'debuggers-care-hms:session'
 
 function load() {
@@ -50,7 +50,7 @@ export function useSession() {
   return session
 }
 
-const PREFIX = { patients: 'P', appointments: 'A', prescriptions: 'RX', reports: 'LAB', bills: 'INV', medicines: 'M', sales: 'SL', beds: 'BED', admissions: 'IPD', emergencies: 'ER', payroll: 'PAY', staff: 'S', users: 'U' }
+const PREFIX = { patients: 'P', appointments: 'A', prescriptions: 'RX', reports: 'LAB', bills: 'INV', medicines: 'M', sales: 'SL', beds: 'BED', admissions: 'IPD', emergencies: 'ER', payroll: 'PAY', staff: 'S', users: 'U', videos: 'V', shares: 'SH' }
 
 export const db = {
   tenants: () => state.tenants,

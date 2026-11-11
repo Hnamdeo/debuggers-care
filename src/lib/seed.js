@@ -188,6 +188,33 @@ const PLATFORM_EXTRA = [
   { id: 't_arogya', slug: 'arogya', name: 'Arogya Family Clinic', kind: 'Family clinic', plan: 'plus', city: 'Wakad, Pune', active: 3 },
 ]
 
+
+// Starter patient-education library. Links open a YouTube search for the topic;
+// each clinic replaces them with its own or Debuggers Space AI explainer videos.
+const yt = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q + ' animation explained')}`
+const VIDEO_LIBRARY = {
+  dental: [
+    ['Root canal treatment (RCT), step by step', 'Root canal treatment', 'Dental', 4],
+    ['Scaling and polishing: why gums bleed', 'Scaling & polishing', 'Dental', 3],
+    ['Wisdom tooth (impacted) removal', 'Impacted tooth extraction', 'Dental', 4],
+    ['Dental crown and bridge', 'Crown (ceramic)', 'Dental', 3],
+    ['Braces and clear aligners', 'Braces adjustment', 'Dental', 5],
+    ['Dental implant vs denture', 'Complete denture', 'Dental', 4],
+    ['Tooth filling for cavities', 'Composite filling', 'Dental', 2],
+  ],
+  hospital: [
+    ['Disc bulge and slip disc: what happens in your spine', 'Lumbar disc bulge', 'Neurosurgery', 4],
+    ['Microdiscectomy surgery explained', 'Microdiscectomy', 'Neurosurgery', 5],
+    ['Angioplasty and stent', 'Coronary angioplasty', 'Cardiology', 4],
+    ['Total knee replacement', 'Knee replacement', 'Orthopaedics', 5],
+    ['Fracture fixation with plates and screws', 'ORIF', 'Orthopaedics', 3],
+    ['Laparoscopic gallbladder removal', 'Lap cholecystectomy', 'General Surgery', 4],
+    ['Caesarean section: what to expect', 'C-section', 'Obstetrics & Gynaecology', 4],
+    ['Managing type 2 diabetes', 'Type 2 diabetes mellitus', 'General Medicine', 3],
+    ['Childhood vaccination schedule', 'Vaccination', 'Paediatrics', 3],
+  ],
+}
+
 const HOURS = ['09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30']
 
 function buildTenant(def, seedNum) {
@@ -200,7 +227,7 @@ function buildTenant(def, seedNum) {
     counters[prefix] = (counters[prefix] || 1000) + 1
     return `${prefix}-${counters[prefix]}`
   }
-  const data = { staff: [], patients: [], appointments: [], prescriptions: [], reports: [], bills: [], medicines: [], sales: [], beds: [], admissions: [], emergencies: [], payroll: [], users: [] }
+  const data = { staff: [], patients: [], appointments: [], prescriptions: [], reports: [], bills: [], medicines: [], sales: [], beds: [], admissions: [], emergencies: [], payroll: [], users: [], videos: [], shares: [] }
   const domain = def.email.split('@')[1]
 
   // Staff and their logins
@@ -378,6 +405,12 @@ function buildTenant(def, seedNum) {
       data.emergencies.push({ id: nextId('ER'), name, gender: g, age: int(4, 75), phone: '9' + int(100000000, 999999999), date: T, time: `${String(h).padStart(2, '0')}:${String(int(0, 59)).padStart(2, '0')}`, triage, complaint, status, doctorId: status === 'waiting' ? '' : erDoc.id, broughtBy: pick(['Ambulance', 'Family', 'Self', 'Police']) })
     })
   }
+
+  // Patient education library
+  VIDEO_LIBRARY[def.kind === 'Dental clinic' ? 'dental' : 'hospital'].forEach(([title, procedure, speciality, mins]) => {
+    data.videos.push({ id: nextId('V'), title, procedure, speciality, minutes: mins, url: yt(title), source: 'YouTube (replace with your own)', addedOn: addDays(T, -int(10, 90)) })
+  })
+  data.shares.push({ id: nextId('SH'), patientId: demoPatient.id, videoId: data.videos[0].id, doctorId: doctors[0].id, date: addDays(T, -6) })
 
   // Payroll: last two months paid
   const now = new Date()

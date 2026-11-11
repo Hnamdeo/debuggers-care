@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Plus, Trash2, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { useTenant, Card, Input, Textarea, toast, Pill } from '../components/ui'
 import { PatientHeader } from './Patients'
+import { VideoPlayer, ShareButton } from '../components/videos'
+import { MonitorPlay } from 'lucide-react'
 import { db } from '../lib/store'
 import { LAB_CATALOG } from '../lib/seed'
 import { fmtDate, fmtTime, money, today } from '../lib/utils'
@@ -23,6 +25,7 @@ export default function Consult() {
   const [tests, setTests] = useState([])
   const [procs, setProcs] = useState([])
   const [err, setErr] = useState('')
+  const [play, setPlay] = useState(null)
   if (!appt || !p) return <div className="empty">Appointment not found.</div>
 
   const history = list('prescriptions').filter((r) => r.patientId === p.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3)
@@ -110,6 +113,7 @@ export default function Consult() {
           </div>
         </div>
         <div className="stack">
+          <ExplainCard doc={doc} patientId={p.id} onPlay={setPlay} />
           <Card title="Past prescriptions">
             {history.length ? history.map((r) => (
               <div key={r.id} className="tl-item" style={{ gridTemplateColumns: '1fr' }}>
@@ -129,6 +133,27 @@ export default function Consult() {
           </Card>
         </div>
       </div>
+      {play && <VideoPlayer video={play} patientId={p.id} onClose={() => setPlay(null)} />}
     </>
+  )
+}
+
+// Videos for this doctor's speciality first, then the rest of the library.
+function ExplainCard({ doc, patientId, onPlay }) {
+  const { list, can } = useTenant()
+  if (!can('education')) return null
+  const all = list('videos')
+  const mine = all.filter((v) => v.speciality === doc.dept || (doc.dept === 'Dental Surgery' || doc.dept === 'Orthodontics') && v.speciality === 'Dental')
+  const vids = (mine.length ? mine : all).slice(0, 5)
+  return (
+    <Card title={<h2><MonitorPlay size={17} style={{ verticalAlign: '-3px' }} /> Explain to patient</h2>}>
+      {vids.map((v) => (
+        <div key={v.id} className="vid-row">
+          <div style={{ flex: 1, minWidth: 140 }}><div style={{ fontWeight: 600, lineHeight: 1.3 }}>{v.title}</div><div className="small muted">{v.minutes} min</div></div>
+          <button className="btn sm primary" onClick={() => onPlay(v)}>Show</button>
+          <ShareButton video={v} patientId={patientId} small />
+        </div>
+      ))}
+    </Card>
   )
 }

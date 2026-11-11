@@ -6,6 +6,7 @@ export const MODULES = {
   appointments: { label: 'Appointments' },
   prescriptions: { label: 'Prescriptions' },
   reports: { label: 'Lab & reports' },
+  education: { label: 'Patient education' },
   billing: { label: 'Billing' },
   pharmacy: { label: 'Pharmacy' },
   staff: { label: 'Staff' },
@@ -21,7 +22,7 @@ export const PLANS = {
     price: 999,
     blurb: 'For single-doctor and small clinics, like dentists and GPs.',
     maxDoctors: 3,
-    modules: ['dashboard', 'patients', 'appointments', 'prescriptions', 'reports', 'billing', 'staff'],
+    modules: ['dashboard', 'patients', 'appointments', 'prescriptions', 'reports', 'education', 'billing', 'staff'],
   },
   plus: {
     id: 'plus',
@@ -29,7 +30,7 @@ export const PLANS = {
     price: 2499,
     blurb: 'Multi-doctor clinics with their own pharmacy and staff payroll.',
     maxDoctors: 10,
-    modules: ['dashboard', 'patients', 'appointments', 'prescriptions', 'reports', 'billing', 'staff', 'pharmacy', 'payroll'],
+    modules: ['dashboard', 'patients', 'appointments', 'prescriptions', 'reports', 'education', 'billing', 'staff', 'pharmacy', 'payroll'],
   },
   hospital: {
     id: 'hospital',
@@ -49,8 +50,8 @@ export const planFor = (mod) => PLAN_ORDER.find((p) => PLANS[p].modules.includes
 
 // Which modules each role sees (before the plan filter is applied).
 export const ROLE_MODULES = {
-  admin: ['dashboard', 'patients', 'appointments', 'prescriptions', 'reports', 'ipd', 'emergency', 'pharmacy', 'billing', 'staff', 'payroll'],
-  doctor: ['dashboard', 'appointments', 'patients', 'prescriptions', 'reports', 'ipd', 'emergency'],
+  admin: ['dashboard', 'patients', 'appointments', 'prescriptions', 'reports', 'education', 'ipd', 'emergency', 'pharmacy', 'billing', 'staff', 'payroll'],
+  doctor: ['dashboard', 'appointments', 'patients', 'prescriptions', 'reports', 'education', 'ipd', 'emergency'],
   pharmacist: ['pharmacy', 'prescriptions'],
   patient: [],
 }

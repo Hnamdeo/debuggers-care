@@ -250,3 +250,16 @@ textarea.input { resize: vertical; min-height: 70px; }
 .tl-item { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .tl-item:last-child { border-bottom: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Patient education */
+.video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.video-card { padding: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-align: left; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; }
+.video-card:hover { border-color: var(--brand); }
+.thumb { aspect-ratio: 16 / 9; max-width: 100%; background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #000)); background-size: cover; background-position: center; color: #fff; display: grid; place-items: center; position: relative; }
+.thumb .dur { position: absolute; right: 8px; bottom: 6px; background: rgb(0 0 0 / 65%); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.video-frame { aspect-ratio: 16 / 9; max-width: 100%; background: #000; border-radius: 8px; overflow: hidden; }
+.video-frame iframe { width: 100%; height: 100%; border: 0; }
+.video-frame.placeholder { background: var(--surface-2); border: 1px dashed var(--line-strong); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; text-align: center; color: var(--muted); }
+.video-frame.placeholder p { margin: 0; max-width: 48ch; }
+.vid-row { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.vid-row:last-child { border-bottom: 0; }
