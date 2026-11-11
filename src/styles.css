@@ -263,3 +263,34 @@ textarea.input { resize: vertical; min-height: 70px; }
 .video-frame.placeholder p { margin: 0; max-width: 48ch; }
 .vid-row { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .vid-row:last-child { border-bottom: 0; }
+
+/* Chat registration (patient's phone) */
+.chat-page { min-height: 100%; display: flex; flex-direction: column; background: var(--bg); max-width: 560px; width: 100%; margin: 0 auto; }
+.chat-head { display: flex; gap: 10px; align-items: center; padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.chat-progress { height: 3px; background: var(--line); }
+.chat-progress i { display: block; height: 100%; background: var(--brand); transition: width 0.3s; }
+.chat-log { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); }
+.bubble { max-width: 82%; padding: 10px 14px; border-radius: 16px; line-height: 1.45; animation: pop 0.18s ease-out; overflow-wrap: anywhere; }
+.bubble.bot { background: var(--surface); border: 1px solid var(--line); border-bottom-left-radius: 4px; align-self: flex-start; }
+.bubble.me { background: var(--brand); color: var(--brand-ink); border-bottom-right-radius: 4px; align-self: flex-end; }
+.bubble.warn { border-color: var(--warn); color: var(--warn); }
+.bubble.typing { display: flex; gap: 4px; padding: 14px; }
+.bubble.typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); animation: blink 1s infinite; }
+.bubble.typing span:nth-child(2) { animation-delay: 0.15s; }
+.bubble.typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes blink { 50% { opacity: 0.3; } }
+@keyframes pop { from { transform: translateY(4px); opacity: 0.4; } }
+.chat-input { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--brand); color: var(--brand); background: var(--brand-soft); border-radius: 999px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
+.chip:hover { background: var(--brand); color: var(--brand-ink); }
+.chip.ghost { background: transparent; border-style: dashed; }
+.chat-form { display: flex; gap: 8px; }
+.chat-form .input { font-size: 16px; padding: 10px 12px; }
+.reg-card { align-self: stretch; text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--ok); }
+.reg-card h2, .reg-card p { color: var(--fg); margin: 0; }
+.reg-card p { color: var(--muted); max-width: 40ch; }
+.uhid { font: 800 2rem var(--font-head); letter-spacing: 0.06em; color: var(--brand); font-variant-numeric: tabular-nums; }
+.qr-wrap { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.qr { width: 180px; max-width: 100%; background: #fff; padding: 8px; border-radius: 10px; border: 1px solid var(--line); flex: none; }
+.qr svg { display: block; width: 100%; height: auto; }

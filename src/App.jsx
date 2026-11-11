@@ -25,6 +25,7 @@ import Settings from './pages/Settings'
 import { PatientHome, PatientBook, PatientAppointments, PatientBills } from './pages/PatientPortal'
 import Locked from './pages/Locked'
 import Education from './pages/Education'
+import SelfRegister from './pages/SelfRegister'
 
 const ICONS = { dashboard: LayoutDashboard, patients: Users, appointments: CalendarDays, prescriptions: PillIcon, reports: FlaskConical, education: MonitorPlay, ipd: BedDouble, emergency: Siren, pharmacy: Store, billing: Receipt, staff: IdCard, payroll: Wallet }
 
@@ -91,7 +92,11 @@ function TenantApp() {
   return (
     <TenantCtx.Provider value={ctx}>
       <div style={style} className="landing">
-        {ctx.user ? <Shell /> : <Login />}
+        <Routes>
+          {/* Public: patients open this from the clinic's QR code or shared link, no login */}
+          <Route path="register" element={<SelfRegister />} />
+          <Route path="*" element={ctx.user ? <Shell /> : <Login />} />
+        </Routes>
       </div>
     </TenantCtx.Provider>
   )

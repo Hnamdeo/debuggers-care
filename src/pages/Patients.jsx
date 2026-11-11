@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle } from 'lucide-react'
+import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle } from 'lucide-react'
 import { useTenant, PageHead, Card, Table, Pill, SearchBox, Avatar, Tabs, Stat } from '../components/ui'
+import RegisterQR from '../components/RegisterQR'
 import { PatientForm, BookAppointment, NewBill, AdmitForm } from '../components/forms'
 import { PrescriptionDoc, ReportDoc, InvoiceDoc } from '../components/docs'
 import { VideoPlayer, whatsappLink } from '../components/videos'
@@ -12,6 +13,7 @@ export default function Patients() {
   const nav = useNavigate()
   const [params, setParams] = useSearchParams()
   const [q, setQ] = useState('')
+  const [qr, setQr] = useState(false)
   const creating = params.get('new') === '1'
   const appts = list('appointments')
   const lastVisit = (pid) => appts.filter((a) => a.patientId === pid && a.status === 'completed').map((a) => a.date).sort().pop()
@@ -23,6 +25,7 @@ export default function Patients() {
     <>
       <PageHead title="Patients" sub={`${list('patients').length} registered`}>
         <SearchBox value={q} onChange={setQ} placeholder="Name, mobile or UHID" />
+        <button className="btn" onClick={() => setQr(true)}><QrCode /> QR / link for patients</button>
         <button className="btn primary" onClick={() => setParams({ new: '1' })}><UserPlus /> Register patient</button>
       </PageHead>
       <Card>
@@ -31,7 +34,7 @@ export default function Patients() {
           onRow={(p) => nav(`${base}/patients/${p.id}`)}
           empty="No patient matches that search."
           cols={[
-            { label: 'Patient', render: (p) => <div className="row" style={{ flexWrap: 'nowrap' }}><Avatar name={p.name} /><div><div className="cell-main">{p.name}</div><div className="cell-sub">{p.id}</div></div></div> },
+            { label: 'Patient', render: (p) => <div className="row" style={{ flexWrap: 'nowrap' }}><Avatar name={p.name} /><div><div className="cell-main">{p.name}</div><div className="cell-sub">{p.id}{p.selfRegistered ? ' · self-registered' : ''}</div></div></div> },
             { label: 'Age / Sex', render: (p) => `${age(p.dob)} y · ${p.gender}` },
             { label: 'Mobile', render: (p) => <span className="tabular">{p.phone}</span> },
             { label: 'Blood', key: 'blood' },
@@ -40,6 +43,7 @@ export default function Patients() {
           ]}
         />
       </Card>
+      {qr && <RegisterQR onClose={() => setQr(false)} />}
       {creating && <PatientForm onClose={() => setParams({})} onSaved={(p) => nav(`${base}/patients/${p.id}`)} />}
     </>
   )
