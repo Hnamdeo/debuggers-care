@@ -182,6 +182,43 @@ const TENANT_DEFS = [
     ],
     beds: [],
   },
+  {
+    id: 't_vedanta',
+    slug: 'vedantadental',
+    name: 'Vedanta Dental Care',
+    short: 'Vedanta Dental',
+    kind: 'Dental clinic',
+    plan: 'clinic',
+    // Prospect demo: clinic name, town and doctors' names only. Patients and numbers are sample data.
+    prospect: true,
+    address: 'Janjgir, Chhattisgarh',
+    phone: '',
+    email: 'clinic@vedantadental.example',
+    gstin: '',
+    regNo: '',
+    color: '#7c3aed',
+    doctors: [
+      ['Dr. Deepak', 'M', 'Dental Surgery', 'Dentist', 200, 0],
+      ['Dr. Megha', 'F', 'Dental Surgery', 'Dentist', 200, 0],
+    ],
+    otherStaff: [
+      ['Front desk (sample)', 'F', 'receptionist', 'Front desk', 15000],
+      ['Dental assistant (sample)', 'F', 'nurse', 'Chairside assistant', 14000],
+    ],
+    admin: ['Clinic admin (sample)', 'F', 'Clinic manager', 25000],
+    patients: 26,
+    reasons: ['Tooth pain', 'General dental check-up', 'Scaling & polishing', 'Root canal follow-up', 'Wisdom tooth pain', 'Braces consultation', 'Broken tooth', 'Bleeding gums', 'Crown follow-up', 'Tooth sensitivity'],
+    services: [['Consultation', 200], ['Scaling & polishing', 800], ['Composite filling', 1000], ['Root canal treatment', 4000], ['Tooth extraction', 500], ['Impacted tooth extraction', 3500], ['Crown (ceramic)', 5000], ['Braces adjustment', 1000], ['Complete denture', 12000]],
+    diagnoses: ['Dental caries', 'Irreversible pulpitis (36)', 'Chronic gingivitis', 'Impacted 48', 'Malocclusion, Class II', 'Fractured crown (21)', 'Dentine hypersensitivity'],
+    tests: ['IOPA X-ray', 'OPG (dental panoramic X-ray)', 'Blood sugar (fasting)'],
+    rxSets: [
+      [['Amoxicillin 500 mg', '1 cap', 'Three times a day', 5], ['Ketorolac 10 mg', '1 tab', 'When needed for pain', 3]],
+      [['Chlorhexidine mouthwash', '10 ml', 'Twice a day', 14]],
+      [['Metronidazole 400 mg', '1 tab', 'Three times a day', 5], ['Ibuprofen 400 mg', '1 tab', 'Twice a day after food', 3]],
+      [['Sensitivity toothpaste', 'Apply', 'Twice a day', 30]],
+    ],
+    beds: [],
+  },
 ]
 
 const PLATFORM_EXTRA = [

@@ -39,7 +39,7 @@ export default function Settings() {
         <dl className="kv">
           <dt>Name</dt><dd>{tenant.name}</dd>
           <dt>Type</dt><dd>{tenant.kind}</dd>
-          <dt>Web address</dt><dd>{tenantHost(tenant.slug)}</dd>
+          <dt>Web address</dt><dd>{tenantHost(tenant)}</dd>
           <dt>Address</dt><dd>{tenant.address}</dd>
           <dt>Phone</dt><dd>{tenant.phone}</dd>
           <dt>GSTIN</dt><dd>{tenant.gstin}</dd>

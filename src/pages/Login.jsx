@@ -44,7 +44,7 @@ export default function Login() {
             <span className="brand-mark"><HeartPulse /></span>
             <div>
               <h2>{tenant.name}</h2>
-              <div className="small muted">{tenantHost(tenant.slug)}</div>
+              <div className="small muted">{tenantHost(tenant)}</div>
             </div>
           </div>
           <div className="stack" style={{ gap: 8 }}>

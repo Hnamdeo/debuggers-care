@@ -16,7 +16,18 @@ function load() {
   return null
 }
 
-let state = load() || buildSeed()
+// Returning visitors keep their saved demo data; clinics added since their last
+// visit are seeded fresh and merged in.
+function withNewTenants(saved) {
+  const fresh = buildSeed()
+  const missing = fresh.tenants.filter((t) => !saved.tenants.some((s) => s.id === t.id))
+  if (!missing.length) return saved
+  const pick = (obj) => Object.fromEntries(missing.map((t) => [t.id, obj[t.id]]))
+  return { ...saved, tenants: [...saved.tenants, ...missing], data: { ...saved.data, ...pick(fresh.data) }, counters: { ...saved.counters, ...pick(fresh.counters) } }
+}
+
+const saved = load()
+let state = saved ? withNewTenants(saved) : buildSeed()
 let session = (() => {
   try {
     return JSON.parse(localStorage.getItem(SESSION_KEY)) || {}

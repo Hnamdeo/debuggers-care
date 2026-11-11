@@ -60,4 +60,5 @@ export const ROLE_LABEL = { admin: 'Admin', doctor: 'Doctor', pharmacist: 'Pharm
 
 // Public address of a clinic. Hostinger shared hosting cannot serve nested
 // subdomains (x.care.debuggersspace.com), so clinics use "<slug>-care".
-export const tenantHost = (slug) => `${slug}-care.debuggersspace.com`
+// Real clinics get their own subdomain; the public demo clinics live under the main address.
+export const tenantHost = (t) => (t.prospect ? `${t.slug}-care.debuggersspace.com` : `care.debuggersspace.com/${t.slug}`)
