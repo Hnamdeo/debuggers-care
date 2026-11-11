@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, Stethoscope, Store, User, ArrowLeft, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
 import { auth } from '../lib/store'
-import { useTenant, Input, BrandMark } from '../components/ui'
+import { useTenant, Input, BrandMark, CompanyLink, SiteFooter } from '../components/ui'
 import { DemoBand } from '../App'
 
 export default function Login() {
@@ -74,6 +74,7 @@ export default function Login() {
           {!tenant.prospect && <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav('/')}><ArrowLeft /> All demo clinics</button>}
         </div>
       </div>
+      <SiteFooter className="login-footer" />
     </>
   )
 }
@@ -90,9 +91,12 @@ const FEATURES = [
 function AboutPanel({ tenant }) {
   return (
     <section className="about-panel" aria-label="About this app">
-      <span className="about-chip"><Sparkles size={13} /> by Debuggers Space</span>
+      <div className="about-brand">
+        <span className="about-chip"><Sparkles size={13} /> Clinic and Hospital Management System</span>
+        <span className="about-by small">by <CompanyLink /></span>
+      </div>
       <h1>Your whole clinic,<br />on one glossy screen.</h1>
-      <p>Clinic and hospital management for {tenant.name}, by Debuggers Space. Made simple for doctors.</p>
+      <p>Everything {tenant.name} needs, in one place. Made simple for doctors.</p>
       <ul className="about-list">
         {FEATURES.map(([Icon, title, sub], i) => (
           <li key={title} style={{ animationDelay: `${0.15 + i * 0.08}s` }}>
