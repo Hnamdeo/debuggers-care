@@ -1,9 +1,9 @@
 import { tenantHost } from '../lib/plans'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { HeartPulse, ShieldCheck, Stethoscope, Store, User, ArrowLeft } from 'lucide-react'
+import { ShieldCheck, Stethoscope, Store, User, ArrowLeft } from 'lucide-react'
 import { auth } from '../lib/store'
-import { useTenant, Input } from '../components/ui'
+import { useTenant, Input, BrandMark } from '../components/ui'
 import { DemoBand } from '../App'
 
 export default function Login() {
@@ -41,7 +41,7 @@ export default function Login() {
       <div className="login-wrap">
         <div className="card login-card">
           <div className="row">
-            <span className="brand-mark"><HeartPulse /></span>
+            <BrandMark tenant={tenant} />
             <div>
               <h2>{tenant.name}</h2>
               <div className="small muted">{tenantHost(tenant)}</div>

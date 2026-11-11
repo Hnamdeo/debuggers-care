@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { X, Search, Printer } from 'lucide-react'
+import { X, Search, Printer, HeartPulse } from 'lucide-react'
 import { initials } from '../lib/utils'
 
 export const TenantCtx = createContext(null)
@@ -178,13 +178,29 @@ export function DocModal({ title, onClose, children, extra }) {
   )
 }
 
+// The clinic's own logo when it has uploaded one, otherwise the default mark in its colour.
+export function BrandMark({ tenant, size = 36 }) {
+  if (tenant?.logo) return <span className="brand-mark logo" style={{ width: size, height: size }}><img src={tenant.logo} alt="" /></span>
+  return <span className="brand-mark" style={{ width: size, height: size }}><HeartPulse /></span>
+}
+
+// CSS variables for a clinic's colour combination.
+export const tenantStyle = (t) => ({
+  '--brand': t.color,
+  '--accent': t.accent || '#9fe7ff',
+  '--brand-soft': `color-mix(in srgb, ${t.color} 12%, var(--surface))`,
+})
+
 export function SheetHead({ tenant, title, sub }) {
   return (
     <div className="sheet-head">
-      <div>
+      <div className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
+        {tenant.logo && <img src={tenant.logo} alt="" style={{ width: 52, height: 52, objectFit: 'contain' }} />}
+        <div>
         <h2>{tenant.name}</h2>
         <div className="muted small">{tenant.address}</div>
         <div className="muted small">{tenant.phone}{tenant.regNo ? ` · Reg. ${tenant.regNo}` : ''}</div>
+        </div>
       </div>
       <div style={{ textAlign: 'right' }}>
         <h3>{title}</h3>

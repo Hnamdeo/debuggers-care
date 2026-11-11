@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react'
 import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
-  Lock, LogOut, Menu, MonitorPlay, Stethoscope, HeartPulse, CalendarPlus, FileHeart,
+  Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart,
 } from 'lucide-react'
 import { db, auth, useDb } from './lib/store'
 import { hasModule, ROLE_MODULES, ROLE_LABEL, PLANS, planFor, MODULES } from './lib/plans'
-import { TenantCtx, Toaster, Avatar, useTenant } from './components/ui'
+import { TenantCtx, Toaster, Avatar, useTenant, BrandMark, tenantStyle } from './components/ui'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -88,7 +88,7 @@ function TenantApp() {
   const { slug } = useParams()
   const ctx = useTenantValue(slug)
   if (!ctx) return <Navigate to="/" replace />
-  const style = { '--brand': ctx.tenant.color }
+  const style = tenantStyle(ctx.tenant)
   return (
     <TenantCtx.Provider value={ctx}>
       <div style={style} className="landing">
@@ -123,7 +123,7 @@ function Shell() {
         {open && <div className="scrim" onClick={() => setOpen(false)} />}
         <aside className={`rail ${open ? 'open' : ''}`} onClick={(e) => e.target.closest('a') && setOpen(false)}>
           <div className="brand-block">
-            <span className="brand-mark"><HeartPulse /></span>
+            <BrandMark tenant={tenant} />
             <div style={{ minWidth: 0 }}>
               <div className="brand-name">{tenant.name}</div>
               <div className="small muted">{PLANS[tenant.plan].name} plan</div>
@@ -167,7 +167,7 @@ function Shell() {
           <DemoBand />
           <div className="topbar">
             <button className="btn ghost sm" onClick={() => setOpen(true)} aria-label="Open menu"><Menu /></button>
-            <span className="brand-mark" style={{ width: 28, height: 28 }}><HeartPulse /></span>
+            <BrandMark tenant={tenant} size={28} />
             <strong style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tenant.short}</strong>
           </div>
           <main className="main" key={loc.pathname}>

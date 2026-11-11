@@ -1,8 +1,8 @@
 // Chat-style self-registration that patients open from the clinic's QR code or a
 // shared link. One question at a time, big tap targets, works on any phone.
 import { useEffect, useRef, useState } from 'react'
-import { HeartPulse, Send, CheckCircle2 } from 'lucide-react'
-import { useTenant } from '../components/ui'
+import { Send, CheckCircle2 } from 'lucide-react'
+import { useTenant, BrandMark } from '../components/ui'
 import { db } from '../lib/store'
 import { today, age } from '../lib/utils'
 
@@ -69,7 +69,7 @@ export default function SelfRegister() {
   return (
     <div className="chat-page">
       <header className="chat-head">
-        <span className="brand-mark"><HeartPulse /></span>
+        <BrandMark tenant={tenant} />
         <div style={{ minWidth: 0 }}>
           <strong>{tenant.name}</strong>
           <div className="small muted">Patient registration · step {Math.min(step + 1, STEPS.length)} of {STEPS.length}</div>
