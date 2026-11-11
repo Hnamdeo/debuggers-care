@@ -197,6 +197,15 @@ export function DocModal({ title, onClose, children, extra }) {
 }
 
 // The clinic's own logo when it has uploaded one, otherwise the default mark in its colour.
+// Company credit, linked to the main Debuggers Space site.
+export const COMPANY_URL = 'https://debuggersspace.com'
+export function CompanyLink() {
+  return <a className="company-link" href={COMPANY_URL} target="_blank" rel="noopener noreferrer">Debuggers Space Solutions</a>
+}
+export function SiteFooter({ className = '' }) {
+  return <footer className={`site-footer small ${className}`}>Designed and developed by <CompanyLink /></footer>
+}
+
 export function BrandMark({ tenant, size = 36 }) {
   if (tenant?.logo) return <span className="brand-mark logo" style={{ width: size, height: size }}><img src={tenant.logo} alt="" /></span>
   return <span className="brand-mark" style={{ width: size, height: size }}><HeartPulse /></span>

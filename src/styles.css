@@ -417,7 +417,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
   .login-wrap::before, .chat-page::before, .hero-band::before, .landing h1.hero-title { animation: none !important; }
 }
 /* Fill the screen so the aurora backdrop has no hard edge */
-.login-wrap { min-height: calc(100dvh - 32px); }
+.login-wrap { min-height: calc(100dvh - 92px); }
 .chat-page { min-height: 100dvh; }
 
 /* Split sign-in: about the app on the left, sign-in on the right */
@@ -446,3 +446,13 @@ tbody tr:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
   .about-list { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .about-panel, .about-list li, .about-panel::before { animation: none !important; } }
+
+/* Company credit and footer */
+.company-link { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
+.company-link:hover { color: var(--brand); text-decoration-color: currentColor; }
+.about-panel .company-link:hover { color: #fff; }
+.about-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.about-by { color: rgb(255 255 255 / 85%); padding-left: 4px; }
+.site-footer { text-align: center; color: var(--muted); padding: 18px 16px 22px; }
+.app-footer { margin-top: 28px; padding-bottom: 6px; }
+.login-footer { position: relative; z-index: 1; }

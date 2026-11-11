@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { db, auth, useDb } from './lib/store'
 import { hasModule, ROLE_MODULES, ROLE_LABEL, PLANS, planFor, MODULES } from './lib/plans'
-import { TenantCtx, Toaster, Avatar, useTenant, BrandMark, tenantStyle } from './components/ui'
+import { TenantCtx, Toaster, Avatar, useTenant, BrandMark, tenantStyle, SiteFooter } from './components/ui'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -194,6 +194,7 @@ function Shell() {
               <Route path="my-bills" element={isPatient ? <PatientBills /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="*" element={<Navigate to={`${base}/${home}`} replace />} />
             </Routes>
+            <SiteFooter className="app-footer" />
           </main>
         </div>
       </div>

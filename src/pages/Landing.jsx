@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { HeartPulse, ArrowRight, Check, RotateCcw, Building2, Stethoscope, QrCode, MonitorPlay, BedDouble } from 'lucide-react'
 import { db, useDb } from '../lib/store'
 import { PLANS, PLAN_ORDER, MODULES } from '../lib/plans'
-import { toast } from '../components/ui'
+import { toast, CompanyLink, SiteFooter } from '../components/ui'
 
 export default function Landing() {
   const state = useDb()
@@ -19,7 +19,8 @@ export default function Landing() {
           <div className="row">
             <span className="brand-mark"><HeartPulse /></span>
             <div>
-              <h1 className="brand-name" style={{ fontSize: 17, margin: 0 }}>Clinic & hospital management · by Debuggers Space</h1>
+              <h1 className="brand-name" style={{ fontSize: 17, margin: 0 }}>Clinic and Hospital Management System</h1>
+              <div className="small muted">by <CompanyLink /></div>
             </div>
           </div>
           <span className="pill brand plain">Live demo</span>
@@ -93,7 +94,7 @@ export default function Landing() {
         </section>
 
         <footer className="row between small muted">
-          <span>Built by Debuggers Space, Hinjawadi, Pune. All names and records here are fictional.</span>
+          <span>All names and records here are fictional.</span>
           {confirmReset ? (
             <span className="row">
               Reset all demo data?
@@ -104,6 +105,7 @@ export default function Landing() {
             <button className="btn sm" onClick={() => setConfirmReset(true)}><RotateCcw /> Reset demo data</button>
           )}
         </footer>
+        <SiteFooter />
       </div>
     </div>
   )
