@@ -1,11 +1,37 @@
 import { useNavigate } from 'react-router-dom'
-import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock } from 'lucide-react'
+import { useState } from 'react'
+import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, MonitorPlay, Stethoscope } from 'lucide-react'
+import RegisterQR from '../components/RegisterQR'
 import { useTenant, PageHead, Stat, Card, Table, Pill } from '../components/ui'
 import { today, addDays, fmtTime, money, billTotal, fmtDate } from '../lib/utils'
 
 export default function Dashboard() {
   const t = useTenant()
   return t.user.role === 'doctor' ? <DoctorDash /> : <AdminDash />
+}
+
+const greet = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening' }
+
+// Gradient welcome banner with big, plain-language action tiles: the first thing a
+// non-technical doctor or receptionist needs, one tap away.
+function Hero({ title, sub, actions }) {
+  return (
+    <section className="hero-band">
+      <div className="hero-text">
+        <h1>{title}</h1>
+        <p>{sub}</p>
+      </div>
+      <div className="tiles">
+        {actions.filter(Boolean).map((a) => (
+          <button key={a.label} className={`tile ${a.main ? 'main' : ''}`} onClick={a.onClick}>
+            <span className="tile-icon"><a.icon /></span>
+            <span className="tile-label">{a.label}</span>
+            {a.hint && <span className="tile-hint">{a.hint}</span>}
+          </button>
+        ))}
+      </div>
+    </section>
+  )
 }
 
 function RevenueBars({ bills }) {
@@ -29,6 +55,7 @@ function RevenueBars({ bills }) {
 function AdminDash() {
   const { tenant, list, patient, staff, can, base, me } = useTenant()
   const nav = useNavigate()
+  const [qr, setQr] = useState(false)
   const T = today()
   const appts = list('appointments')
   const todays = appts.filter((a) => a.date === T).sort((a, b) => a.time.localeCompare(b.time))
@@ -46,10 +73,13 @@ function AdminDash() {
 
   return (
     <>
-      <PageHead title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${me.name.split(' ')[0]}`} sub={`${tenant.name} · ${fmtDate(T)}`}>
-        <button className="btn primary" onClick={() => nav(`${base}/appointments?new=1`)}><CalendarDays /> Book appointment</button>
-        <button className="btn" onClick={() => nav(`${base}/patients?new=1`)}><Users /> Register patient</button>
-      </PageHead>
+      <Hero title={`${greet()}, ${me.name.split(' ')[0]}`} sub={`${tenant.name} · ${fmtDate(T)}`} actions={[
+        { icon: CalendarDays, label: 'Book appointment', hint: `${todays.filter((a) => a.status === 'scheduled').length} waiting today`, onClick: () => nav(`${base}/appointments?new=1`), main: true },
+        { icon: UserPlus, label: 'Register patient', hint: 'Front desk form', onClick: () => nav(`${base}/patients?new=1`) },
+        { icon: QrCode, label: 'Patient QR', hint: 'Patients self-register', onClick: () => setQr(true) },
+        can('billing') && { icon: Receipt, label: 'New bill', hint: `${money(due)} due`, onClick: () => nav(`${base}/billing`) },
+        can('ipd') && { icon: BedDouble, label: 'Admit patient', hint: `${beds.length - occupied.length} beds free`, onClick: () => nav(`${base}/ipd`) },
+      ]} />
       <div className="grid g4">
         <Stat label="Appointments today" value={todays.length} sub={`${todays.filter((a) => a.status === 'completed').length} seen · ${todays.filter((a) => a.status === 'scheduled').length} waiting`} icon={CalendarDays} />
         <Stat label="Collected this month" value={money(collectedMonth)} sub={`${money(due)} still due`} icon={IndianRupee} />
@@ -94,6 +124,7 @@ function AdminDash() {
           </Card>
         </div>
       </div>
+      {qr && <RegisterQR onClose={() => setQr(false)} />}
     </>
   )
 }
@@ -119,9 +150,13 @@ function DoctorDash() {
 
   return (
     <>
-      <PageHead title={`Hello, ${me.name}`} sub={`${me.dept} · ${fmtDate(T)}`}>
-        {next && <button className="btn primary" onClick={() => nav(`${base}/consult/${next.id}`)}><Clock /> Start next: {patient(next.patientId)?.name}</button>}
-      </PageHead>
+      <Hero title={`${greet()}, ${me.name}`} sub={`${me.dept} · ${fmtDate(T)}`} actions={[
+        next ? { icon: Stethoscope, label: `Start: ${patient(next.patientId)?.name}`, hint: `${fmtTime(next.time)} · ${next.reason}`, onClick: () => nav(`${base}/consult/${next.id}`), main: true }
+          : { icon: Stethoscope, label: 'No one waiting', hint: 'Queue is clear', onClick: () => nav(`${base}/appointments`), main: true },
+        { icon: CalendarDays, label: 'My appointments', hint: `${todays.length} today`, onClick: () => nav(`${base}/appointments`) },
+        { icon: FlaskConical, label: 'Lab reports', hint: `${labs.filter((r) => r.status === 'ordered').length} in lab`, onClick: () => nav(`${base}/reports`) },
+        can('education') && { icon: MonitorPlay, label: 'Explain videos', hint: 'Show patients', onClick: () => nav(`${base}/education`) },
+      ]} />
       <div className="grid g4">
         <Stat label="My patients today" value={todays.length} sub={`${todays.filter((a) => a.status === 'completed').length} seen`} icon={CalendarDays} />
         <Stat label="Seen this week" value={week} sub="Completed consultations" icon={Users} />

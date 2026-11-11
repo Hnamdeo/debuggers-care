@@ -1,7 +1,7 @@
 import { tenantHost } from '../lib/plans'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { HeartPulse, ArrowRight, Check, RotateCcw, Building2, Stethoscope } from 'lucide-react'
+import { HeartPulse, ArrowRight, Check, RotateCcw, Building2, Stethoscope, QrCode, MonitorPlay, BedDouble } from 'lucide-react'
 import { db, useDb } from '../lib/store'
 import { PLANS, PLAN_ORDER, MODULES } from '../lib/plans'
 import { toast } from '../components/ui'
@@ -38,6 +38,11 @@ export default function Landing() {
               <polyline fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" points="0,40 120,40 140,40 150,30 160,40 200,40 212,40 222,6 234,58 246,40 290,40 310,40 322,32 334,40 420,40 432,40 442,10 454,56 466,40 520,40 540,34 552,40 600,40" />
             </svg>
           </div>
+          <div className="preview-3d">
+          <div className="preview-stage">
+          <div className="float-card" style={{ top: -22, right: -10 }}><QrCode size={16} color="var(--brand)" /> Patient registered by QR · P-1029</div>
+          <div className="float-card" style={{ bottom: -20, left: -18 }}><MonitorPlay size={16} color="var(--brand)" /> RCT video shared with patient</div>
+          <div className="float-card" style={{ bottom: 70, right: -26 }}><BedDouble size={16} color="var(--bad)" /> ICU-04 · SpO₂ 89%</div>
           <div className="card pad stack">
             <h3>Try it as</h3>
             <p className="muted small" style={{ margin: 0 }}>Pick a demo clinic, then choose Admin, Doctor, Pharmacist or Patient. No sign-up, sample data only.</p>
@@ -51,6 +56,8 @@ export default function Landing() {
                 <ArrowRight size={16} />
               </button>
             ))}
+          </div>
+          </div>
           </div>
         </section>
 
