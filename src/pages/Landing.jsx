@@ -28,7 +28,7 @@ export default function Landing() {
         <section className="hero">
           <div className="stack">
             <span className="eyebrow">One platform, from a one-chair clinic to a 200-bed hospital</span>
-            <h1>Run appointments, prescriptions, beds, pharmacy and billing from one screen.</h1>
+            <h1 className="hero-title">Run appointments, prescriptions, beds, pharmacy and billing from one screen.</h1>
             <p className="lead">
               Every clinic gets its own space at its own address. Start on the Clinic plan and switch on pharmacy, payroll, IPD, ICU and
               emergency when you grow. Your patients and records stay exactly where they are.

@@ -335,3 +335,87 @@ textarea.input { resize: vertical; min-height: 70px; }
 .float-card { position: absolute; padding: 10px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-lift); font-size: 12.5px; transform: translateZ(60px); display: flex; gap: 8px; align-items: center; }
 @media (prefers-reduced-motion: reduce) { .preview-stage, .tile, .stat { transform: none !important; } }
 @media (max-width: 860px) { .float-card { display: none; } .preview-stage, .preview-3d:hover .preview-stage { transform: none; } }
+
+/* ---------- Gloss & motion layer ----------
+   Shared polish on top of the base styles: glass surfaces, a light sheen on primary
+   buttons, page and card entrances, and a slow aurora behind sign-in and the hero band.
+   Everything here is switched off for people who ask for reduced motion. */
+@keyframes rise { from { opacity: 0; transform: translateY(10px) scale(0.99); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-in { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes sheen { from { transform: translateX(-120%) skewX(-20deg); } to { transform: translateX(220%) skewX(-20deg); } }
+@keyframes aurora { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(6%, -4%) scale(1.12); } 100% { transform: translate(0, 0) scale(1); } }
+@keyframes float-orb { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, 14px); } }
+@keyframes shine-text { to { background-position: 200% center; } }
+
+/* Page entrance: each screen and its cards rise in, slightly staggered */
+.main > * { animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.main > *:nth-child(2) { animation-delay: 0.05s; }
+.main > *:nth-child(3) { animation-delay: 0.1s; }
+.main > *:nth-child(4) { animation-delay: 0.15s; }
+.main > *:nth-child(n + 5) { animation-delay: 0.2s; }
+.grid > .card { animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.grid > .card:nth-child(2) { animation-delay: 0.06s; }
+.grid > .card:nth-child(3) { animation-delay: 0.12s; }
+.grid > .card:nth-child(4) { animation-delay: 0.18s; }
+
+/* Glossy cards: soft top highlight, lift on hover */
+.card { position: relative; background-image: linear-gradient(180deg, rgb(255 255 255 / 55%), transparent 40%); transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+.card.stat:hover, .video-card:hover, .tenant-card:hover, .plan-col:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -14px color-mix(in srgb, var(--brand) 45%, transparent); border-color: color-mix(in srgb, var(--brand) 35%, var(--line)); }
+.stat { overflow: hidden; }
+.stat::after { content: ''; position: absolute; right: -30px; top: -30px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--brand) 18%, transparent), transparent 70%); pointer-events: none; }
+.stat .v { background: linear-gradient(90deg, var(--fg), color-mix(in srgb, var(--brand) 75%, var(--fg))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Buttons: sheen sweep on primary, press feedback on all */
+.btn { transition: transform 0.12s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+.btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
+.btn.primary { position: relative; overflow: hidden; }
+.btn.primary::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 40%; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 45%), transparent); transform: translateX(-120%) skewX(-20deg); pointer-events: none; }
+.btn.primary:hover::after { animation: sheen 0.8s ease; }
+.btn.primary:hover { box-shadow: inset 0 1px 0 rgb(255 255 255 / 30%), 0 8px 18px -6px color-mix(in srgb, var(--brand) 70%, transparent); }
+
+/* Sidebar: glass rail, gradient active pill */
+.rail { background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 6%, var(--surface)), var(--surface) 45%); }
+.nav-item { transition: background 0.15s, color 0.15s, transform 0.15s; }
+.nav-item:hover { transform: translateX(2px); }
+.nav-item.active { background: linear-gradient(90deg, color-mix(in srgb, var(--brand) 18%, var(--surface)), color-mix(in srgb, var(--brand) 6%, var(--surface))); box-shadow: inset 3px 0 0 var(--brand); }
+.brand-mark { box-shadow: inset 0 1px 0 rgb(255 255 255 / 35%), 0 6px 14px -6px color-mix(in srgb, var(--brand) 70%, transparent); }
+
+/* Hero band: drifting light orbs */
+.hero-band::before { content: ''; position: absolute; width: 260px; height: 260px; right: -60px; top: -90px; border-radius: 50%; background: radial-gradient(circle, rgb(255 255 255 / 28%), transparent 65%); animation: float-orb 9s ease-in-out infinite; pointer-events: none; }
+
+/* Tables: row hover tint */
+tbody tr { transition: background 0.15s; }
+tbody tr:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
+
+/* Modals: pop in over a blurred backdrop */
+.modal-scrim { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: fade 0.2s ease both; }
+.modal { animation: modal-in 0.28s cubic-bezier(0.2, 0.9, 0.25, 1.1) both; background-image: linear-gradient(180deg, rgb(255 255 255 / 50%), transparent 30%); }
+
+/* Sign-in and registration chat: animated aurora behind a glass card */
+.login-wrap, .chat-page { position: relative; isolation: isolate; overflow: clip; }
+.login-wrap::before, .chat-page::before { content: ''; position: absolute; inset: -20%; z-index: -1; pointer-events: none;
+  background: radial-gradient(40% 40% at 20% 20%, color-mix(in srgb, var(--brand) 28%, transparent), transparent 70%),
+              radial-gradient(35% 35% at 80% 30%, color-mix(in srgb, var(--accent, #9fe7ff) 45%, transparent), transparent 70%),
+              radial-gradient(45% 45% at 60% 85%, color-mix(in srgb, var(--brand) 18%, transparent), transparent 70%);
+  animation: aurora 16s ease-in-out infinite; }
+.login-card { background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 24px 60px -24px color-mix(in srgb, var(--brand) 50%, rgb(0 0 0 / 40%)); animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.role-btn { transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.role-btn:hover { transform: translateY(-2px); border-color: var(--brand); box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--brand) 60%, transparent); }
+.bubble { animation: rise 0.3s ease both; }
+
+/* Landing headline shimmer */
+.landing h1.hero-title { background: linear-gradient(90deg, var(--fg) 0%, var(--brand) 40%, var(--fg) 80%); background-size: 200% auto; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine-text 6s linear infinite; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .card, :root:not([data-theme='light']) .modal { background-image: linear-gradient(180deg, rgb(255 255 255 / 4%), transparent 40%); }
+}
+:root[data-theme='dark'] .card, :root[data-theme='dark'] .modal { background-image: linear-gradient(180deg, rgb(255 255 255 / 4%), transparent 40%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .main > *, .grid > .card, .login-card, .bubble, .modal, .modal-scrim { animation: none !important; }
+  .login-wrap::before, .chat-page::before, .hero-band::before, .landing h1.hero-title { animation: none !important; }
+}
+/* Fill the screen so the aurora backdrop has no hard edge */
+.login-wrap { min-height: calc(100dvh - 32px); }
+.chat-page { min-height: 100dvh; }
