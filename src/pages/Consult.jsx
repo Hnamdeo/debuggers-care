@@ -144,7 +144,7 @@ function ExplainCard({ doc, patientId, onPlay }) {
   if (!can('education')) return null
   const all = list('videos')
   const mine = all.filter((v) => v.speciality === doc.dept || (doc.dept === 'Dental Surgery' || doc.dept === 'Orthodontics') && v.speciality === 'Dental')
-  const vids = (mine.length ? mine : all).slice(0, 5)
+  const vids = [...mine, ...all.filter((v) => !mine.includes(v))].slice(0, 5)
   return (
     <Card title={<h2><MonitorPlay size={17} style={{ verticalAlign: '-3px' }} /> Explain to patient</h2>}>
       {vids.map((v) => (
