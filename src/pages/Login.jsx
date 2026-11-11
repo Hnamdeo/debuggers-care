@@ -90,9 +90,9 @@ const FEATURES = [
 function AboutPanel({ tenant }) {
   return (
     <section className="about-panel" aria-label="About this app">
-      <span className="about-chip"><Sparkles size={13} /> Debuggers Care</span>
+      <span className="about-chip"><Sparkles size={13} /> by Debuggers Space</span>
       <h1>Your whole clinic,<br />on one glossy screen.</h1>
-      <p>{tenant.name} runs on Debuggers Care: clinic and hospital management by Debuggers Space, made simple for doctors.</p>
+      <p>Clinic and hospital management for {tenant.name}, by Debuggers Space. Made simple for doctors.</p>
       <ul className="about-list">
         {FEATURES.map(([Icon, title, sub], i) => (
           <li key={title} style={{ animationDelay: `${0.15 + i * 0.08}s` }}>
