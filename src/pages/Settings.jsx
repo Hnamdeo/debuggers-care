@@ -1,5 +1,6 @@
 import { tenantHost } from '../lib/plans'
-import { Check, Lock } from 'lucide-react'
+import { useRef } from 'react'
+import { Check, Lock, Download, Upload } from 'lucide-react'
 import { useTenant, PageHead, Card, toast } from '../components/ui'
 import { db } from '../lib/store'
 import { PLANS, PLAN_ORDER, MODULES } from '../lib/plans'
@@ -35,6 +36,7 @@ export default function Settings() {
           )
         })}
       </div>
+      <BackupCard tenant={tenant} tid={tid} />
       <Card title="Clinic details">
         <dl className="kv">
           <dt>Name</dt><dd>{tenant.name}</dd>
@@ -48,5 +50,44 @@ export default function Settings() {
         </dl>
       </Card>
     </>
+  )
+}
+
+// Download the whole clinic as one file, and restore it on this or another computer.
+function BackupCard({ tenant, tid }) {
+  const file = useRef(null)
+  const download = () => {
+    const blob = new Blob([JSON.stringify(db.exportTenant(tid))], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `${tenant.slug}-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    toast('Backup downloaded. Keep it somewhere safe, such as Google Drive.')
+  }
+  const restore = async (e) => {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f) return
+    try {
+      db.importTenant(tid, JSON.parse(await f.text()))
+      toast('Backup restored')
+    } catch (err) {
+      toast(err.message || 'Could not read that file')
+    }
+  }
+  return (
+    <Card title="Backup">
+      <p className="muted small" style={{ margin: 0 }}>
+        {tenant.live
+          ? 'Until your clinic moves to the secure online server, records are saved only in this browser on this computer. Download a backup at the end of every day. If the browser is cleared or the computer changes, restore the latest backup here.'
+          : 'Download everything in this clinic as one file, or restore from a file you saved earlier.'}
+      </p>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        <button className="btn primary" onClick={download}><Download /> Download backup</button>
+        <button className="btn" onClick={() => file.current?.click()}><Upload /> Restore from backup</button>
+        <input ref={file} type="file" accept="application/json,.json" hidden onChange={restore} />
+      </div>
+    </Card>
   )
 }

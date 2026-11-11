@@ -111,6 +111,8 @@ function Shell() {
   const role = user.role
   const mods = ROLE_MODULES[role]
   const isPatient = role === 'patient'
+  // In a clinic's own live space the doctor also owns settings and backups.
+  const canSettings = role === 'admin' || (tenant.live && role === 'doctor')
   const home = isPatient ? 'me' : role === 'pharmacist' ? 'pharmacy' : 'dashboard'
 
   const guard = (mod, el) => (ROLE_MODULES[role].includes(mod) ? (hasModule(tenant, mod) ? el : <Locked mod={mod} />) : <Navigate to={`${base}/${home}`} replace />)
@@ -147,7 +149,7 @@ function Shell() {
                   </div>
                 )
               })}
-              {role === 'admin' && <NavItem to={`${base}/settings`} icon={SettingsIcon} label="Plan & settings" />}
+              {canSettings && <NavItem to={`${base}/settings`} icon={SettingsIcon} label="Plan & settings" />}
             </>
           )}
           <div className="rail-foot">
@@ -185,7 +187,7 @@ function Shell() {
               <Route path="billing" element={guard('billing', <Billing />)} />
               <Route path="staff" element={guard('staff', <Staff />)} />
               <Route path="payroll" element={guard('payroll', <Payroll />)} />
-              <Route path="settings" element={role === 'admin' ? <Settings /> : <Navigate to={`${base}/${home}`} replace />} />
+              <Route path="settings" element={canSettings ? <Settings /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="me" element={isPatient ? <PatientHome /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="book" element={isPatient ? <PatientBook /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="my-appointments" element={isPatient ? <PatientAppointments /> : <Navigate to={`${base}/${home}`} replace />} />
@@ -216,7 +218,9 @@ export function DemoBand() {
     <div className="demo-band">
       <span>
         <Stethoscope size={13} style={{ verticalAlign: '-2px' }} />{' '}
-        {t?.tenant.prospect
+        {t?.tenant.live
+          ? `${t.tenant.name} · records are saved on this computer only. Download a backup from Settings at the end of each day.`
+          : t?.tenant.prospect
           ? `Trial space for ${t.tenant.name}. Sample patients only: please don’t enter real patient details until go-live.`
           : 'Demo by Debuggers Space · sample data only'}
       </span>

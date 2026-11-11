@@ -21,7 +21,7 @@ export default function Login() {
   const submit = (e) => {
     e.preventDefault()
     const u = users.find((x) => x.email.toLowerCase() === email.trim().toLowerCase())
-    if (!u || u.password !== pw) return setErr('That email and password do not match. Every demo account uses the password demo123.')
+    if (!u || u.password !== pw) return setErr(tenant.live ? 'That email and password do not match.' : 'That email and password do not match. Every demo account uses the password demo123.')
     if (u.role === 'pharmacist' && !can('pharmacy')) return setErr('Pharmacy is not on this clinic’s plan yet.')
     go(u)
   }
@@ -30,7 +30,7 @@ export default function Login() {
     { role: 'admin', icon: ShieldCheck, label: 'Admin', sub: 'Full access, billing, staff, plan' },
     { role: 'doctor', icon: Stethoscope, label: 'Doctor', sub: 'Today’s patients, prescriptions' },
     can('pharmacy') && { role: 'pharmacist', icon: Store, label: 'Pharmacist', sub: 'Stock and dispensing' },
-    { role: 'patient', icon: User, label: 'Patient', sub: 'Own records, bills, booking' },
+    !tenant.live && { role: 'patient', icon: User, label: 'Patient', sub: 'Own records, bills, booking' },
   ].filter(Boolean)
 
   const who = (u) => (u.role === 'patient' ? patient(u.refId) : staff(u.refId))?.name
@@ -48,9 +48,10 @@ export default function Login() {
             </div>
           </div>
           <div className="stack" style={{ gap: 8 }}>
-            <span className="eyebrow">One-click demo login</span>
+            <span className="eyebrow">{tenant.live ? 'Sign in' : 'One-click demo login'}</span>
             {quick.map((q) => {
               const u = users.find((x) => x.role === q.role)
+              if (!u) return null
               return (
                 <button key={q.role} className="role-btn" onClick={() => go(u)}>
                   <q.icon />
