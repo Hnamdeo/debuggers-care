@@ -16,7 +16,23 @@ function load() {
   return null
 }
 
-let state = load() || buildSeed()
+// Returning visitors keep their saved demo data; clinics added since their last
+// visit are seeded fresh and merged in.
+function withNewTenants(saved) {
+  const fresh = buildSeed()
+  // A clinic that has just switched from sample data to a clean live space is reseeded once.
+  const missing = fresh.tenants.filter((t) => {
+    const old = saved.tenants.find((s) => s.id === t.id)
+    return !old || (t.live && !old.live)
+  })
+  if (!missing.length) return saved
+  const pick = (obj) => Object.fromEntries(missing.map((t) => [t.id, obj[t.id]]))
+  const ids = new Set(missing.map((t) => t.id))
+  return { ...saved, tenants: [...saved.tenants.filter((t) => !ids.has(t.id)), ...missing], data: { ...saved.data, ...pick(fresh.data) }, counters: { ...saved.counters, ...pick(fresh.counters) } }
+}
+
+const saved = load()
+let state = saved ? withNewTenants(saved) : buildSeed()
 let session = (() => {
   try {
     return JSON.parse(localStorage.getItem(SESSION_KEY)) || {}
@@ -78,6 +94,17 @@ export const db = {
     emit()
   },
   platformExtra: () => state.platformExtra || [],
+  // Whole-clinic backup as one JSON file, and restore from it.
+  exportTenant(tid) {
+    return { kind: 'debuggers-care-backup', version: 1, exportedAt: new Date().toISOString(), tenant: state.tenants.find((t) => t.id === tid), data: state.data[tid], counters: state.counters[tid] }
+  },
+  importTenant(tid, backup) {
+    if (backup?.kind !== 'debuggers-care-backup' || backup.tenant?.id !== tid || !backup.data) throw new Error('This file is not a backup of this clinic.')
+    state.tenants = state.tenants.map((t) => (t.id === tid ? { ...t, ...backup.tenant } : t))
+    state.data[tid] = backup.data
+    state.counters[tid] = backup.counters || {}
+    emit()
+  },
   reset() {
     state = buildSeed()
     session = {}

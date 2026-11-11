@@ -153,8 +153,9 @@ const TENANT_DEFS = [
     short: 'Mourya Dental',
     kind: 'Dental clinic',
     plan: 'clinic',
-    // Prospect demo: public listing details only (name, doctor, locality, services). Patients and numbers are sample data.
+    // Real clinic starting with an empty space: no sample patients, visits, bills or staff.
     prospect: true,
+    live: true,
     address: 'Bazar Chowk, Vidhan Sabha Road, Mowa, Raipur 492001',
     phone: 'Mon to Sat · 10 AM to 2 PM, 5 PM to 9 PM',
     email: 'clinic@drmourya.example',
@@ -168,11 +169,48 @@ const TENANT_DEFS = [
       ['Front desk (sample)', 'F', 'receptionist', 'Front desk', 15000],
       ['Dental assistant (sample)', 'F', 'nurse', 'Chairside assistant', 14000],
     ],
-    admin: ['Clinic admin (sample)', 'F', 'Clinic manager', 25000],
+    admin: ['Clinic admin', 'F', 'Clinic manager', 0],
     patients: 24,
     reasons: ['Tooth pain', 'General dental check-up', 'Scaling & polishing', 'Loose tooth', 'Wisdom tooth pain', 'Denture fitting', 'Broken tooth', 'Bleeding gums', 'Crown follow-up', 'Tooth sensitivity'],
     services: [['Consultation', 150], ['Scaling & polishing', 800], ['Tooth extraction', 500], ['Surgical tooth extraction', 2500], ['Impacted tooth extraction', 3500], ['Complete denture', 12000], ['Partial denture', 4000], ['Crown (ceramic)', 5000], ['Bridge (per unit)', 4500]],
     diagnoses: ['Dental caries', 'Chronic gingivitis', 'Impacted 38', 'Grade II mobility (31, 41)', 'Edentulous maxilla', 'Fractured crown (11)', 'Dentine hypersensitivity'],
+    tests: ['IOPA X-ray', 'OPG (dental panoramic X-ray)', 'Blood sugar (fasting)'],
+    rxSets: [
+      [['Amoxicillin 500 mg', '1 cap', 'Three times a day', 5], ['Ketorolac 10 mg', '1 tab', 'When needed for pain', 3]],
+      [['Chlorhexidine mouthwash', '10 ml', 'Twice a day', 14]],
+      [['Metronidazole 400 mg', '1 tab', 'Three times a day', 5], ['Ibuprofen 400 mg', '1 tab', 'Twice a day after food', 3]],
+      [['Sensitivity toothpaste', 'Apply', 'Twice a day', 30]],
+    ],
+    beds: [],
+  },
+  {
+    id: 't_vedanta',
+    slug: 'vedantadental',
+    name: 'Vedanta Dental Care',
+    short: 'Vedanta Dental',
+    kind: 'Dental clinic',
+    plan: 'clinic',
+    // Prospect demo: clinic name, town and doctors' names only. Patients and numbers are sample data.
+    prospect: true,
+    address: 'Janjgir, Chhattisgarh',
+    phone: '',
+    email: 'clinic@vedantadental.example',
+    gstin: '',
+    regNo: '',
+    color: '#7c3aed',
+    doctors: [
+      ['Dr. Deepak', 'M', 'Dental Surgery', 'Dentist', 200, 0],
+      ['Dr. Megha', 'F', 'Dental Surgery', 'Dentist', 200, 0],
+    ],
+    otherStaff: [
+      ['Front desk (sample)', 'F', 'receptionist', 'Front desk', 15000],
+      ['Dental assistant (sample)', 'F', 'nurse', 'Chairside assistant', 14000],
+    ],
+    admin: ['Clinic admin (sample)', 'F', 'Clinic manager', 25000],
+    patients: 26,
+    reasons: ['Tooth pain', 'General dental check-up', 'Scaling & polishing', 'Root canal follow-up', 'Wisdom tooth pain', 'Braces consultation', 'Broken tooth', 'Bleeding gums', 'Crown follow-up', 'Tooth sensitivity'],
+    services: [['Consultation', 200], ['Scaling & polishing', 800], ['Composite filling', 1000], ['Root canal treatment', 4000], ['Tooth extraction', 500], ['Impacted tooth extraction', 3500], ['Crown (ceramic)', 5000], ['Braces adjustment', 1000], ['Complete denture', 12000]],
+    diagnoses: ['Dental caries', 'Irreversible pulpitis (36)', 'Chronic gingivitis', 'Impacted 48', 'Malocclusion, Class II', 'Fractured crown (21)', 'Dentine hypersensitivity'],
     tests: ['IOPA X-ray', 'OPG (dental panoramic X-ray)', 'Blood sugar (fasting)'],
     rxSets: [
       [['Amoxicillin 500 mg', '1 cap', 'Three times a day', 5], ['Ketorolac 10 mg', '1 tab', 'When needed for pain', 3]],
@@ -232,15 +270,16 @@ function buildTenant(def, seedNum) {
 
   // Staff and their logins
   const adminId = nextId('S')
-  data.staff.push({ id: adminId, name: def.admin[0], gender: def.admin[1], role: 'admin', dept: 'Administration', title: def.admin[2], phone: '98' + int(10000000, 99999999), email: `admin@${domain}`, salary: def.admin[3], joinDate: addDays(T, -int(400, 1400)) })
+  const fake = (v) => (def.live ? '' : v)
+  data.staff.push({ id: adminId, name: def.admin[0], gender: def.admin[1], role: 'admin', dept: 'Administration', title: def.admin[2], phone: fake('98' + int(10000000, 99999999)), email: `admin@${domain}`, salary: def.admin[3], joinDate: def.live ? T : addDays(T, -int(400, 1400)) })
   data.users.push({ id: 'U-admin', role: 'admin', refId: adminId, email: `admin@${domain}`, password: 'demo123' })
   def.doctors.forEach(([name, g, dept, qual, fee, sal], i) => {
     const id = nextId('S')
     const email = `${name.replace(/^Dr\.\s*/, '').split(' ')[0].toLowerCase()}@${domain}`
-    data.staff.push({ id, name, gender: g, role: 'doctor', dept, title: dept, qualification: qual, fee, phone: '98' + int(10000000, 99999999), email, salary: sal, joinDate: addDays(T, -int(200, 1500)), regNo: `MMC-${int(60000, 99999)}` })
+    data.staff.push({ id, name, gender: g, role: 'doctor', dept, title: dept, qualification: qual, fee, phone: fake('98' + int(10000000, 99999999)), email, salary: sal, joinDate: def.live ? T : addDays(T, -int(200, 1500)), regNo: fake(`MMC-${int(60000, 99999)}`) })
     data.users.push({ id: 'U-doc' + i, role: 'doctor', refId: id, email, password: 'demo123' })
   })
-  def.otherStaff.forEach(([name, g, role, dept, sal]) => {
+  ;(def.live ? [] : def.otherStaff).forEach(([name, g, role, dept, sal]) => {
     const id = nextId('S')
     const email = `${name.split(' ')[0].toLowerCase()}@${domain}`
     data.staff.push({ id, name, gender: g, role, dept, title: dept, phone: '97' + int(10000000, 99999999), email, salary: sal, joinDate: addDays(T, -int(100, 1200)) })
@@ -254,6 +293,12 @@ function buildTenant(def, seedNum) {
     data.medicines.push({ id: nextId('M'), name, generic, form, batch: 'B' + int(10000, 99999), expiry: addDays(T, int(0, 10) < 1 ? int(10, 50) : int(120, 700)), stock, reorder: 30, mrp, cost: +(mrp * 0.72).toFixed(2) })
   })
   const med = (name) => data.medicines.find((m) => m.name === name)
+
+  // A live clinic starts empty: just its doctors, a medicine list and the education library.
+  if (def.live) {
+    addVideos(def, data, nextId, T, int)
+    return finishTenant(def, data, counters, T)
+  }
 
   // Patients
   for (let i = 0; i < def.patients; i++) {
@@ -407,9 +452,7 @@ function buildTenant(def, seedNum) {
   }
 
   // Patient education library
-  VIDEO_LIBRARY[def.kind === 'Dental clinic' ? 'dental' : 'hospital'].forEach(([title, procedure, speciality, mins]) => {
-    data.videos.push({ id: nextId('V'), title, procedure, speciality, minutes: mins, url: yt(title), source: 'YouTube (replace with your own)', addedOn: addDays(T, -int(10, 90)) })
-  })
+  addVideos(def, data, nextId, T, int)
   data.shares.push({ id: nextId('SH'), patientId: demoPatient.id, videoId: data.videos[0].id, doctorId: doctors[0].id, date: addDays(T, -6) })
 
   // Payroll: last two months paid
@@ -423,8 +466,18 @@ function buildTenant(def, seedNum) {
     })
   }
 
+  return finishTenant(def, data, counters, T)
+}
+
+function addVideos(def, data, nextId, T, int) {
+  VIDEO_LIBRARY[def.kind === 'Dental clinic' ? 'dental' : 'hospital'].forEach(([title, procedure, speciality, mins]) => {
+    data.videos.push({ id: nextId('V'), title, procedure, speciality, minutes: mins, url: yt(title), source: 'YouTube (replace with your own)', addedOn: def.live ? T : addDays(T, -int(10, 90)) })
+  })
+}
+
+function finishTenant(def, data, counters, T) {
   const { doctors: _d, otherStaff: _o, admin: _a, patients: _p, reasons, services, diagnoses, tests, rxSets: _r, beds: _b, ...tenant } = def
-  return { tenant: { ...tenant, services, diagnoses, tests, reasons, createdAt: addDays(T, -380) }, data, counters }
+  return { tenant: { ...tenant, services, diagnoses, tests, reasons, createdAt: def.live ? T : addDays(T, -380) }, data, counters }
 }
 
 function pad2(n) {

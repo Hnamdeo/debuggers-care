@@ -19,8 +19,7 @@ export default function Landing() {
           <div className="row">
             <span className="brand-mark"><HeartPulse /></span>
             <div>
-              <div className="brand-name">Debuggers Care</div>
-              <div className="small muted">Clinic & hospital management · by Debuggers Space</div>
+              <h1 className="brand-name" style={{ fontSize: 17, margin: 0 }}>Clinic & hospital management · by Debuggers Space</h1>
             </div>
           </div>
           <span className="pill brand plain">Live demo</span>
@@ -70,7 +69,7 @@ export default function Landing() {
             {(state.platformExtra || []).map((t) => (
               <div key={t.id} className="tenant-card">
                 <div className="row between"><strong>{t.name}</strong><span className="pill plain">{PLANS[t.plan].name}</span></div>
-                <span className="addr">{tenantHost(t.slug)}</span>
+                <span className="addr">{tenantHost({ ...t, prospect: true })}</span>
                 <span className="small muted">{t.kind} · {t.city}. Shown to illustrate a third tenant; not part of the clickable demo.</span>
               </div>
             ))}
@@ -114,7 +113,7 @@ function TenantCard({ t, onOpen, counts }) {
   return (
     <div className="tenant-card" style={{ '--brand': t.color }}>
       <div className="row between"><strong>{t.name}</strong><span className="pill brand plain">{PLANS[t.plan].name}</span></div>
-      <span className="addr">{tenantHost(t.slug)}</span>
+      <span className="addr">{tenantHost(t)}</span>
       <span className="small muted">{t.kind} · {counts.patients} patients · {counts.staff} staff</span>
       <button className="btn primary" onClick={onOpen} style={{ alignSelf: 'flex-start' }}>Open demo <ArrowRight /></button>
     </div>
