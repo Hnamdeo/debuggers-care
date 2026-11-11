@@ -19,8 +19,7 @@ export default function Landing() {
           <div className="row">
             <span className="brand-mark"><HeartPulse /></span>
             <div>
-              <div className="brand-name">Debuggers Care</div>
-              <div className="small muted">Clinic & hospital management · by Debuggers Space</div>
+              <h1 className="brand-name" style={{ fontSize: 17, margin: 0 }}>Clinic & hospital management · by Debuggers Space</h1>
             </div>
           </div>
           <span className="pill brand plain">Live demo</span>
