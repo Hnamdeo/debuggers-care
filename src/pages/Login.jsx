@@ -1,7 +1,7 @@
 import { tenantHost } from '../lib/plans'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck, Stethoscope, Store, User, ArrowLeft } from 'lucide-react'
+import { ShieldCheck, Stethoscope, Store, User, ArrowLeft, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
 import { auth } from '../lib/store'
 import { useTenant, Input, BrandMark } from '../components/ui'
 import { DemoBand } from '../App'
@@ -38,7 +38,8 @@ export default function Login() {
   return (
     <>
       <DemoBand />
-      <div className="login-wrap">
+      <div className="login-wrap login-split">
+        <AboutPanel tenant={tenant} />
         <div className="card login-card">
           <div className="row">
             <BrandMark tenant={tenant} />
@@ -74,5 +75,33 @@ export default function Login() {
         </div>
       </div>
     </>
+  )
+}
+
+// Left side of the sign-in screen: what the app does, in the clinic's own colours.
+const FEATURES = [
+  [CalendarCheck, 'Appointments & queue', 'Book, check in and see who is next'],
+  [FileHeart, 'Prescriptions in one step', 'Medicines, tests and the bill together'],
+  [QrCode, 'QR self-registration', 'Patients register from their phone'],
+  [MonitorPlay, 'Explain with videos', 'Show and share treatment videos'],
+  [Receipt, 'Bills & reports', 'Every record saved to the patient'],
+]
+
+function AboutPanel({ tenant }) {
+  return (
+    <section className="about-panel" aria-label="About this app">
+      <span className="about-chip"><Sparkles size={13} /> by Debuggers Space</span>
+      <h1>Your whole clinic,<br />on one glossy screen.</h1>
+      <p>Clinic and hospital management for {tenant.name}, by Debuggers Space. Made simple for doctors.</p>
+      <ul className="about-list">
+        {FEATURES.map(([Icon, title, sub], i) => (
+          <li key={title} style={{ animationDelay: `${0.15 + i * 0.08}s` }}>
+            <span className="about-ic"><Icon /></span>
+            <span><strong>{title}</strong><span className="small">{sub}</span></span>
+          </li>
+        ))}
+      </ul>
+      <span className="about-foot small">Secure sign-in · Works on any computer, tablet or phone</span>
+    </section>
   )
 }

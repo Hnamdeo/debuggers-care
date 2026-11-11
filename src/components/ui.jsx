@@ -47,6 +47,24 @@ export function Card({ title, actions, children, pad, className = '' }) {
   )
 }
 
+// Numbers on stat cards count up briefly when a screen opens.
+function CountUp({ to }) {
+  const [n, setN] = useState(() => (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? to : 0))
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || !to) return setN(to)
+    let raf
+    const t0 = performance.now()
+    const tick = (t) => {
+      const k = Math.min(1, (t - t0) / 700)
+      setN(Math.round(to * (1 - Math.pow(1 - k, 3))))
+      if (k < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [to])
+  return n.toLocaleString('en-IN')
+}
+
 export function Stat({ label, value, sub, icon: Icon }) {
   return (
     <div className="card stat">
@@ -54,7 +72,7 @@ export function Stat({ label, value, sub, icon: Icon }) {
         <span className="eyebrow">{label}</span>
         {Icon && <Icon size={16} className="faint" />}
       </div>
-      <span className="v">{value}</span>
+      <span className="v">{typeof value === 'number' ? <CountUp to={value} /> : value}</span>
       {sub && <span className="sub">{sub}</span>}
     </div>
   )
