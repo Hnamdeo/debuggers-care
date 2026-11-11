@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { db, useDb } from '../lib/store'
 import { PLANS, PLAN_ORDER, MODULES, tenantHost } from '../lib/plans'
-import { toast, CompanyLink, SiteFooter, COMPANY_URL } from '../components/ui'
+import { toast, CompanyLink, SiteFooter, COMPANY_URL, CountUp } from '../components/ui'
 
 const SPECIALITIES = ['Dental clinics', 'General physicians', 'Paediatrics', 'Gynaecology', 'Orthopaedics', 'ENT', 'Eye care', 'Skin & hair', 'Physiotherapy', 'Multi-speciality hospitals']
 
@@ -50,6 +50,21 @@ export default function Landing() {
   const tenants = state.tenants.filter((t) => !t.prospect) // trial spaces for real clinics are reached only by their own address
   const root = useReveal()
   const tiltRef = useRef(null)
+  // Live-feeling numbers in the dashboard preview: they count up, then tick every few seconds.
+  const [live, setLive] = useState({ today: 12, wait: 8, billed: 18.4, waiting: 3 })
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const id = setInterval(() => setLive((v) => {
+      const today = v.today >= 24 ? 12 : v.today + 1
+      return {
+        today,
+        wait: [6, 7, 8, 9, 10][Math.floor(Math.random() * 5)],
+        billed: today === 12 ? 18.4 : Math.round((v.billed + 0.4 + Math.random() * 1.2) * 10) / 10,
+        waiting: 1 + Math.floor(Math.random() * 4),
+      }
+    }), 3200)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 12)
@@ -117,12 +132,12 @@ export default function Landing() {
               <div className="lx-mock-body">
                 <div className="lx-mock-hello">
                   <strong>Good morning, Dr. Mehta</strong>
-                  <span>12 patients today · 3 waiting</span>
+                  <span><CountUp to={live.today} delay={500} duration={900} /> patients today · <CountUp to={live.waiting} delay={500} /> waiting</span>
                 </div>
                 <div className="lx-mock-stats">
-                  <div><Users size={14} /><b>12</b><span>Today</span></div>
-                  <div><Clock size={14} /><b>8 min</b><span>Avg wait</span></div>
-                  <div><Activity size={14} /><b>₹18.4k</b><span>Billed</span></div>
+                  <div><Users size={14} /><b><CountUp to={live.today} delay={600} duration={1200} /></b><span>Today</span></div>
+                  <div><Clock size={14} /><b><CountUp to={live.wait} delay={700} duration={1200} /> min</b><span>Avg wait</span></div>
+                  <div><Activity size={14} /><b>₹<CountUp to={live.billed} decimals={1} delay={800} duration={1400} />k</b><span>Billed</span></div>
                 </div>
                 <div className="lx-mock-chart" aria-hidden="true">
                   {[38, 52, 44, 70, 58, 84, 66, 92, 74, 88, 62, 96].map((h, i) => <i key={i} style={{ height: `${h}%`, animationDelay: `${0.4 + i * 0.05}s` }} />)}
