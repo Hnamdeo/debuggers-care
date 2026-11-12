@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { X, Search, Printer, HeartPulse } from 'lucide-react'
 import { initials } from '../lib/utils'
 
@@ -48,21 +48,30 @@ export function Card({ title, actions, children, pad, className = '' }) {
 }
 
 // Numbers on stat cards count up briefly when a screen opens.
-function CountUp({ to }) {
-  const [n, setN] = useState(() => (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? to : 0))
+// Animated number: counts from its last value to `to` (from 0 on first show).
+export function CountUp({ to, decimals = 0, duration = 700, delay = 0 }) {
+  const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const [n, setN] = useState(reduce ? to : 0)
+  const from = useRef(reduce ? to : 0)
   useEffect(() => {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || !to) return setN(to)
-    let raf
-    const t0 = performance.now()
-    const tick = (t) => {
-      const k = Math.min(1, (t - t0) / 700)
-      setN(Math.round(to * (1 - Math.pow(1 - k, 3))))
-      if (k < 1) raf = requestAnimationFrame(tick)
+    if (reduce || !to) { from.current = to; return setN(to) }
+    let raf, timer
+    const start = from.current
+    const run = () => {
+      const t0 = performance.now()
+      const tick = (t) => {
+        const k = Math.min(1, (t - t0) / duration)
+        const v = start + (to - start) * (1 - Math.pow(1 - k, 3))
+        from.current = v
+        setN(v)
+        if (k < 1) raf = requestAnimationFrame(tick)
+      }
+      raf = requestAnimationFrame(tick)
     }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    timer = setTimeout(run, delay)
+    return () => { clearTimeout(timer); cancelAnimationFrame(raf) }
   }, [to])
-  return n.toLocaleString('en-IN')
+  return n.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
 }
 
 export function Stat({ label, value, sub, icon: Icon }) {
