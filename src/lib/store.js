@@ -25,6 +25,14 @@ function withNewTenants(saved) {
     const old = saved.tenants.find((s) => s.id === t.id)
     return !old || (t.live && !old.live)
   })
+  // Demo clinics that were renamed keep their records but take the new name and address.
+  const NAME_FIELDS = ['slug', 'aliases', 'name', 'short']
+  const renamed = saved.tenants.map((old) => {
+    const t = fresh.tenants.find((f) => f.id === old.id)
+    if (!t || t.live || NAME_FIELDS.every((k) => JSON.stringify(old[k]) === JSON.stringify(t[k]))) return old
+    return { ...old, ...Object.fromEntries(NAME_FIELDS.map((k) => [k, t[k]])) }
+  })
+  if (renamed.some((t, i) => t !== saved.tenants[i])) saved = { ...saved, tenants: renamed }
   if (!missing.length) return saved
   const pick = (obj) => Object.fromEntries(missing.map((t) => [t.id, obj[t.id]]))
   const ids = new Set(missing.map((t) => t.id))
@@ -70,7 +78,7 @@ const PREFIX = { patients: 'P', appointments: 'A', prescriptions: 'RX', reports:
 
 export const db = {
   tenants: () => state.tenants,
-  tenantBySlug: (slug) => state.tenants.find((t) => t.slug === slug),
+  tenantBySlug: (slug) => state.tenants.find((t) => t.slug === slug || t.aliases?.includes(slug)),
   list: (tid, coll) => state.data[tid]?.[coll] || [],
   get: (tid, coll, id) => (state.data[tid]?.[coll] || []).find((r) => r.id === id),
   add(tid, coll, rec) {

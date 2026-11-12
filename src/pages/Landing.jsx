@@ -128,7 +128,7 @@ export default function Landing() {
 
           <div className="lx-mock-stage" onMouseMove={tilt} onMouseLeave={() => { tiltRef.current?.style.setProperty('--rx', '0deg'); tiltRef.current?.style.setProperty('--ry', '0deg') }}>
             <div className="lx-mock" ref={tiltRef}>
-              <div className="lx-mock-top"><span /><span /><span /><em>smile-care.debuggersspace.com</em></div>
+              <div className="lx-mock-top"><span /><span /><span /><em>yourclinic-care.debuggersspace.com</em></div>
               <div className="lx-mock-body">
                 <div className="lx-mock-hello">
                   <strong>Good morning, Dr. Mehta</strong>

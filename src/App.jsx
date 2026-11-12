@@ -64,7 +64,7 @@ function Home() {
 function useTenantValue(slug) {
   const state = useDb()
   return useMemo(() => {
-    const tenant = state.tenants.find((t) => t.slug === slug)
+    const tenant = db.tenantBySlug(slug)
     if (!tenant) return null
     const tid = tenant.id
     const user = auth.current(tid)
@@ -87,7 +87,10 @@ function useTenantValue(slug) {
 function TenantApp() {
   const { slug } = useParams()
   const ctx = useTenantValue(slug)
+  const loc = useLocation()
   if (!ctx) return <Navigate to="/" replace />
+  // An old address (alias) moves to the clinic's current one, keeping the rest of the path.
+  if (ctx.tenant.slug !== slug) return <Navigate to={loc.pathname.replace(`/t/${slug}`, `/t/${ctx.tenant.slug}`)} replace />
   const style = tenantStyle(ctx.tenant)
   return (
     <TenantCtx.Provider value={ctx}>
