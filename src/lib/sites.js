@@ -7,6 +7,8 @@ export const SITES = {
     tagline: 'Quality dental care at an affordable cost, in the heart of Mowa, Raipur.',
     rating: 4.8,
     reviews: 110,
+    // Shared staff password for now, kept only as a SHA-256 hash of `<slug>:<password>`.
+    pwHash: 'b746a514482d14e1ad12df43bdc823bd83b38c718c9d7ff8401376989462c622',
     fee: 150,
     phone: '+91 79746 38171',
     whatsapp: '917974638171',

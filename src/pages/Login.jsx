@@ -40,10 +40,16 @@ export default function Login() {
   const [pick, setPick] = useState(null)
   const [pw2, setPw2] = useState('')
   const choose = (u) => { setPick(u); setPw(''); setPw2(''); setErr('') }
+  const preset = SITES[tenant.slug]?.pwHash
+  const needsSetup = !preset && !pick?.pwHash
   const liveSubmit = async (e) => {
     e.preventDefault()
-    const hash = await hashPw(tid, pick.id, pw)
-    if (!pick.pwHash) {
+    if (preset) {
+      if ((await sha256(`${tenant.slug}:${pw}`)) !== preset) return setErr('That password is not right. Please try again.')
+      return go(pick)
+    }
+    const hash = await sha256(`${tid}:${pick.id}:${pw}`)
+    if (needsSetup) {
       if (pw.length < 6) return setErr('Use at least 6 characters.')
       if (pw !== pw2) return setErr('The two passwords do not match.')
       db.update(tid, 'users', pick.id, { pwHash: hash })
@@ -84,12 +90,12 @@ export default function Login() {
           </div>
           {tenant.live && pick && (
             <form className="stack" style={{ gap: 10 }} onSubmit={liveSubmit}>
-              <span className="eyebrow"><Lock size={12} style={{ verticalAlign: '-1px' }} /> {pick.pwHash ? `Password for ${who(pick)}` : `Set a password for ${who(pick)}`}</span>
-              {!pick.pwHash && <div className="small muted">First time on this computer. Choose a password; it will be asked every time you sign in.</div>}
-              <Input id="live-pw" type="password" label={pick.pwHash ? 'Password' : 'New password'} autoFocus autoComplete={pick.pwHash ? 'current-password' : 'new-password'} value={pw} onChange={(e) => setPw(e.target.value)} />
-              {!pick.pwHash && <Input id="live-pw2" type="password" label="Type it again" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />}
+              <span className="eyebrow"><Lock size={12} style={{ verticalAlign: '-1px' }} /> {needsSetup ? `Set a password for ${who(pick)}` : `Password for ${who(pick)}`}</span>
+              {needsSetup && <div className="small muted">First time on this computer. Choose a password; it will be asked every time you sign in.</div>}
+              <Input id="live-pw" type="password" label={needsSetup ? 'New password' : 'Password'} autoFocus autoComplete={needsSetup ? 'new-password' : 'current-password'} value={pw} onChange={(e) => setPw(e.target.value)} />
+              {needsSetup && <Input id="live-pw2" type="password" label="Type it again" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />}
               {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
-              <button className="btn primary" type="submit" style={{ justifyContent: 'center' }}>{pick.pwHash ? 'Sign in' : 'Save password and sign in'}</button>
+              <button className="btn primary" type="submit" style={{ justifyContent: 'center' }}>{needsSetup ? 'Save password and sign in' : 'Sign in'}</button>
             </form>
           )}
           {!tenant.live && <form className="stack" style={{ gap: 10 }} onSubmit={submit}>
@@ -109,8 +115,8 @@ export default function Login() {
 }
 
 // Passwords are kept only as a salted SHA-256 hash, never as text.
-async function hashPw(tid, uid, pw) {
-  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${tid}:${uid}:${pw}`))
+async function sha256(text) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
   return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
