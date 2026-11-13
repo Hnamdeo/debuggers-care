@@ -443,7 +443,8 @@ tbody tr:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
 @media (max-width: 900px) {
   .login-split { grid-template-columns: minmax(0, 1fr); }
   .login-split > .login-card { justify-self: center; order: -1; }
-  .about-list { grid-template-columns: minmax(0, 1fr); }
+  .about-list, .about-foot { display: none; }
+  .about-panel { min-height: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .about-panel, .about-list li, .about-panel::before { animation: none !important; } }
 
