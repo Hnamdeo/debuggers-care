@@ -1,11 +1,12 @@
 import { tenantHost } from '../lib/plans'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck, Stethoscope, Store, User, ArrowLeft, Lock, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
+import { ShieldCheck, Stethoscope, Store, User, ArrowLeft, Lock, Clock, MapPin, Phone, GraduationCap, Building2, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
 import { auth, db } from '../lib/store'
 import { useTenant, Input, BrandMark, CompanyLink, SiteFooter } from '../components/ui'
 import { DemoBand } from '../App'
 import { SITES } from '../lib/sites'
+import { useOpenNow, slots } from './ClinicSite'
 
 export default function Login() {
   const { tenant, tid, list, staff, patient, can } = useTenant()
@@ -60,15 +61,15 @@ export default function Login() {
   }
 
   return (
-    <>
+    <div className="login-page">
       <DemoBand />
       <div className="login-wrap login-split">
-        <AboutPanel tenant={tenant} />
+        {SITES[tenant.slug] ? <ClinicPanel site={SITES[tenant.slug]} /> : <AboutPanel tenant={tenant} />}
         <div className="card login-card">
           <div className="row">
             <BrandMark tenant={tenant} />
             <div>
-              <h2>{tenant.name}</h2>
+              <h2>{SITES[tenant.slug]?.name || tenant.name}</h2>
               <div className="small muted">{tenantHost(tenant)}</div>
             </div>
           </div>
@@ -110,7 +111,7 @@ export default function Login() {
         </div>
       </div>
       <SiteFooter className="login-footer" />
-    </>
+    </div>
   )
 }
 
@@ -128,6 +129,39 @@ const FEATURES = [
   [MonitorPlay, 'Explain with videos', 'Show and share treatment videos'],
   [Receipt, 'Bills & reports', 'Every record saved to the patient'],
 ]
+
+// A real clinic's own sign-in screen talks about the clinic, not about the software.
+function ClinicPanel({ site }) {
+  const status = useOpenNow(site.hours)
+  const today = site.hours.find(([d]) => d === status.day)?.[1]
+  const h = new Date(Date.now() + (330 + new Date().getTimezoneOffset()) * 60000).getHours()
+  const hello = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
+  const d = site.doctor
+  const rows = [
+    [Clock, status.text, today ? `Today: ${slots(today)}` : 'Closed today'],
+    [Stethoscope, d.name, `${d.title} · ${d.years}+ years`],
+    [GraduationCap, d.quals[0].replace(/ \(.*\)$/, ''), d.quals.slice(1).join(' · ')],
+    [MapPin, 'Paras Bhavan, Vidhan Sabha Road', 'Mowa, Raipur'],
+    [Phone, site.phone, 'Clinic phone'],
+  ]
+  return (
+    <section className="about-panel" aria-label={`About ${site.name}`}>
+      <div className="about-brand">
+        <span className="about-chip"><Building2 size={13} /> {site.name}</span>
+      </div>
+      <h1>{hello},<br />welcome to the clinic.</h1>
+      <p>Sign in to see today’s patients, appointments and bills.</p>
+      <ul className="about-list">
+        {rows.map(([Icon, title, sub], i) => (
+          <li key={title} style={{ animationDelay: `${0.15 + i * 0.08}s` }}>
+            <span className="about-ic"><Icon /></span>
+            <span><strong>{title}</strong><span className="small">{sub}</span></span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
 
 function AboutPanel({ tenant }) {
   return (

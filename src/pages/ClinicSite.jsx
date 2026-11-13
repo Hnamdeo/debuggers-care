@@ -30,16 +30,16 @@ const SERVICE_ICON = {
   smile: Smile,
 }
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+export const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const fmt = (h) => {
   const hr = Math.floor(h)
   const m = Math.round((h - hr) * 60)
   return `${hr % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${hr < 12 ? 'AM' : 'PM'}`
 }
-const slots = (list) => list.map(([a, b]) => `${fmt(a)} – ${fmt(b)}`).join(', ')
+export const slots = (list) => list.map(([a, b]) => `${fmt(a)} – ${fmt(b)}`).join(', ')
 
 // Open or closed right now, in India time, whatever the visitor's own time zone.
-function useOpenNow(hours) {
+export function useOpenNow(hours) {
   const calc = () => {
     const ist = new Date(Date.now() + (330 + new Date().getTimezoneOffset()) * 60000)
     const day = ist.getDay()
