@@ -8,7 +8,7 @@ export const SITES = {
     rating: 4.8,
     reviews: 110,
     // Shared staff password for now, kept only as a SHA-256 hash of `<slug>:<password>`.
-    pwHash: 'b746a514482d14e1ad12df43bdc823bd83b38c718c9d7ff8401376989462c622',
+    pwHash: '6afbbae4e756a7b4cff2d45c8e4a136d1ef1e71cf8dc9e4952c1dd4e83f1b8d0',
     fee: 150,
     phone: '+91 79746 38171',
     whatsapp: '917974638171',
