@@ -1,10 +1,11 @@
 import { tenantHost } from '../lib/plans'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck, Stethoscope, Store, User, ArrowLeft, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
-import { auth } from '../lib/store'
+import { ShieldCheck, Stethoscope, Store, User, ArrowLeft, Lock, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
+import { auth, db } from '../lib/store'
 import { useTenant, Input, BrandMark, CompanyLink, SiteFooter } from '../components/ui'
 import { DemoBand } from '../App'
+import { SITES } from '../lib/sites'
 
 export default function Login() {
   const { tenant, tid, list, staff, patient, can } = useTenant()
@@ -35,6 +36,29 @@ export default function Login() {
 
   const who = (u) => (u.role === 'patient' ? patient(u.refId) : staff(u.refId))?.name
 
+  // A real clinic: pick who you are, then a password. The first time on a computer, that person sets it.
+  const [pick, setPick] = useState(null)
+  const [pw2, setPw2] = useState('')
+  const choose = (u) => { setPick(u); setPw(''); setPw2(''); setErr('') }
+  const preset = SITES[tenant.slug]?.pwHash
+  const needsSetup = !preset && !pick?.pwHash
+  const liveSubmit = async (e) => {
+    e.preventDefault()
+    if (preset) {
+      if ((await sha256(`${tenant.slug}:${pw}`)) !== preset) return setErr('That password is not right. Please try again.')
+      return go(pick)
+    }
+    const hash = await sha256(`${tid}:${pick.id}:${pw}`)
+    if (needsSetup) {
+      if (pw.length < 6) return setErr('Use at least 6 characters.')
+      if (pw !== pw2) return setErr('The two passwords do not match.')
+      db.update(tid, 'users', pick.id, { pwHash: hash })
+      return go(pick)
+    }
+    if (hash !== pick.pwHash) return setErr('That password is not right. Please try again.')
+    go(pick)
+  }
+
   return (
     <>
       <DemoBand />
@@ -49,12 +73,12 @@ export default function Login() {
             </div>
           </div>
           <div className="stack" style={{ gap: 8 }}>
-            <span className="eyebrow">{tenant.live ? 'Sign in' : 'One-click demo login'}</span>
+            <span className="eyebrow">{tenant.live ? 'Who is signing in?' : 'One-click demo login'}</span>
             {quick.map((q) => {
               const u = users.find((x) => x.role === q.role)
               if (!u) return null
               return (
-                <button key={q.role} className="role-btn" onClick={() => go(u)}>
+                <button key={q.role} className={`role-btn ${pick?.id === u.id ? 'picked' : ''}`} onClick={() => (tenant.live ? choose(u) : go(u))}>
                   <q.icon />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <strong>{q.label}</strong> <span className="muted small">· {who(u)}</span>
@@ -64,19 +88,36 @@ export default function Login() {
               )
             })}
           </div>
-          <form className="stack" style={{ gap: 10 }} onSubmit={submit}>
+          {tenant.live && pick && (
+            <form className="stack" style={{ gap: 10 }} onSubmit={liveSubmit}>
+              <span className="eyebrow"><Lock size={12} style={{ verticalAlign: '-1px' }} /> {needsSetup ? `Set a password for ${who(pick)}` : `Password for ${who(pick)}`}</span>
+              {needsSetup && <div className="small muted">First time on this computer. Choose a password; it will be asked every time you sign in.</div>}
+              <Input id="live-pw" type="password" label={needsSetup ? 'New password' : 'Password'} autoFocus autoComplete={needsSetup ? 'new-password' : 'current-password'} value={pw} onChange={(e) => setPw(e.target.value)} />
+              {needsSetup && <Input id="live-pw2" type="password" label="Type it again" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />}
+              {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
+              <button className="btn primary" type="submit" style={{ justifyContent: 'center' }}>{needsSetup ? 'Save password and sign in' : 'Sign in'}</button>
+            </form>
+          )}
+          {!tenant.live && <form className="stack" style={{ gap: 10 }} onSubmit={submit}>
             <span className="eyebrow">Or sign in with email</span>
             <Input id="login-email" type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={users[0].email} />
             <Input id="login-pw" type="password" label="Password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="demo123" />
             {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
             <button className="btn primary" type="submit" style={{ justifyContent: 'center' }}>Sign in</button>
-          </form>
+          </form>}
+          {SITES[tenant.slug] && <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav(`/t/${tenant.slug}`)}><ArrowLeft /> Clinic home page</button>}
           {!tenant.prospect && <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav('/')}><ArrowLeft /> All demo clinics</button>}
         </div>
       </div>
       <SiteFooter className="login-footer" />
     </>
   )
+}
+
+// Passwords are kept only as a salted SHA-256 hash, never as text.
+async function sha256(text) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 // Left side of the sign-in screen: what the app does, in the clinic's own colours.
