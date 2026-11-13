@@ -61,7 +61,7 @@ export default function Login() {
   }
 
   return (
-    <>
+    <div className="login-page">
       <DemoBand />
       <div className="login-wrap login-split">
         {SITES[tenant.slug] ? <ClinicPanel site={SITES[tenant.slug]} /> : <AboutPanel tenant={tenant} />}
@@ -111,7 +111,7 @@ export default function Login() {
         </div>
       </div>
       <SiteFooter className="login-footer" />
-    </>
+    </div>
   )
 }
 
