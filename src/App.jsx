@@ -26,6 +26,8 @@ import { PatientHome, PatientBook, PatientAppointments, PatientBills } from './p
 import Locked from './pages/Locked'
 import Education from './pages/Education'
 import SelfRegister from './pages/SelfRegister'
+import ClinicSite from './pages/ClinicSite'
+import { SITES } from './lib/sites'
 
 const ICONS = { dashboard: LayoutDashboard, patients: Users, appointments: CalendarDays, prescriptions: PillIcon, reports: FlaskConical, education: MonitorPlay, ipd: BedDouble, emergency: Siren, pharmacy: Store, billing: Receipt, staff: IdCard, payroll: Wallet }
 
@@ -92,12 +94,15 @@ function TenantApp() {
   // An old address (alias) moves to the clinic's current one, keeping the rest of the path.
   if (ctx.tenant.slug !== slug) return <Navigate to={loc.pathname.replace(`/t/${slug}`, `/t/${ctx.tenant.slug}`)} replace />
   const style = tenantStyle(ctx.tenant)
+  const site = SITES[ctx.tenant.slug]
   return (
     <TenantCtx.Provider value={ctx}>
       <div style={style} className="landing">
         <Routes>
           {/* Public: patients open this from the clinic's QR code or shared link, no login */}
           <Route path="register" element={<SelfRegister />} />
+          {/* A real clinic with a public page shows it at its own address; staff sign in from there */}
+          {site && !ctx.user && <Route index element={<ClinicSite site={site} />} />}
           <Route path="*" element={ctx.user ? <Shell /> : <Login />} />
         </Routes>
       </div>

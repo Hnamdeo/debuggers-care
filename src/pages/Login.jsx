@@ -5,6 +5,7 @@ import { ShieldCheck, Stethoscope, Store, User, ArrowLeft, CalendarCheck, FileHe
 import { auth } from '../lib/store'
 import { useTenant, Input, BrandMark, CompanyLink, SiteFooter } from '../components/ui'
 import { DemoBand } from '../App'
+import { SITES } from '../lib/sites'
 
 export default function Login() {
   const { tenant, tid, list, staff, patient, can } = useTenant()
@@ -71,6 +72,7 @@ export default function Login() {
             {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
             <button className="btn primary" type="submit" style={{ justifyContent: 'center' }}>Sign in</button>
           </form>
+          {SITES[tenant.slug] && <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav(`/t/${tenant.slug}`)}><ArrowLeft /> Clinic home page</button>}
           {!tenant.prospect && <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav('/')}><ArrowLeft /> All demo clinics</button>}
         </div>
       </div>
