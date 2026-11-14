@@ -1,5 +1,6 @@
 import { tenantHost } from '../lib/plans'
 import { useState } from 'react'
+import { PatientSignIn } from '../components/patientlogin'
 import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, Stethoscope, Store, User, ClipboardList, ArrowLeft, Lock, Clock, MapPin, Phone, GraduationCap, Building2, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
 import { auth, db, server } from '../lib/store'
@@ -45,7 +46,8 @@ export default function Login() {
   const [pick, setPick] = useState(null)
   const [pw2, setPw2] = useState('')
   const typed = pw
-  const choose = (u) => { setPick(u); setPw(''); setPw2(''); setErr('') }
+  const [ptMode, setPtMode] = useState(false)
+  const choose = (u) => { setPick(u); setPtMode(false); setPw(''); setPw2(''); setErr('') }
   const preset = SITES[tenant.slug]?.pwHash
   const needsSetup = !tenant.server && !preset && !pick?.pwHash
   const liveSubmit = async (e) => {
@@ -108,7 +110,17 @@ export default function Login() {
                 </button>
               )
             })}
+            {tenant.server && (
+              <button className={`role-btn ${ptMode ? 'picked' : ''}`} onClick={() => { setPtMode(true); setPick(null); setErr('') }}>
+                <User />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <strong>I am a patient</strong>
+                  <div className="small muted">My prescriptions, reports and bills</div>
+                </div>
+              </button>
+            )}
           </div>
+          {ptMode && <PatientSignIn />}
           {tenant.live && pick && (
             <form className="stack" style={{ gap: 10 }} onSubmit={liveSubmit}>
               <span className="eyebrow"><Lock size={12} style={{ verticalAlign: '-1px' }} /> {needsSetup ? `Set a password for ${who(pick)}` : `Password for ${who(pick)}`}</span>

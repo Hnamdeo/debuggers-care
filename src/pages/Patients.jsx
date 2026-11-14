@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse, ScanLine } from 'lucide-react'
+import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse, ScanLine, KeyRound } from 'lucide-react'
 import { useTenant, PageHead, Card, Table, Pill, SearchBox, Avatar, Tabs, Stat } from '../components/ui'
 import RegisterQR from '../components/RegisterQR'
+import { PinModal } from '../components/patientlogin'
 import { PatientForm, BookAppointment, NewBill, AdmitForm } from '../components/forms'
 import { PrescriptionDoc, ReportDoc, InvoiceDoc } from '../components/docs'
 import { VideoPlayer, whatsappLink } from '../components/videos'
@@ -68,10 +69,12 @@ export function PatientProfile() {
         <button className="btn primary" onClick={() => setModal('visit')}><HeartPulse /> Today’s visit & vitals</button>
         <button className="btn" onClick={() => setModal('image')}><ScanLine /> X-ray / photo</button>
         <button className="btn" onClick={() => setModal('book')}><CalendarPlus /> Book</button>
+        <button className="btn" onClick={() => setModal('pin')}><KeyRound /> Patient login</button>
         {can('ipd') && <button className="btn" onClick={() => setModal('admit')}><BedDouble /> Admit</button>}
         {user.role === 'admin' && <button className="btn" onClick={() => setModal('bill')}><Receipt /> New bill</button>}
       </PatientHeader>
       <PatientRecord p={p} canCollect={staffView && user.role === 'admin'} onBook={() => setModal('book')} onBill={user.role === 'admin' ? () => setModal('bill') : null} />
+      {modal === 'pin' && <PinModal p={p} onClose={() => setModal(null)} />}
       {modal === 'edit' && <PatientForm initial={p} onClose={() => setModal(null)} />}
       {modal === 'image' && <ImageUpload patientId={p.id} onClose={() => setModal(null)} />}
       {modal === 'visit' && <VisitForm patientId={p.id} onClose={() => setModal(null)} />}

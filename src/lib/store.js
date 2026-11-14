@@ -335,6 +335,22 @@ export const server = {
     clearInterval(r.timer)
     r.timer = setInterval(() => tokens[tid] && pull(tid), POLL_MS)
   },
+  // A patient signs in with their mobile number and the PIN the clinic gave them.
+  async patientLogin(tid, phone, pin) {
+    const r = (remote[tid] ||= { rev: 0 })
+    const res = await post(tid, 'plogin', { phone, pin })
+    tokens = { ...tokens, [tid]: res.token }
+    session = { ...session, [tid]: res.user.id }
+    r.rev = 0
+    state.data[tid] = EMPTY()
+    applyRow(tid, 'users', res.user)
+    await pull(tid)
+    clearInterval(r.timer)
+    r.timer = setInterval(() => tokens[tid] && pull(tid), POLL_MS)
+  },
+  async setPin(tid, patientId) {
+    return (await post(tid, 'setpin', { patientId })).pin
+  },
   async exportTenant(tid) {
     return post(tid, 'export')
   },

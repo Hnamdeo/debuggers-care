@@ -859,3 +859,5 @@ tbody tr:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
 .pad-rx-mark { font: 800 18px Georgia, serif; color: var(--brand); margin-right: 4px; }
 .consult-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 @media (max-width: 900px) { .consult-grid { grid-template-columns: minmax(0, 1fr); } }
+.pin-show { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px; border-radius: 14px; background: var(--brand-soft); border: 1px dashed var(--brand); }
+.pin-show b { font: 800 34px/1 var(--font-head); letter-spacing: 8px; font-variant-numeric: tabular-nums; color: var(--brand); }
