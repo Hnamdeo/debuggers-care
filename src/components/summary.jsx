@@ -80,7 +80,8 @@ export function PatientSummary({ p, staffView, onOpenDoc, onBook, onBill }) {
             <dt>Latest vitals</dt><dd>{lastVitals ? <>{vitalsText(lastVitals.vitals)} <span className="muted small">({fmtDate(lastVitals.date)})</span></> : '–'}</dd>
             <dt>Allergies</dt><dd style={{ color: p.allergies ? 'var(--bad)' : undefined }}>{p.allergies || 'None told'}</dd>
             <dt>Conditions</dt><dd>{p.conditions || 'None told'}</dd>
-            <dt>Mobile</dt><dd><a href={`tel:+91${p.phone}`}>{p.phone}</a></dd>
+            <dt>Mobile</dt><dd>{p.phone ? <a href={`tel:+91${p.phone}`}>{p.phone}</a> : 'Not given'}</dd>
+            {p.opdNo && <><dt>OPD no.</dt><dd>{p.opdNo}</dd></>}
             {p.email && <><dt>Email</dt><dd>{p.email}</dd></>}
             <dt>Registered</dt><dd>{fmtDate(p.regDate)}{p.selfRegistered ? ' · by QR' : ''}</dd>
           </dl>
@@ -118,7 +119,7 @@ export function PatientFinder({ autoFocus }) {
   const [q, setQ] = useState('')
   const digits = q.replace(/\D/g, '')
   const term = q.trim().toLowerCase()
-  const hits = term.length < 2 ? [] : list('patients').filter((p) => (digits.length >= 3 && p.phone.includes(digits)) || p.name.toLowerCase().includes(term) || p.id.toLowerCase() === term).slice(0, 6)
+  const hits = term.length < 2 ? [] : list('patients').filter((p) => (digits.length >= 3 && p.phone.includes(digits)) || p.name.toLowerCase().includes(term) || p.id.toLowerCase() === term || (p.opdNo && String(p.opdNo).toLowerCase() === term)).slice(0, 6)
   const open = (p) => { setQ(''); nav(`${base}/patients/${p.id}`) }
   return (
     <div className="finder">

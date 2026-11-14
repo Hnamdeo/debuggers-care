@@ -21,7 +21,7 @@ export default function Patients() {
   const appts = list('appointments')
   const lastVisit = (pid) => appts.filter((a) => a.patientId === pid && a.status === 'completed').map((a) => a.date).sort().pop()
   const rows = list('patients')
-    .filter((p) => !q || `${p.name} ${p.phone} ${p.id}`.toLowerCase().includes(q.toLowerCase()))
+    .filter((p) => !q || `${p.name} ${p.phone} ${p.id} ${p.opdNo || ''}`.toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => b.regDate.localeCompare(a.regDate))
 
   return (
