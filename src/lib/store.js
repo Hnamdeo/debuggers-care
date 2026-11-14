@@ -101,13 +101,26 @@ export function useSession() {
 
 const PREFIX = { visits: 'VS', images: 'IMG',  patients: 'P', appointments: 'A', prescriptions: 'RX', reports: 'LAB', bills: 'INV', medicines: 'M', sales: 'SL', beds: 'BED', admissions: 'IPD', emergencies: 'ER', payroll: 'PAY', staff: 'S', users: 'U', videos: 'V', shares: 'SH' }
 
+// Names typed in small letters show as proper names: "himanshu namdeo" -> "Himanshu Namdeo".
+// Only the first letter of each word changes, so "McDonald" or "D'Souza" stay as typed.
+export const properName = (n) => typeof n === 'string' ? n.trim().replace(/\s+/g, ' ').replace(/(^|[\s.'-])(\p{Ll})/gu, (m, a, b) => a + b.toUpperCase()) : n
+const NAMED = ['patients', 'staff']
+const tidy = (coll, rec) => (NAMED.includes(coll) && rec && typeof rec.name === 'string' ? { ...rec, name: properName(rec.name) } : rec)
+const shown = new WeakMap()
+const tidyList = (coll, rows) => {
+  if (!NAMED.includes(coll)) return rows
+  if (!shown.has(rows)) shown.set(rows, rows.map((r) => tidy(coll, r)))
+  return shown.get(rows)
+}
+
 export const db = {
   tenants: () => state.tenants,
   tenantBySlug: (slug) => state.tenants.find((t) => t.slug === slug || t.aliases?.includes(slug)),
-  list: (tid, coll) => state.data[tid]?.[coll] || [],
+  list: (tid, coll) => tidyList(coll, state.data[tid]?.[coll] || []),
   onServer: (tid) => !!tenantById(tid)?.server,
-  get: (tid, coll, id) => (state.data[tid]?.[coll] || []).find((r) => r.id === id),
+  get: (tid, coll, id) => db.list(tid, coll).find((r) => r.id === id),
   add(tid, coll, rec) {
+    rec = tidy(coll, rec)
     if (db.onServer(tid)) {
       const { row } = call(tid, 'add', { coll, data: rec })
       applyRow(tid, coll, row)
@@ -125,7 +138,7 @@ export const db = {
   update(tid, coll, id, patch) {
     if (db.onServer(tid)) {
       const cur = db.get(tid, coll, id)
-      const p = typeof patch === 'function' ? patch(cur || {}) : patch
+      const p = tidy(coll, typeof patch === 'function' ? patch(cur || {}) : patch)
       const { row } = call(tid, 'update', { coll, id, patch: p })
       applyRow(tid, coll, row)
       emit()
@@ -133,7 +146,7 @@ export const db = {
     }
     state.data[tid] = {
       ...state.data[tid],
-      [coll]: (state.data[tid][coll] || []).map((r) => (r.id === id ? { ...r, ...(typeof patch === 'function' ? patch(r) : patch) } : r)),
+      [coll]: (state.data[tid][coll] || []).map((r) => (r.id === id ? { ...r, ...tidy(coll, typeof patch === 'function' ? patch(r) : patch) } : r)),
     }
     emit()
   },

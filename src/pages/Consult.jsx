@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Trash2, CheckCircle2, ArrowLeft, HeartPulse } from 'lucide-react'
+import { Plus, Trash2, CheckCircle2, HeartPulse } from 'lucide-react'
 import { VisitForm, vitalsText } from '../components/visits'
 import { useTenant, Card, Input, Textarea, toast, Pill } from '../components/ui'
 import { PatientHeader } from './Patients'
@@ -83,18 +83,16 @@ export default function Consult() {
 
   return (
     <>
-      <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav(-1)}><ArrowLeft /> Back</button>
-      <PatientHeader p={p}>
-        <span className="muted small">{fmtDate(appt.date)} · {fmtTime(appt.time)} · {appt.reason}</span>
-      </PatientHeader>
-      {visit && (vitalsText(visit.vitals) || visit.complaint) && (
-        <div className="card pad row" style={{ gap: 10, alignItems: 'flex-start' }}>
-          <HeartPulse style={{ color: 'var(--accent)', flexShrink: 0 }} />
-          <div><strong>Today’s vitals</strong>{visit.complaint && <span className="muted"> · {visit.complaint}</span>}<div className="small">{vitalsText(visit.vitals) || 'Not taken yet'}</div></div>
-          <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => setVitals(true)}>Edit</button>
+      <PatientHeader p={p} back={() => nav(-1)}>
+        <div className="consult-vitals">
+          <div className="small muted">{fmtDate(appt.date)} · {fmtTime(appt.time)}{appt.reason ? ` · ${appt.reason}` : ''}</div>
+          <div className="row" style={{ gap: 8, flexWrap: 'nowrap', alignItems: 'flex-start' }}>
+            <HeartPulse size={18} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
+            <div style={{ minWidth: 0 }}><strong>Today’s vitals</strong>{visit?.complaint && <span className="muted"> · {visit.complaint}</span>}<div className="small">{(visit && vitalsText(visit.vitals)) || 'Not taken yet'}</div></div>
+            <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => setVitals(true)}>{visit && vitalsText(visit.vitals) ? 'Edit' : 'Add'}</button>
+          </div>
         </div>
-      )}
-      {!(visit && (vitalsText(visit.vitals) || visit.complaint)) ? <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setVitals(true)}><HeartPulse /> Add vitals</button> : null}
+      </PatientHeader>
       {vitals && <VisitForm patientId={p.id} onClose={() => setVitals(false)} />}
       {allergic && <div className="card pad" style={{ borderColor: 'var(--bad)', color: 'var(--bad)', fontWeight: 600 }}>Allergy alert: {p.name} is allergic to {p.allergies}. Check the antibiotic before you sign.</div>}
       <div className="grid consult-grid">
