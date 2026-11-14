@@ -10,7 +10,7 @@ function PatientMeta({ p, extra }) {
     <div className="meta">
       <div><span className="muted">Patient:</span> <strong>{p?.name}</strong></div>
       <div><span className="muted">UHID:</span> {p?.id}</div>
-      <div><span className="muted">Age / Sex:</span> {p ? `${age(p.dob)} y / ${p.gender}` : '-'}</div>
+      <div><span className="muted">Age / Sex:</span> {p ? `${p.dob ? `${age(p.dob)} y` : '–'} / ${p.gender || '–'}` : '-'}</div>
       <div><span className="muted">Phone:</span> {p?.phone}</div>
       {extra}
     </div>

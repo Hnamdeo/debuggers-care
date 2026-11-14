@@ -38,7 +38,7 @@ export default function Patients() {
           empty="No patient matches that search."
           cols={[
             { label: 'Patient', render: (p) => <div className="row" style={{ flexWrap: 'nowrap' }}><Avatar name={p.name} /><div><div className="cell-main">{p.name}</div><div className="cell-sub">{p.id}{p.selfRegistered ? ' · self-registered' : ''}</div></div></div> },
-            { label: 'Age / Sex', render: (p) => `${age(p.dob)} y · ${p.gender}` },
+            { label: 'Age / Sex', render: (p) => `${p.dob ? `${age(p.dob)} y` : '–'} · ${p.gender || '–'}` },
             { label: 'Mobile', render: (p) => <span className="tabular">{p.phone}</span> },
             { label: 'Blood', key: 'blood' },
             { label: 'Last visit', render: (p) => fmtDate(lastVisit(p.id)) },
@@ -91,7 +91,7 @@ export function PatientHeader({ p, children }) {
           <div className="stack" style={{ gap: 6, minWidth: 0 }}>
             <div>
               <h1 style={{ fontSize: '1.35rem' }}>{p.name}</h1>
-              <div className="muted small">UHID {p.id} · {age(p.dob)} years · {p.gender === 'F' ? 'Female' : p.gender === 'M' ? 'Male' : 'Other'} {p.blood ? ` · Blood ${p.blood}` : ''}{p.email ? ` · ${p.email}` : ''}</div>
+              <div className="muted small">UHID {p.id} · {p.dob ? `${age(p.dob)} years · ` : ''}{{ F: 'Female', M: 'Male', O: 'Other' }[p.gender] || 'Sex not recorded'} {p.blood ? ` · Blood ${p.blood}` : ''}{p.email ? ` · ${p.email}` : ''}</div>
             </div>
             <div className="row" style={{ gap: 6 }}>
               {p.allergies && <span className="pill bad"><AlertTriangle size={11} /> Allergy: {p.allergies}</span>}

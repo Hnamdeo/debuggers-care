@@ -104,7 +104,7 @@ export default function Consult() {
               <div className="pad-strip">
                 <span>OPD No. <b>{p.opdNo || p.id}</b></span>
                 <span>Date <b>{fmtDate(today())}</b></span>
-                <span>Age/Sex <b>{p.dob ? `${age(p.dob)} y` : '–'} / {p.gender}</b></span>
+                <span>Age/Sex <b>{p.dob ? `${age(p.dob)} y` : '–'} / {p.gender || '–'}</b></span>
                 <span style={{ flexBasis: '100%' }}>Name <b>{p.name}</b></span>
               </div>
               <div className="field"><span>Medical history (tick what applies)</span></div>
