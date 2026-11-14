@@ -41,7 +41,7 @@ export default function Appointments() {
         </div>
         <div className="row">
           {counts.map(([s, n]) => <Pill key={s} status={s}>{`${n} ${s === 'checked-in' ? 'checked in' : s}`}</Pill>)}
-          {!isDoc && <Select id="ap-doc" value={doc} onChange={(e) => setDoc(e.target.value)} options={[{ value: 'all', label: 'All doctors' }, ...doctors().map((d) => ({ value: d.id, label: d.name }))]} style={{ width: 200 }} />}
+          {(!isDoc || doctors().length > 1) && <Select id="ap-doc" value={doc} onChange={(e) => setDoc(e.target.value)} options={[{ value: 'all', label: 'All doctors' }, ...doctors().map((d) => ({ value: d.id, label: d.name }))]} style={{ width: 200 }} />}
         </div>
       </div>
       <div className="row" style={{ gap: 6 }}>

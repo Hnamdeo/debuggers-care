@@ -144,11 +144,13 @@ function Attention({ icon: Icon, text, onClick }) {
 }
 
 function DoctorDash() {
-  const { me, list, patient, can, base, tid } = useTenant()
+  const { me, list, patient, can, base, tid, tenant, doctors, staff } = useTenant()
+  // A small clinic's doctors share one login, so the queue covers all of them there.
+  const shared = tenant.live && doctors().length > 1
   const nav = useNavigate()
   const [qr, setQr] = useState(false)
   const T = today()
-  const mine = list('appointments').filter((a) => a.doctorId === me.id)
+  const mine = list('appointments').filter((a) => (shared ? true : a.doctorId === me.id))
   const todays = mine.filter((a) => a.date === T).sort((a, b) => a.time.localeCompare(b.time))
   const next = todays.find((a) => a.status !== 'completed' && a.status !== 'cancelled')
   const waitingVisit = list('visits').filter((v) => v.date === T && v.status === 'waiting').sort((a, b) => (a.time || '').localeCompare(b.time || ''))[0]
@@ -174,16 +176,17 @@ function DoctorDash() {
         <Stat label="Reports to review" value={labs.filter((r) => r.status === 'completed' && r.date >= addDays(T, -3)).length} sub={`${labs.filter((r) => r.status === 'ordered').length} still in lab`} icon={FlaskConical} />
         {can('ipd') ? <Stat label="My admitted patients" value={ipd.length} sub="IPD and ICU" icon={BedDouble} /> : <Stat label="Upcoming bookings" value={mine.filter((a) => a.date > T && a.status === 'scheduled').length} sub="Next 7 days" icon={CalendarDays} />}
       </div>
-      <TodayTimings doctorId={me.id} />
+      <TodayTimings doctorId={shared ? undefined : me.id} />
       <PatientFinder />
       <TodayVisits />
-      <Card title="My queue today">
+      <Card title={shared ? "Today’s queue" : "My queue today"}>
         <Table
           rows={todays}
           empty="No patients booked with you today."
           cols={[
             { label: 'Time', render: (a) => <span className="tabular">{fmtTime(a.time)}</span> },
             { label: 'Patient', render: (a) => <><div className="cell-main">{patient(a.patientId)?.name}</div><div className="cell-sub">{a.reason}</div></> },
+            ...(shared ? [{ label: 'Doctor', render: (a) => staff(a.doctorId)?.name }] : []),
             { label: 'Status', render: (a) => <Pill status={a.status} /> },
             { label: '', render: (a) => a.status === 'completed' ? <button className="btn sm" onClick={() => nav(`${base}/patients/${a.patientId}`)}>View record</button> : a.status !== 'cancelled' && <button className="btn sm primary" onClick={() => nav(`${base}/consult/${a.id}`)}>Consult</button> },
           ]}
