@@ -3,6 +3,7 @@ import { DocModal, SheetHead, useTenant } from './ui'
 import { fmtDate, money, billTotal, billStatus, age, fmtMonth } from '../lib/utils'
 import { db } from '../lib/store'
 import { toast } from './ui'
+import { RxPad } from './rxpad'
 
 function PatientMeta({ p, extra }) {
   return (
@@ -16,28 +17,11 @@ function PatientMeta({ p, extra }) {
   )
 }
 
-export function PrescriptionDoc({ rx, onClose }) {
-  const { tenant, patient, staff } = useTenant()
-  const p = patient(rx.patientId)
-  const d = staff(rx.doctorId)
+export function PrescriptionDoc({ rx, onClose, title }) {
+  const { patient, staff } = useTenant()
   return (
-    <DocModal title={`Prescription ${rx.id}`} onClose={onClose}>
-      <div className="sheet">
-        <SheetHead tenant={tenant} title={d?.name} sub={`${d?.qualification || ''} · ${d?.regNo || ''}`} />
-        <PatientMeta p={p} extra={<><div><span className="muted">Date:</span> {fmtDate(rx.date)}</div><div><span className="muted">Allergies:</span> {p?.allergies || 'None known'}</div></>} />
-        <p><span className="muted">Diagnosis:</span> <strong>{rx.diagnosis}</strong></p>
-        <div className="rx">℞</div>
-        <table>
-          <thead><tr><th>#</th><th>Medicine</th><th>Dose</th><th>When</th><th className="num">Days</th></tr></thead>
-          <tbody>
-            {rx.items.map((it, i) => (
-              <tr key={i}><td>{i + 1}</td><td><strong>{it.name}</strong></td><td>{it.dose}</td><td>{it.freq}</td><td className="num">{it.days}</td></tr>
-            ))}
-          </tbody>
-        </table>
-        {rx.notes && <p><span className="muted">Advice:</span> {rx.notes}</p>}
-        <div className="sign"><div style={{ fontFamily: 'cursive', fontSize: 18 }}>{d?.name}</div><div className="muted small">Signature</div></div>
-      </div>
+    <DocModal title={title || `Prescription ${rx.id}`} onClose={onClose}>
+      <RxPad rx={rx} p={rx.patient || patient(rx.patientId)} doctor={staff(rx.doctorId)} />
     </DocModal>
   )
 }
