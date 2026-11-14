@@ -1,3 +1,4 @@
+import { withHealthVideos } from './lib/healthvideos'
 import { useEffect, useMemo, useState } from 'react'
 import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
@@ -70,7 +71,7 @@ function useTenantValue(slug) {
     if (!tenant) return null
     const tid = tenant.id
     const user = auth.current(tid)
-    const list = (c) => db.list(tid, c)
+    const list = (c) => c === 'videos' ? withHealthVideos(tenant, db.list(tid, c)) : db.list(tid, c)
     const staffById = Object.fromEntries(list('staff').map((s) => [s.id, s]))
     const patientById = Object.fromEntries(list('patients').map((p) => [p.id, p]))
     const me = user ? (user.role === 'patient' ? patientById[user.refId] : staffById[user.refId]) : null

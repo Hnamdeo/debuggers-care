@@ -1,21 +1,25 @@
 import { useState } from 'react'
-import { PlayCircle, Plus } from 'lucide-react'
+import { PlayCircle, Plus, TvMinimalPlay } from 'lucide-react'
 import { useTenant, PageHead, Modal, Input, SearchBox, toast } from '../components/ui'
 import { VideoPlayer, youtubeId } from '../components/videos'
 import { db } from '../lib/store'
 import { today } from '../lib/utils'
+import { HEALTH_CHANNEL } from '../lib/healthvideos'
 
 export default function Education() {
   const { list } = useTenant()
   const [q, setQ] = useState('')
   const [spec, setSpec] = useState('All')
+  const [lang, setLang] = useState('All')
   const [play, setPlay] = useState(null)
   const [adding, setAdding] = useState(false)
   const videos = list('videos')
   const specs = ['All', ...new Set(videos.map((v) => v.speciality))]
+  const langs = [...new Set(videos.map((v) => v.lang).filter(Boolean))]
   const shares = list('shares')
   const rows = videos
     .filter((v) => spec === 'All' || v.speciality === spec)
+    .filter((v) => lang === 'All' || v.lang === lang)
     .filter((v) => !q || `${v.title} ${v.procedure}`.toLowerCase().includes(q.toLowerCase()))
 
   return (
@@ -26,6 +30,7 @@ export default function Education() {
       </PageHead>
       <div className="row" style={{ gap: 6 }}>
         {specs.map((s) => <button key={s} className={`btn sm ${spec === s ? 'primary' : ''}`} onClick={() => setSpec(s)}>{s}</button>)}
+        {langs.length > 1 && <span className="row" style={{ gap: 6, marginLeft: 'auto' }}>{['All', ...langs].map((l) => <button key={l} className={`btn sm ${lang === l ? 'primary' : ''}`} onClick={() => setLang(l)}>{l === 'Hindi' ? 'हिंदी' : l}</button>)}</span>}
       </div>
       <div className="video-grid">
         {rows.map((v) => {
@@ -39,7 +44,8 @@ export default function Education() {
               </div>
               <div className="stack" style={{ gap: 2, padding: '10px 12px' }}>
                 <strong style={{ lineHeight: 1.3 }}>{v.title}</strong>
-                <span className="small muted">{v.speciality} · {v.procedure}</span>
+                <span className="small muted">{[v.speciality, v.topic || v.procedure, v.lang].filter(Boolean).join(' · ')}</span>
+                {v.builtIn && <span className="small" style={{ color: 'var(--brand)' }}>Debuggers Space Health</span>}
                 <span className="small faint">{n ? `Shared with ${n} ${n === 1 ? 'patient' : 'patients'}` : 'Not shared yet'}</span>
               </div>
             </button>
@@ -47,6 +53,7 @@ export default function Education() {
         })}
       </div>
       {!rows.length && <div className="empty">No videos match. Add one with “Add video”.</div>}
+      <a className="small muted" href={HEALTH_CHANNEL} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><TvMinimalPlay size={15} /> More explainers on our Debuggers Space Health channel</a>
       {play && <VideoPlayer video={play} onClose={() => setPlay(null)} />}
       {adding && <AddVideo onClose={() => setAdding(false)} specs={specs.filter((s) => s !== 'All')} />}
     </>
