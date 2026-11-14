@@ -3,19 +3,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, CheckCircle2 } from 'lucide-react'
 import { useTenant, BrandMark } from '../components/ui'
-import { db } from '../lib/store'
-import { today, age } from '../lib/utils'
+import { db, server } from '../lib/store'
+import { today, nowTime } from '../lib/utils'
 
 const STEPS = [
   { key: 'name', ask: (t) => `Namaste! Welcome to ${t.name}. I’ll get you registered in under a minute. What is your full name?`, type: 'text', placeholder: 'Full name', check: (v) => v.trim().length > 1 || 'Please type your full name.' },
-  { key: 'phone', ask: (_, a) => `Thanks, ${a.name.split(' ')[0]}. What’s your mobile number? We’ll send appointment reminders here.`, type: 'tel', placeholder: '10-digit mobile', check: (v) => /^[6-9]\d{9}$/.test(v.replace(/\D/g, '').slice(-10)) || 'That doesn’t look like a 10-digit Indian mobile number.' , clean: (v) => v.replace(/\D/g, '').slice(-10) },
-  { key: 'dob', ask: () => 'What is your date of birth?', type: 'date', check: (v) => (v && v < today()) || 'Please pick your date of birth.', show: (v) => `${new Date(v + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} (${age(v)} years)` },
+  { key: 'phone', ask: (_, a) => `Thanks, ${a.name.trim().split(' ')[0]}. What’s your mobile number?`, type: 'tel', placeholder: '10-digit mobile', check: (v) => /^[6-9]\d{9}$/.test(v.replace(/\D/g, '').slice(-10)) || 'That doesn’t look like a 10-digit Indian mobile number.', clean: (v) => v.replace(/\D/g, '').slice(-10) },
+  { key: 'email', ask: () => 'Your email (Gmail) for reports and bills? You can skip this.', type: 'email', placeholder: 'name@gmail.com', skip: true, check: (v) => !v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) || 'That email doesn’t look right. Check it or tap Skip.', clean: (v) => v.trim().toLowerCase() },
+  { key: 'age', ask: () => 'How old are you? (in years)', type: 'number', placeholder: 'Age in years', skip: true, check: (v) => !v || (+v >= 0 && +v <= 120) || 'Please type your age in years.' },
   { key: 'gender', ask: () => 'And you are…', chips: [['F', 'Female'], ['M', 'Male'], ['O', 'Other']] },
-  { key: 'blood', ask: () => 'Do you know your blood group?', chips: ['O+', 'B+', 'A+', 'AB+', 'O-', 'B-', 'A-', 'AB-', ['', 'I don’t know']] },
-  { key: 'allergies', ask: () => 'Are you allergic to any medicine?', chips: [['', 'No allergies'], 'Penicillin', 'Sulpha drugs', 'Aspirin'], other: 'Type another allergy' },
-  { key: 'conditions', ask: () => 'Any ongoing health conditions?', chips: [['', 'None'], 'Diabetes', 'High BP', 'Thyroid', 'Asthma', 'Heart condition'], other: 'Type another condition' },
-  { key: 'address', ask: () => 'Your area or address? (You can skip this.)', type: 'text', placeholder: 'e.g. Mowa, Raipur', skip: true },
-  { key: 'emergencyContact', ask: () => 'Someone we can call in an emergency? Name and number. (Optional)', type: 'text', placeholder: 'e.g. Ravi · 98xxxxxxxx', skip: true },
+  { key: 'conditions', ask: () => 'Any allergy or health condition the doctor should know?', chips: [['', 'None'], 'Diabetes', 'High BP', 'Heart condition', 'Penicillin allergy', 'Pregnant'], other: 'Type it here' },
   { key: 'reason', ask: () => 'What brings you in today?', type: 'text', placeholder: 'e.g. Tooth pain', skip: true },
   { key: 'consent', ask: (t) => `Last step. Do you agree that ${t.name} can keep these details and your medical records for your treatment? You can ask the clinic to delete them any time.`, chips: [['yes', 'Yes, I agree']] },
 ]
@@ -54,13 +51,30 @@ export default function SelfRegister() {
     }, 550)
   }
 
-  const finish = (a) => {
-    const existing = db.list(tid, 'patients').find((p) => p.phone === a.phone)
-    const rec = { name: a.name.trim(), phone: a.phone, dob: a.dob, gender: a.gender, blood: a.blood || '', allergies: a.allergies, conditions: a.conditions, address: a.address || '', emergencyContact: a.emergencyContact || '', email: '', consentOn: today(), selfRegistered: true, visitReason: a.reason || '' }
-    let p
-    if (existing) { db.update(tid, 'patients', existing.id, rec); p = { ...existing, ...rec } }
-    else p = db.add(tid, 'patients', { ...rec, regDate: today() })
+  const finish = async (a) => {
+    // Age is enough for a first visit; the date of birth is kept as 1 January of that year.
+    const ageYears = a.age === '' || a.age == null ? '' : String(Math.round(+a.age))
+    const dob = ageYears === '' ? '' : `${new Date().getFullYear() - +ageYears}-01-01`
+    const allergy = /allerg/i.test(a.conditions || '')
+    const rec = { name: a.name.trim(), phone: a.phone, email: a.email || '', ageYears, dob, dobApprox: !!dob, gender: a.gender, allergies: allergy ? a.conditions : '', conditions: allergy ? '' : a.conditions || '', visitReason: a.reason || '' }
     setTyping(true)
+    if (db.onServer(tid)) {
+      try {
+        const res = await server.register(tid, rec)
+        setTyping(false)
+        return setDone({ p: { id: res.id, ...rec }, existing: res.existing })
+      } catch (e) {
+        setTyping(false)
+        setLog((l) => [...l, { from: 'bot', text: `Sorry, that didn’t go through: ${e.message} Tap “Yes, I agree” to try again.`, warn: true }])
+        return
+      }
+    }
+    const existing = db.list(tid, 'patients').find((p) => p.phone === a.phone && p.name.toLowerCase() === rec.name.toLowerCase())
+    const full = { ...rec, blood: '', address: '', emergencyContact: '', consentOn: today(), selfRegistered: true }
+    let p
+    if (existing) { db.update(tid, 'patients', existing.id, full); p = { ...existing, ...full } }
+    else p = db.add(tid, 'patients', { ...full, regDate: today() })
+    if (!db.list(tid, 'visits').some((v) => v.patientId === p.id && v.date === today())) db.add(tid, 'visits', { patientId: p.id, date: today(), time: nowTime(), status: 'waiting', source: 'qr', complaint: rec.visitReason, vitals: {} })
     setTimeout(() => { setTyping(false); setDone({ p, existing: !!existing }) }, 600)
   }
 

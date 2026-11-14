@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Trash2, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { Plus, Trash2, CheckCircle2, ArrowLeft, HeartPulse } from 'lucide-react'
+import { VisitForm, vitalsText } from '../components/visits'
 import { useTenant, Card, Input, Textarea, toast, Pill } from '../components/ui'
 import { PatientHeader } from './Patients'
 import { VideoPlayer, ShareButton } from '../components/videos'
@@ -26,7 +27,9 @@ export default function Consult() {
   const [procs, setProcs] = useState([])
   const [err, setErr] = useState('')
   const [play, setPlay] = useState(null)
+  const [vitals, setVitals] = useState(false)
   if (!appt || !p) return <div className="empty">Appointment not found.</div>
+  const visit = list('visits').find((v) => v.appointmentId === appt.id) || list('visits').find((v) => v.patientId === p.id && v.date === appt.date && v.status !== 'done')
 
   const history = list('prescriptions').filter((r) => r.patientId === p.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3)
   const reports = list('reports').filter((r) => r.patientId === p.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3)
@@ -52,6 +55,8 @@ export default function Consult() {
       ],
     })
     db.update(tid, 'appointments', appt.id, { status: 'completed', prescriptionId: rx.id })
+    if (visit) db.update(tid, 'visits', visit.id, { status: 'done', appointmentId: appt.id, prescriptionId: rx.id, doctorId: doc.id })
+    else db.add(tid, 'visits', { patientId: p.id, date: today(), time: appt.time, status: 'done', source: 'appointment', complaint: appt.reason, doctorId: doc.id, appointmentId: appt.id, prescriptionId: rx.id, vitals: {} })
     toast(`Visit completed. Prescription ${rx.id} and bill ${bill.id} sent to the front desk.`)
     nav(`${base}/patients/${p.id}`)
   }
@@ -62,6 +67,15 @@ export default function Consult() {
       <PatientHeader p={p}>
         <span className="muted small">{fmtDate(appt.date)} · {fmtTime(appt.time)} · {appt.reason}</span>
       </PatientHeader>
+      {visit && (vitalsText(visit.vitals) || visit.complaint) && (
+        <div className="card pad row" style={{ gap: 10, alignItems: 'flex-start' }}>
+          <HeartPulse style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          <div><strong>Today’s vitals</strong>{visit.complaint && <span className="muted"> · {visit.complaint}</span>}<div className="small">{vitalsText(visit.vitals) || 'Not taken yet'}</div></div>
+          <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => setVitals(true)}>Edit</button>
+        </div>
+      )}
+      {!(visit && (vitalsText(visit.vitals) || visit.complaint)) ? <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setVitals(true)}><HeartPulse /> Add vitals</button> : null}
+      {vitals && <VisitForm patientId={p.id} onClose={() => setVitals(false)} />}
       {allergic && <div className="card pad" style={{ borderColor: 'var(--bad)', color: 'var(--bad)', fontWeight: 600 }}>Allergy alert: {p.name} is allergic to {p.allergies}. Check the antibiotic before you sign.</div>}
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)' }}>
         <div className="stack">

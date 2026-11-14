@@ -33,7 +33,7 @@ export default function RegisterQR({ onClose }) {
           </div>
         </div>
       </div>
-      <span className="small muted">Tip: print the QR and stick it at reception. In this demo, registrations save on the device that fills the form; once the clinic is live they reach the clinic instantly.</span>
+      <span className="small muted">Tip: print the QR and stick it at reception. {tenant.server ? 'When a patient finishes the chat on their phone, they appear in Today’s visits on the dashboard within a few seconds, ready for vitals.' : 'In this demo, registrations save on the device that fills the form.'}</span>
     </Modal>
   )
 }

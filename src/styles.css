@@ -752,3 +752,9 @@ tbody tr:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
 .pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
 .pw-eye:hover { color: var(--text, inherit); background: rgba(127, 127, 127, .12); }
 .pw-eye:focus-visible { outline: 2px solid var(--primary, #0e7490); outline-offset: 1px; }
+
+/* Early bird price: old price struck through, offer price in front. */
+.was { text-decoration: line-through; color: var(--muted); font-weight: 600; margin-right: 6px; font-size: .62em; }
+.offer-tag { display: inline-flex; align-self: flex-start; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.buy-box { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--brand) 7%, transparent); }
+.lx-plan.pop .was { color: rgb(226 232 255 / 60%); }

@@ -5,7 +5,7 @@ import {
   FileHeart, Receipt, Pill, Palette, Wallet, Smartphone, ShieldCheck, Sparkles, Zap, Users, Activity, Clock,
 } from 'lucide-react'
 import { db, useDb } from '../lib/store'
-import { PLANS, PLAN_ORDER, MODULES, tenantHost } from '../lib/plans'
+import { PLANS, PLAN_ORDER, MODULES, tenantHost, SALES_PHONE } from '../lib/plans'
 import { toast, CompanyLink, SiteFooter, COMPANY_URL, CountUp } from '../components/ui'
 
 const SPECIALITIES = ['Dental clinics', 'General physicians', 'Paediatrics', 'Gynaecology', 'Orthopaedics', 'ENT', 'Eye care', 'Skin & hair', 'Physiotherapy', 'Multi-speciality hospitals']
@@ -234,7 +234,8 @@ export default function Landing() {
               <div key={p} className={`lx-plan ${p === 'plus' ? 'pop' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
                 {p === 'plus' && <span className="lx-pop">Most popular</span>}
                 <h3>{PLANS[p].name}</h3>
-                <div className="lx-price"><b>₹{PLANS[p].price.toLocaleString('en-IN')}</b><span>/ month</span></div>
+                {PLANS[p].offer && <span className="offer-tag">{PLANS[p].offerLabel}</span>}
+                <div className="lx-price"><b>{PLANS[p].offer && <span className="was">₹{PLANS[p].price.toLocaleString('en-IN')}</span>}₹{(PLANS[p].offer || PLANS[p].price).toLocaleString('en-IN')}</b><span>/ month</span></div>
                 <p>{PLANS[p].blurb}</p>
                 <ul>
                   {PLANS[p].modules.filter((m) => m !== 'dashboard').map((m) => <li key={m}><Check size={14} /> {MODULES[m].label}</li>)}
@@ -242,7 +243,7 @@ export default function Landing() {
               </div>
             ))}
           </div>
-          <p className="lx-note">Prices are indicative.</p>
+          <p className="lx-note">Monthly subscription. To buy, call or WhatsApp <a href={`tel:+91${SALES_PHONE}`}>{SALES_PHONE}</a>.</p>
         </div>
       </section>
 

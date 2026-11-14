@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
   Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart,
 } from 'lucide-react'
-import { db, auth, useDb } from './lib/store'
+import { db, auth, useDb, server } from './lib/store'
 import { hasModule, ROLE_MODULES, ROLE_LABEL, PLANS, planFor, MODULES } from './lib/plans'
 import { TenantCtx, Toaster, Avatar, useTenant, BrandMark, tenantStyle, SiteFooter } from './components/ui'
 import Landing from './pages/Landing'
@@ -95,6 +95,10 @@ function TenantApp() {
   if (ctx.tenant.slug !== slug) return <Navigate to={loc.pathname.replace(`/t/${slug}`, `/t/${ctx.tenant.slug}`)} replace />
   const style = tenantStyle(ctx.tenant)
   const site = SITES[ctx.tenant.slug]
+  const onServer = !!ctx.tenant.server
+  const srv = onServer ? server.info(ctx.tid) : null
+  // Staff screens wait for this clinic's records to arrive from the server.
+  const waiting = onServer && auth.token(ctx.tid) && !srv.loaded
   return (
     <TenantCtx.Provider value={ctx}>
       <div style={style} className="landing">
@@ -103,10 +107,24 @@ function TenantApp() {
           <Route path="register" element={<SelfRegister />} />
           {/* A real clinic with a public page shows it at its own address; staff sign in from there */}
           {site && !ctx.user && <Route index element={<ClinicSite site={site} />} />}
-          <Route path="*" element={ctx.user ? <Shell /> : <Login />} />
+          <Route path="*" element={waiting ? <ServerWait info={srv} /> : ctx.user ? <Shell /> : <Login />} />
         </Routes>
+        {onServer && <ServerStart tid={ctx.tid} />}
       </div>
     </TenantCtx.Provider>
+  )
+}
+
+function ServerStart({ tid }) {
+  useEffect(() => { server.start(tid) }, [tid])
+  return null
+}
+
+function ServerWait({ info }) {
+  return (
+    <div className="empty" style={{ margin: 'auto', padding: 40, textAlign: 'center' }}>
+      {info.error ? <>Can’t reach the clinic server: {info.error}<br /><span className="small muted">Check the internet connection. This page retries on its own.</span></> : 'Opening your clinic…'}
+    </div>
   )
 }
 
@@ -223,6 +241,8 @@ export function DemoBand() {
   const nav = useNavigate()
   const t = useTenant()
   const onOwnHost = !!hostTenantSlug()
+  // A real clinic on the online database needs no warning strip.
+  if (t?.tenant.server) return null
   return (
     <div className="demo-band">
       <span>

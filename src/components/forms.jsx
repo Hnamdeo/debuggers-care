@@ -12,7 +12,9 @@ export function PatientForm({ onClose, onSaved, initial }) {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
   const [err, setErr] = useState('')
   const save = () => {
-    if (!f.name.trim() || !f.dob || !/^\d{10}$/.test(f.phone)) return setErr('Add the patient’s name, date of birth and a 10-digit mobile number.')
+    if (!f.name.trim() || !/^\d{10}$/.test(f.phone)) return setErr('Add the patient’s name and a 10-digit mobile number.')
+    if (!f.dob && f.ageYears) { f.dob = `${new Date().getFullYear() - +f.ageYears}-01-01`; f.dobApprox = true }
+    else if (f.dob && f.dobApprox && initial?.dob !== f.dob) f.dobApprox = false
     let row
     if (initial?.id) {
       db.update(tid, 'patients', initial.id, f)
@@ -30,7 +32,8 @@ export function PatientForm({ onClose, onSaved, initial }) {
       <div className="grid g2">
         <Input id="pf-name" label="Full name" value={f.name} onChange={set('name')} placeholder="e.g. Sneha Kulkarni" />
         <Input id="pf-phone" label="Mobile number" value={f.phone} onChange={set('phone')} placeholder="10 digits" inputMode="numeric" />
-        <Input id="pf-dob" label="Date of birth" type="date" value={f.dob} onChange={set('dob')} max={today()} />
+        <Input id="pf-dob" label="Date of birth (or age below)" type="date" value={f.dobApprox ? '' : f.dob} onChange={set('dob')} max={today()} />
+        {(!f.dob || f.dobApprox) && <Input id="pf-age" label="Age in years" value={f.ageYears || ''} onChange={(e) => setF({ ...f, ageYears: e.target.value.replace(/\D/g, '').slice(0, 3), dob: '', dobApprox: false })} inputMode="numeric" placeholder="If date of birth is not known" />}
         <Select id="pf-gender" label="Sex" value={f.gender} onChange={set('gender')} options={[{ value: 'F', label: 'Female' }, { value: 'M', label: 'Male' }, { value: 'O', label: 'Other' }]} />
         <Select id="pf-blood" label="Blood group" value={f.blood} onChange={set('blood')} options={['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']} />
         <Input id="pf-email" label="Email (optional)" value={f.email} onChange={set('email')} />

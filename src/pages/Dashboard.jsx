@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, MonitorPlay, Stethoscope } from 'lucide-react'
 import RegisterQR from '../components/RegisterQR'
+import { TodayVisits } from '../components/visits'
 import { useTenant, PageHead, Stat, Card, Table, Pill } from '../components/ui'
 import { today, addDays, fmtTime, money, billTotal, fmtDate } from '../lib/utils'
 
@@ -96,6 +97,7 @@ function AdminDash() {
           <Stat label="Lab reports pending" value={pendingLabs.length} sub="Ordered, results not entered" icon={FlaskConical} />
         )}
       </div>
+      <TodayVisits />
       <div className="grid g2">
         <Card title="Today’s appointments" actions={<button className="btn sm" onClick={() => nav(`${base}/appointments`)}>Open schedule</button>}>
           <Table
@@ -163,6 +165,7 @@ function DoctorDash() {
         <Stat label="Reports to review" value={labs.filter((r) => r.status === 'completed' && r.date >= addDays(T, -3)).length} sub={`${labs.filter((r) => r.status === 'ordered').length} still in lab`} icon={FlaskConical} />
         {can('ipd') ? <Stat label="My admitted patients" value={ipd.length} sub="IPD and ICU" icon={BedDouble} /> : <Stat label="Upcoming bookings" value={mine.filter((a) => a.date > T && a.status === 'scheduled').length} sub="Next 7 days" icon={CalendarDays} />}
       </div>
+      <TodayVisits />
       <Card title="My queue today">
         <Table
           rows={todays}

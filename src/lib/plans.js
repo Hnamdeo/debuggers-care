@@ -15,11 +15,17 @@ export const MODULES = {
   emergency: { label: 'Emergency' },
 }
 
+// How a clinic buys or upgrades for now: a call or WhatsApp to Debuggers Space (online payment comes later).
+export const SALES_PHONE = '9075013110'
+export const salesWhatsApp = (text) => `https://wa.me/91${SALES_PHONE}?text=${encodeURIComponent(text)}`
+
 export const PLANS = {
   clinic: {
     id: 'clinic',
     name: 'Clinic',
     price: 999,
+    offer: 599,
+    offerLabel: 'Early bird offer',
     blurb: 'For single-doctor and small clinics, like dentists and GPs.',
     maxDoctors: 3,
     modules: ['dashboard', 'patients', 'appointments', 'prescriptions', 'reports', 'education', 'billing', 'staff'],
@@ -53,10 +59,11 @@ export const ROLE_MODULES = {
   admin: ['dashboard', 'patients', 'appointments', 'prescriptions', 'reports', 'education', 'ipd', 'emergency', 'pharmacy', 'billing', 'staff', 'payroll'],
   doctor: ['dashboard', 'appointments', 'patients', 'prescriptions', 'reports', 'education', 'ipd', 'emergency'],
   pharmacist: ['pharmacy', 'prescriptions'],
+  receptionist: ['dashboard', 'patients', 'appointments', 'billing'],
   patient: [],
 }
 
-export const ROLE_LABEL = { admin: 'Admin', doctor: 'Doctor', pharmacist: 'Pharmacist', patient: 'Patient' }
+export const ROLE_LABEL = { admin: 'Admin', doctor: 'Doctor', receptionist: 'Reception', pharmacist: 'Pharmacist', patient: 'Patient' }
 
 // Public address of a clinic. Hostinger shared hosting cannot serve nested
 // subdomains (x.care.debuggersspace.com), so clinics use "<slug>-care".

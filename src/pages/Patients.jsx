@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle } from 'lucide-react'
+import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse } from 'lucide-react'
 import { useTenant, PageHead, Card, Table, Pill, SearchBox, Avatar, Tabs, Stat } from '../components/ui'
 import RegisterQR from '../components/RegisterQR'
 import { PatientForm, BookAppointment, NewBill, AdmitForm } from '../components/forms'
 import { PrescriptionDoc, ReportDoc, InvoiceDoc } from '../components/docs'
 import { VideoPlayer, whatsappLink } from '../components/videos'
+import { VisitForm, VisitDays } from '../components/visits'
 import { fmtDate, fmtTime, age, money, billTotal, billStatus } from '../lib/utils'
 
 export default function Patients() {
@@ -62,12 +63,14 @@ export function PatientProfile() {
       <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav(`${base}/patients`)}><ArrowLeft /> Patients</button>
       <PatientHeader p={p}>
         <button className="btn" onClick={() => setModal('edit')}><Pencil /> Edit</button>
-        <button className="btn primary" onClick={() => setModal('book')}><CalendarPlus /> Book</button>
+        <button className="btn primary" onClick={() => setModal('visit')}><HeartPulse /> Today’s visit & vitals</button>
+        <button className="btn" onClick={() => setModal('book')}><CalendarPlus /> Book</button>
         {can('ipd') && <button className="btn" onClick={() => setModal('admit')}><BedDouble /> Admit</button>}
         {user.role === 'admin' && <button className="btn" onClick={() => setModal('bill')}><Receipt /> New bill</button>}
       </PatientHeader>
       <PatientRecord p={p} canCollect={staffView && user.role === 'admin'} />
       {modal === 'edit' && <PatientForm initial={p} onClose={() => setModal(null)} />}
+      {modal === 'visit' && <VisitForm patientId={p.id} onClose={() => setModal(null)} />}
       {modal === 'book' && <BookAppointment patientId={p.id} onClose={() => setModal(null)} />}
       {modal === 'admit' && <AdmitForm patientId={p.id} onClose={() => setModal(null)} />}
       {modal === 'bill' && <NewBill patientId={p.id} onClose={() => setModal(null)} />}
@@ -84,7 +87,7 @@ export function PatientHeader({ p, children }) {
           <div className="stack" style={{ gap: 6, minWidth: 0 }}>
             <div>
               <h1 style={{ fontSize: '1.35rem' }}>{p.name}</h1>
-              <div className="muted small">UHID {p.id} · {age(p.dob)} years · {p.gender === 'F' ? 'Female' : p.gender === 'M' ? 'Male' : 'Other'} · Blood {p.blood}</div>
+              <div className="muted small">UHID {p.id} · {age(p.dob)} years · {p.gender === 'F' ? 'Female' : p.gender === 'M' ? 'Male' : 'Other'} {p.blood ? ` · Blood ${p.blood}` : ''}{p.email ? ` · ${p.email}` : ''}</div>
             </div>
             <div className="row" style={{ gap: 6 }}>
               {p.allergies && <span className="pill bad"><AlertTriangle size={11} /> Allergy: {p.allergies}</span>}
@@ -119,7 +122,8 @@ export function PatientRecord({ p, canCollect }) {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
-    { id: 'appointments', label: 'Visits', count: appts.length },
+    ...(user.role !== 'patient' ? [{ id: 'days', label: 'Visits by day', count: new Set([...mine('visits'), ...appts.filter((a) => a.status === 'completed'), ...rxs].map((r) => r.date)).size }] : []),
+    { id: 'appointments', label: 'Appointments', count: appts.length },
     { id: 'prescriptions', label: 'Prescriptions', count: rxs.length },
     { id: 'reports', label: 'Reports', count: reps.length },
     { id: 'bills', label: 'Bills', count: bills.length },
@@ -162,7 +166,7 @@ export function PatientRecord({ p, canCollect }) {
               <dl className="kv">
                 <dt>Mobile</dt><dd>{p.phone}</dd>
                 <dt>Email</dt><dd>{p.email || '-'}</dd>
-                <dt>Date of birth</dt><dd>{fmtDate(p.dob)}</dd>
+                <dt>{p.dobApprox ? 'Age' : 'Date of birth'}</dt><dd>{p.dobApprox ? `${age(p.dob)} years (told at registration)` : p.dob ? fmtDate(p.dob) : '–'}</dd>
                 <dt>Address</dt><dd>{p.address || '-'}</dd>
                 <dt>Emergency contact</dt><dd>{p.emergencyContact || '-'}</dd>
                 <dt>Registered</dt><dd>{fmtDate(p.regDate)}</dd>
@@ -182,6 +186,7 @@ export function PatientRecord({ p, canCollect }) {
           </div>
         </div>
       )}
+      {tab === 'days' && <VisitDays p={p} />}
       {tab === 'appointments' && (
         <Card><Table rows={appts} cols={[
           { label: 'Date', render: (a) => <><div className="cell-main">{fmtDate(a.date)}</div><div className="cell-sub">{fmtTime(a.time)}</div></> },
