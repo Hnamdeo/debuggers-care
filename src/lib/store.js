@@ -9,7 +9,7 @@ import { toast } from '../components/ui'
 const KEY = 'debuggers-care-hms:v3'
 const SESSION_KEY = 'debuggers-care-hms:session'
 const TOKENS_KEY = 'debuggers-care-hms:tokens'
-const COLLS = ['staff', 'patients', 'appointments', 'prescriptions', 'reports', 'bills', 'medicines', 'sales', 'beds', 'admissions', 'emergencies', 'payroll', 'users', 'videos', 'shares', 'visits']
+const COLLS = ['staff', 'patients', 'appointments', 'prescriptions', 'reports', 'bills', 'medicines', 'sales', 'beds', 'admissions', 'emergencies', 'payroll', 'users', 'videos', 'shares', 'visits', 'images']
 const EMPTY = () => Object.fromEntries(COLLS.map((c) => [c, []]))
 
 function load() {
@@ -99,7 +99,7 @@ export function useSession() {
   return session
 }
 
-const PREFIX = { visits: 'VS',  patients: 'P', appointments: 'A', prescriptions: 'RX', reports: 'LAB', bills: 'INV', medicines: 'M', sales: 'SL', beds: 'BED', admissions: 'IPD', emergencies: 'ER', payroll: 'PAY', staff: 'S', users: 'U', videos: 'V', shares: 'SH' }
+const PREFIX = { visits: 'VS', images: 'IMG',  patients: 'P', appointments: 'A', prescriptions: 'RX', reports: 'LAB', bills: 'INV', medicines: 'M', sales: 'SL', beds: 'BED', admissions: 'IPD', emergencies: 'ER', payroll: 'PAY', staff: 'S', users: 'U', videos: 'V', shares: 'SH' }
 
 export const db = {
   tenants: () => state.tenants,
@@ -330,6 +330,12 @@ export const server = {
   },
   async register(tid, patient) {
     return post(tid, 'register', { patient })
+  },
+  async upload(tid, dataUrl) {
+    return (await post(tid, 'upload', { data: dataUrl })).fileId
+  },
+  fileUrl(tid, fileId) {
+    return `${apiUrl(tid, 'file')}&id=${encodeURIComponent(fileId)}&k=${encodeURIComponent(tokens[tid] || '')}`
   },
   async changePassword(tid, current, next) {
     return post(tid, 'password', { current, next })

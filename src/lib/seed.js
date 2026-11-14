@@ -271,7 +271,7 @@ function buildTenant(def, seedNum) {
     counters[prefix] = (counters[prefix] || 1000) + 1
     return `${prefix}-${counters[prefix]}`
   }
-  const data = { staff: [], patients: [], appointments: [], prescriptions: [], reports: [], bills: [], medicines: [], sales: [], beds: [], admissions: [], emergencies: [], payroll: [], users: [], videos: [], shares: [], visits: [] }
+  const data = { staff: [], patients: [], appointments: [], prescriptions: [], reports: [], bills: [], medicines: [], sales: [], beds: [], admissions: [], emergencies: [], payroll: [], users: [], videos: [], shares: [], visits: [], images: [] }
   const domain = def.email.split('@')[1]
 
   // Staff and their logins

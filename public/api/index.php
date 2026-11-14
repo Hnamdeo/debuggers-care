@@ -24,7 +24,7 @@ date_default_timezone_set('Asia/Kolkata');
 
 const DATA_DIR = __DIR__ . '/data';
 const SESSION_DAYS = 30;
-const PREFIX = ['patients' => 'P', 'appointments' => 'A', 'prescriptions' => 'RX', 'reports' => 'LAB', 'bills' => 'INV', 'medicines' => 'M', 'sales' => 'SL', 'beds' => 'BED', 'admissions' => 'IPD', 'emergencies' => 'ER', 'payroll' => 'PAY', 'staff' => 'S', 'users' => 'U', 'videos' => 'V', 'shares' => 'SH', 'visits' => 'VS'];
+const PREFIX = ['patients' => 'P', 'appointments' => 'A', 'prescriptions' => 'RX', 'reports' => 'LAB', 'bills' => 'INV', 'medicines' => 'M', 'sales' => 'SL', 'beds' => 'BED', 'admissions' => 'IPD', 'emergencies' => 'ER', 'payroll' => 'PAY', 'staff' => 'S', 'users' => 'U', 'videos' => 'V', 'shares' => 'SH', 'visits' => 'VS', 'images' => 'IMG'];
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -41,7 +41,7 @@ $config = require __DIR__ . '/config.php';
 $slug = strtolower((string)($_GET['t'] ?? ''));
 $action = (string)($_GET['a'] ?? '');
 if (!isset($config['clinics'][$slug])) fail('Unknown clinic.', 404);
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('Use POST.', 405);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $action !== 'file') fail('Use POST.', 405);
 $clinic = $config['clinics'][$slug];
 $in = json_decode(file_get_contents('php://input') ?: '{}', true);
 if (!is_array($in)) fail('Bad request body.');
@@ -316,6 +316,35 @@ switch ($action) {
     audit($u['id'], 'import');
     $pdo->commit();
     out(['ok' => true, 'rev' => $rev]);
+  }
+
+  case 'upload': {
+    // X-rays and photos: kept as files beside the clinic database, never in a public folder.
+    $u = session();
+    $raw = (string)($in['data'] ?? '');
+    if (!preg_match('#^data:image/(jpeg|png|webp);base64,#', $raw, $m)) fail('Please choose a photo or X-ray image.');
+    $bin = base64_decode(substr($raw, strpos($raw, ',') + 1), true);
+    if ($bin === false || strlen($bin) > 6 * 1024 * 1024) fail('That image is too large. Please use one under 6 MB.');
+    if (@getimagesizefromstring($bin) === false) fail('That file is not an image.');
+    $dir = DATA_DIR . "/files/$slug";
+    if (!is_dir($dir)) mkdir($dir, 0750, true);
+    $id = bin2hex(random_bytes(16)) . '.' . ($m[1] === 'jpeg' ? 'jpg' : $m[1]);
+    file_put_contents("$dir/$id", $bin);
+    audit($u['id'], 'upload', 'files', $id);
+    out(['fileId' => $id]);
+  }
+
+  case 'file': {
+    session();
+    $id = (string)($_GET['id'] ?? '');
+    if (!preg_match('/^[a-f0-9]{32}\.(jpg|png|webp)$/', $id, $m)) fail('Not found.', 404);
+    $path = DATA_DIR . "/files/$slug/$id";
+    if (!is_file($path)) fail('Not found.', 404);
+    header('Content-Type: ' . ['jpg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'][$m[1]]);
+    header('Cache-Control: private, max-age=86400');
+    header('Content-Length: ' . filesize($path));
+    readfile($path);
+    exit;
   }
 
   case 'password': {
