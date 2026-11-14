@@ -63,8 +63,7 @@ export function PatientProfile() {
   const staffView = user.role !== 'patient'
   return (
     <>
-      <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav(`${base}/patients`)}><ArrowLeft /> Patients</button>
-      <PatientHeader p={p}>
+      <PatientHeader p={p} back={() => nav(`${base}/patients`)}>
         <button className="btn" onClick={() => setModal('edit')}><Pencil /> Edit</button>
         <button className="btn primary" onClick={() => setModal('visit')}><HeartPulse /> Today’s visit & vitals</button>
         <button className="btn" onClick={() => setModal('image')}><ScanLine /> X-ray / photo</button>
@@ -85,11 +84,12 @@ export function PatientProfile() {
   )
 }
 
-export function PatientHeader({ p, children }) {
+export function PatientHeader({ p, children, back }) {
   return (
     <div className="card pad">
       <div className="row between" style={{ alignItems: 'flex-start' }}>
         <div className="row" style={{ alignItems: 'flex-start', gap: 14, flexWrap: 'nowrap', minWidth: 0 }}>
+          {back && <button className="btn ghost sm icon-only" onClick={back} aria-label="Back" title="Back"><ArrowLeft /></button>}
           <Avatar name={p.name} lg />
           <div className="stack" style={{ gap: 6, minWidth: 0 }}>
             <div>

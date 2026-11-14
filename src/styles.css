@@ -813,10 +813,11 @@ tbody tr:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
 .pad-line > span { border-bottom: 1px dotted #777; padding-bottom: 2px; }
 .pad-line b { font-weight: 700; }
 .pad-top { display: flex; gap: 14px; align-items: flex-start; position: relative; }
-.pad-hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 13px; flex: none; }
+.pad-hist { list-style: none; margin: 0 0 8px 14px; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 13px; float: right; }
 .pad-box { display: inline-grid; place-items: center; width: 12px; height: 12px; border: 1.5px solid #333; margin-right: 6px; font-size: 10px; line-height: 1; vertical-align: -1px; font-weight: 800; }
 .pad-box.on { color: var(--pad); }
-.pad-write { position: relative; flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.pad-write { position: relative; display: flow-root; font-size: 13.5px; }
+.pad-write > p, .pad-write > ol { margin: 0 0 4px; }
 .pad-write p { margin: 0; }
 .pad-write .rx { font: 800 26px Georgia, serif; color: var(--pad); margin-top: 6px; }
 .pad-meds { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 5px; }
@@ -834,6 +835,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
   .pad-side { display: none; }
   .pad-foot { padding-left: 14px; }
   .pad-top { flex-direction: column; }
+  .pad-hist { float: none; flex-direction: row; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0 8px; }
 }
 @media print {
   @page { size: A4; margin: 6mm; }
@@ -861,3 +863,8 @@ tbody tr:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
 @media (max-width: 900px) { .consult-grid { grid-template-columns: minmax(0, 1fr); } }
 .pin-show { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px; border-radius: 14px; background: var(--brand-soft); border: 1px dashed var(--brand); }
 .pin-show b { font: 800 34px/1 var(--font-head); letter-spacing: 8px; font-variant-numeric: tabular-nums; color: var(--brand); }
+
+/* Consult: vitals sit at the right of the patient bar */
+.consult-vitals { display: flex; flex-direction: column; gap: 6px; min-width: 240px; max-width: 400px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--brand) 4%, var(--surface)); }
+.btn.icon-only { padding: 6px; margin-left: -6px; }
+@media (max-width: 640px) { .consult-vitals { min-width: 0; max-width: none; width: 100%; } }

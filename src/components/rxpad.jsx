@@ -101,16 +101,14 @@ export function RxPad({ rx, p, doctor }) {
             <span>Date: <b>{fmtDate(rx.date)}</b></span>
             <span>Age/Sex: <b>{p?.dob ? `${age(p.dob)} y` : ''}{sex ? ` / ${sex}` : ''}</b></span>
           </div>
-          <div className="pad-top">
-            <div className="pad-line" style={{ flex: 1 }}>
-              <span style={{ flex: 1 }}>Name: <b>{p?.name}</b></span>
-              {p?.phone && <span>Mob: <b>{p.phone}</b></span>}
-            </div>
+          <div className="pad-line">
+            <span style={{ flex: 1 }}>Name: <b>{p?.name}</b></span>
+            {p?.phone && <span>Mob: <b>{p.phone}</b></span>}
+          </div>
+          <div className="pad-write">
             <ul className="pad-hist">
               {(pad.history || HISTORY).map((h) => <li key={h}><Box on={history.includes(h)} /> {h}{h === 'Others' && others ? `: ${others}` : ''}{h === 'Drug allergy' && history.includes(h) && p?.allergies ? ` (${p.allergies})` : ''}</li>)}
             </ul>
-          </div>
-          <div className="pad-write">
             {rx.complaint && <p><b>C/O:</b> {rx.complaint}</p>}
             {rx.findings && <p><b>O/E:</b> {rx.findings}</p>}
             {rx.diagnosis && <p><b>Diagnosis:</b> {rx.diagnosis}</p>}
