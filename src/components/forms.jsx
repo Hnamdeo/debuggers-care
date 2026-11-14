@@ -1,14 +1,14 @@
+import { slotsOn } from '../lib/slots'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Modal, Input, Select, Textarea, useTenant, toast } from './ui'
 import { db } from '../lib/store'
 import { today, fmtTime, money } from '../lib/utils'
 
-const SLOTS = ['09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30']
 
 export function PatientForm({ onClose, onSaved, initial }) {
   const { tid } = useTenant()
-  const [f, setF] = useState(initial || { name: '', gender: '', dob: '', phone: '', email: '', blood: '', address: '', allergies: '', conditions: '', emergencyContact: '' })
+  const [f, setF] = useState({ name: '', gender: '', dob: '', phone: '', email: '', blood: '', address: '', allergies: '', conditions: '', emergencyContact: '', ...initial })
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
   const [err, setErr] = useState('')
   const save = () => {
@@ -52,15 +52,16 @@ export function PatientForm({ onClose, onSaved, initial }) {
   )
 }
 
-export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fixedDoctor }) {
-  const { tid, list, doctors, patient } = useTenant()
+export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fixedDoctor, date: initDate, time: initTime }) {
+  const { tid, tenant, list, doctors, patient } = useTenant()
   const docs = doctors()
-  const [f, setF] = useState({ patientId: fixedPatient || '', doctorId: fixedDoctor || docs[0].id, date: today(), time: '', reason: '' })
+  const [f, setF] = useState({ patientId: fixedPatient || '', doctorId: fixedDoctor || docs[0].id, date: initDate || today(), time: initTime || '', reason: '' })
   const [q, setQ] = useState('')
   const [err, setErr] = useState('')
+  const [newP, setNewP] = useState(false)
   const taken = new Set(list('appointments').filter((a) => a.doctorId === f.doctorId && a.date === f.date && a.status !== 'cancelled').map((a) => a.time))
   const nowHM = new Date().toTimeString().slice(0, 5)
-  const free = SLOTS.filter((s) => !taken.has(s) && (f.date > today() || s > nowHM))
+  const free = slotsOn(tenant, f.date).filter((s) => !taken.has(s) && (f.date > today() || s > nowHM))
   const matches = q.length > 1 ? list('patients').filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.phone.includes(q) || p.id.toLowerCase() === q.toLowerCase()).slice(0, 6) : []
   const doc = docs.find((d) => d.id === f.doctorId)
   const save = () => {
@@ -80,6 +81,7 @@ export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fi
         ) : (
           <div className="stack" style={{ gap: 6 }}>
             <Input id="ba-search" label="Patient" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, mobile or UHID" autoFocus />
+            {q.length > 1 && !matches.length && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setNewP(true)}>No match. Register a new patient</button>}
             {matches.map((p) => (
               <button key={p.id} className="role-btn" style={{ padding: '7px 10px' }} onClick={() => setF({ ...f, patientId: p.id })}>
                 <span><strong>{p.name}</strong> <span className="muted small">{p.id} · {p.phone}</span></span>
@@ -102,6 +104,7 @@ export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fi
       </div>
       <Input id="ba-reason" label="Reason for visit" value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} placeholder="e.g. Tooth pain" />
       {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
+      {newP && <PatientForm initial={/^\d{10}$/.test(q) ? { phone: q } : { name: q }} onClose={() => setNewP(false)} onSaved={(row) => { setNewP(false); setF((x) => ({ ...x, patientId: row.id })) }} />}
     </Modal>
   )
 }

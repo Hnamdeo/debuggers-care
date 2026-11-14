@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Search, Printer, HeartPulse, Eye, EyeOff } from 'lucide-react'
 import { initials } from '../lib/utils'
 
@@ -112,7 +113,8 @@ export function Modal({ title, onClose, children, footer, wide }) {
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
   }, [onClose])
-  return (
+  // Rendered on the page body, so a popup opened from inside a card is never clipped by that card.
+  return createPortal(
     <div className="modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-head">
@@ -122,7 +124,8 @@ export function Modal({ title, onClose, children, footer, wide }) {
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.getElementById('tenant-root') || document.body,
   )
 }
 

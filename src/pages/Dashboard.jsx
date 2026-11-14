@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, MonitorPlay, Stethoscope } from 'lucide-react'
 import RegisterQR from '../components/RegisterQR'
+import { TodayTimings } from './Appointments'
 import { TodayVisits, sendToDoctor } from '../components/visits'
 import { PatientFinder } from '../components/summary'
 import { useTenant, PageHead, Stat, Card, Table, Pill } from '../components/ui'
@@ -98,6 +99,7 @@ function AdminDash() {
           <Stat label="Lab reports pending" value={pendingLabs.length} sub="Ordered, results not entered" icon={FlaskConical} />
         )}
       </div>
+      <TodayTimings />
       <PatientFinder />
       <TodayVisits />
       <div className="grid g2">
@@ -144,6 +146,7 @@ function Attention({ icon: Icon, text, onClick }) {
 function DoctorDash() {
   const { me, list, patient, can, base, tid } = useTenant()
   const nav = useNavigate()
+  const [qr, setQr] = useState(false)
   const T = today()
   const mine = list('appointments').filter((a) => a.doctorId === me.id)
   const todays = mine.filter((a) => a.date === T).sort((a, b) => a.time.localeCompare(b.time))
@@ -161,6 +164,8 @@ function DoctorDash() {
           : { icon: Stethoscope, label: 'No one waiting', hint: 'Queue is clear', onClick: () => nav(`${base}/appointments`), main: true },
         { icon: CalendarDays, label: 'My appointments', hint: `${todays.length} today`, onClick: () => nav(`${base}/appointments`) },
         { icon: FlaskConical, label: 'Lab reports', hint: `${labs.filter((r) => r.status === 'ordered').length} in lab`, onClick: () => nav(`${base}/reports`) },
+        { icon: UserPlus, label: 'Register patient', hint: 'New patient form', onClick: () => nav(`${base}/patients?new=1`) },
+        { icon: QrCode, label: 'Patient QR', hint: 'Print or share', onClick: () => setQr(true) },
         can('education') && { icon: MonitorPlay, label: 'Explain videos', hint: 'Show patients', onClick: () => nav(`${base}/education`) },
       ]} />
       <div className="grid g4">
@@ -169,6 +174,7 @@ function DoctorDash() {
         <Stat label="Reports to review" value={labs.filter((r) => r.status === 'completed' && r.date >= addDays(T, -3)).length} sub={`${labs.filter((r) => r.status === 'ordered').length} still in lab`} icon={FlaskConical} />
         {can('ipd') ? <Stat label="My admitted patients" value={ipd.length} sub="IPD and ICU" icon={BedDouble} /> : <Stat label="Upcoming bookings" value={mine.filter((a) => a.date > T && a.status === 'scheduled').length} sub="Next 7 days" icon={CalendarDays} />}
       </div>
+      <TodayTimings doctorId={me.id} />
       <PatientFinder />
       <TodayVisits />
       <Card title="My queue today">
@@ -193,6 +199,7 @@ function DoctorDash() {
           ]} />
         </Card>
       )}
+      {qr && <RegisterQR onClose={() => setQr(false)} />}
     </>
   )
 }

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { ImagePlus, Camera, MonitorPlay, MessageCircle, ScanLine } from 'lucide-react'
+import { ImagePlus, Camera, MonitorPlay, MessageCircle, ScanLine, Printer } from 'lucide-react'
 import { Modal, Input, Select, Textarea, Card, useTenant, toast } from './ui'
 import { db, server } from '../lib/store'
 import { today, fmtDate } from '../lib/utils'
@@ -91,7 +91,7 @@ export function ImageUpload({ patientId, onClose, kind: initKind = 'X-ray' }) {
 
 // One picture full size, with the matching treatment video one tap away.
 export function ImageViewer({ im, onClose }) {
-  const { tid, list, patient, staff, user } = useTenant()
+  const { tid, tenant, list, patient, staff, user } = useTenant()
   const [play, setPlay] = useState(null)
   const p = patient(im.patientId)
   const v = videoFor(list, im.treatment)
@@ -100,14 +100,18 @@ export function ImageViewer({ im, onClose }) {
       <Modal wide title={`${im.kind}${im.area ? ` · ${im.area}` : ''} · ${fmtDate(im.date)}`} onClose={onClose} footer={<>
         {v && <button className="btn primary" onClick={() => setPlay(v)}><MonitorPlay /> Explain: {v.title}</button>}
         {v && user.role !== 'patient' && <a className="btn" href={whatsappLink(p.phone, `Hello ${p.name.split(' ')[0]}, here is the video about your treatment (${im.treatment}): ${v.url}`)} target="_blank" rel="noreferrer"><MessageCircle /> Send video on WhatsApp</a>}
+        <button className="btn" onClick={() => window.print()}><Printer /> Print</button>
         <button className="btn" onClick={onClose}>Close</button>
       </>}>
+        <div className="print-area">
+        <div className="print-only print-title"><strong>{tenant.name}</strong><span>{p?.name} · {p?.id} · {im.kind}{im.area ? ` · ${im.area}` : ''} · {fmtDate(im.date)}</span></div>
         <div className="img-full"><img src={imgSrc(tid, im)} alt={`${im.kind} of ${p?.name}`} /></div>
         <div className="small">
           {im.treatment && <div><strong>Treatment needed:</strong> {im.treatment}</div>}
           {im.note && <div><strong>Note:</strong> {im.note}</div>}
           <div className="muted">Added by {staff(im.by)?.name || 'clinic'} on {fmtDate(im.date)}</div>
-          {im.treatment && !v && <div className="muted">No video for “{im.treatment}” yet. Add one on the Patient education page and it will show here.</div>}
+          {im.treatment && !v && <div className="muted no-print">No video for “{im.treatment}” yet. Add one on the Patient education page and it will show here.</div>}
+        </div>
         </div>
       </Modal>
       {play && <VideoPlayer video={play} patientId={im.patientId} onClose={() => setPlay(null)} />}
