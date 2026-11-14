@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle } from 'lucide-react'
+import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse, ScanLine } from 'lucide-react'
 import { useTenant, PageHead, Card, Table, Pill, SearchBox, Avatar, Tabs, Stat } from '../components/ui'
 import RegisterQR from '../components/RegisterQR'
 import { PatientForm, BookAppointment, NewBill, AdmitForm } from '../components/forms'
 import { PrescriptionDoc, ReportDoc, InvoiceDoc } from '../components/docs'
 import { VideoPlayer, whatsappLink } from '../components/videos'
+import { VisitForm, VisitDays } from '../components/visits'
+import { PatientSummary } from '../components/summary'
+import { ImagesTab, ImageUpload } from '../components/imaging'
 import { fmtDate, fmtTime, age, money, billTotal, billStatus } from '../lib/utils'
 
 export default function Patients() {
@@ -62,12 +65,16 @@ export function PatientProfile() {
       <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav(`${base}/patients`)}><ArrowLeft /> Patients</button>
       <PatientHeader p={p}>
         <button className="btn" onClick={() => setModal('edit')}><Pencil /> Edit</button>
-        <button className="btn primary" onClick={() => setModal('book')}><CalendarPlus /> Book</button>
+        <button className="btn primary" onClick={() => setModal('visit')}><HeartPulse /> Today’s visit & vitals</button>
+        <button className="btn" onClick={() => setModal('image')}><ScanLine /> X-ray / photo</button>
+        <button className="btn" onClick={() => setModal('book')}><CalendarPlus /> Book</button>
         {can('ipd') && <button className="btn" onClick={() => setModal('admit')}><BedDouble /> Admit</button>}
         {user.role === 'admin' && <button className="btn" onClick={() => setModal('bill')}><Receipt /> New bill</button>}
       </PatientHeader>
-      <PatientRecord p={p} canCollect={staffView && user.role === 'admin'} />
+      <PatientRecord p={p} canCollect={staffView && user.role === 'admin'} onBook={() => setModal('book')} onBill={user.role === 'admin' ? () => setModal('bill') : null} />
       {modal === 'edit' && <PatientForm initial={p} onClose={() => setModal(null)} />}
+      {modal === 'image' && <ImageUpload patientId={p.id} onClose={() => setModal(null)} />}
+      {modal === 'visit' && <VisitForm patientId={p.id} onClose={() => setModal(null)} />}
       {modal === 'book' && <BookAppointment patientId={p.id} onClose={() => setModal(null)} />}
       {modal === 'admit' && <AdmitForm patientId={p.id} onClose={() => setModal(null)} />}
       {modal === 'bill' && <NewBill patientId={p.id} onClose={() => setModal(null)} />}
@@ -84,7 +91,7 @@ export function PatientHeader({ p, children }) {
           <div className="stack" style={{ gap: 6, minWidth: 0 }}>
             <div>
               <h1 style={{ fontSize: '1.35rem' }}>{p.name}</h1>
-              <div className="muted small">UHID {p.id} · {age(p.dob)} years · {p.gender === 'F' ? 'Female' : p.gender === 'M' ? 'Male' : 'Other'} · Blood {p.blood}</div>
+              <div className="muted small">UHID {p.id} · {age(p.dob)} years · {p.gender === 'F' ? 'Female' : p.gender === 'M' ? 'Male' : 'Other'} {p.blood ? ` · Blood ${p.blood}` : ''}{p.email ? ` · ${p.email}` : ''}</div>
             </div>
             <div className="row" style={{ gap: 6 }}>
               {p.allergies && <span className="pill bad"><AlertTriangle size={11} /> Allergy: {p.allergies}</span>}
@@ -100,7 +107,7 @@ export function PatientHeader({ p, children }) {
 }
 
 // Full health record: used by staff (patient profile) and by the patient portal.
-export function PatientRecord({ p, canCollect }) {
+export function PatientRecord({ p, canCollect, onBook, onBill }) {
   const { list, staff, user } = useTenant()
   const [tab, setTab] = useState('overview')
   const [doc, setDoc] = useState(null)
@@ -118,11 +125,13 @@ export function PatientRecord({ p, canCollect }) {
   const shared = mine('shares').sort((a, b) => b.date.localeCompare(a.date)).map((sh) => ({ ...sh, v: vids.find((v) => v.id === sh.videoId) })).filter((x) => x.v)
 
   const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'appointments', label: 'Visits', count: appts.length },
+    { id: 'overview', label: 'Summary' },
+    ...(user.role !== 'patient' ? [{ id: 'days', label: 'Visits by day', count: new Set([...mine('visits'), ...appts.filter((a) => a.status === 'completed'), ...rxs].map((r) => r.date)).size }] : []),
+    { id: 'appointments', label: 'Appointments', count: appts.length },
     { id: 'prescriptions', label: 'Prescriptions', count: rxs.length },
     { id: 'reports', label: 'Reports', count: reps.length },
     { id: 'bills', label: 'Bills', count: bills.length },
+    ...(user.role !== 'patient' || list('images').some((i) => i.patientId === p.id) ? [{ id: 'images', label: 'X-rays & photos', count: list('images').filter((i) => i.patientId === p.id).length }] : []),
     ...(adms.length ? [{ id: 'admissions', label: 'Admissions', count: adms.length }] : []),
     ...(shared.length ? [{ id: 'videos', label: 'Videos', count: shared.length }] : []),
   ]
@@ -149,39 +158,9 @@ export function PatientRecord({ p, canCollect }) {
   return (
     <>
       <Tabs tabs={tabs} value={tab} onChange={setTab} />
-      {tab === 'overview' && (
-        <div className="stack">
-          <div className="grid g4">
-            <Stat label="Visits" value={appts.filter((a) => a.status === 'completed').length} sub={`Next: ${(() => { const n = appts.filter((a) => a.status === 'scheduled').pop(); return n ? `${fmtDate(n.date)}, ${fmtTime(n.time)}` : 'none booked' })()}`} />
-            <Stat label="Prescriptions" value={rxs.length} sub={rxs[0] ? `Latest ${fmtDate(rxs[0].date)}` : 'None yet'} />
-            <Stat label="Reports" value={reps.length} sub={`${reps.filter((r) => r.status === 'ordered').length} pending`} />
-            <Stat label="Total billed" value={money(billed)} sub={due ? `${money(due)} due` : 'Fully paid'} />
-          </div>
-          <div className="grid g2">
-            <Card title="Details">
-              <dl className="kv">
-                <dt>Mobile</dt><dd>{p.phone}</dd>
-                <dt>Email</dt><dd>{p.email || '-'}</dd>
-                <dt>Date of birth</dt><dd>{fmtDate(p.dob)}</dd>
-                <dt>Address</dt><dd>{p.address || '-'}</dd>
-                <dt>Emergency contact</dt><dd>{p.emergencyContact || '-'}</dd>
-                <dt>Registered</dt><dd>{fmtDate(p.regDate)}</dd>
-              </dl>
-            </Card>
-            <Card title="Recent activity">
-              <div className="timeline">
-                {[
-                  ...appts.slice(0, 4).map((a) => ({ d: a.date, t: `${a.status === 'scheduled' ? 'Booked' : 'Visit'} with ${staff(a.doctorId)?.name}`, s: a.reason, k: a.id })),
-                  ...reps.slice(0, 2).map((r) => ({ d: r.date, t: r.test, s: r.status === 'completed' ? 'Report ready' : 'Sample in lab', k: r.id })),
-                  ...adms.slice(0, 2).map((a) => ({ d: a.admitDate, t: `Admitted · ${beds.find((b) => b.id === a.bedId)?.number}`, s: a.reason, k: a.id })),
-                ].sort((a, b) => b.d.localeCompare(a.d)).slice(0, 6).map((e) => (
-                  <div key={e.k} className="tl-item"><span className="small muted tabular">{fmtDate(e.d)}</span><div><div style={{ fontWeight: 600 }}>{e.t}</div><div className="small muted">{e.s}</div></div></div>
-                ))}
-              </div>
-            </Card>
-          </div>
-        </div>
-      )}
+      {tab === 'overview' && <PatientSummary p={p} staffView={user.role !== 'patient'} onOpenDoc={setDoc} onBook={onBook} onBill={onBill} />}
+      {tab === 'images' && <ImagesTab p={p} staffView={user.role !== 'patient'} />}
+      {tab === 'days' && <VisitDays p={p} />}
       {tab === 'appointments' && (
         <Card><Table rows={appts} cols={[
           { label: 'Date', render: (a) => <><div className="cell-main">{fmtDate(a.date)}</div><div className="cell-sub">{fmtTime(a.time)}</div></> },

@@ -1,8 +1,8 @@
 import { tenantHost } from '../lib/plans'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck, Stethoscope, Store, User, ArrowLeft, Lock, Clock, MapPin, Phone, GraduationCap, Building2, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
-import { auth, db } from '../lib/store'
+import { ShieldCheck, Stethoscope, Store, User, ClipboardList, ArrowLeft, Lock, Clock, MapPin, Phone, GraduationCap, Building2, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
+import { auth, db, server } from '../lib/store'
 import { useTenant, Input, PasswordInput, BrandMark, CompanyLink, SiteFooter } from '../components/ui'
 import { DemoBand } from '../App'
 import { SITES } from '../lib/sites'
@@ -11,7 +11,10 @@ import { useOpenNow, slots } from './ClinicSite'
 export default function Login() {
   const { tenant, tid, list, staff, patient, can } = useTenant()
   const nav = useNavigate()
-  const users = list('users')
+  // A clinic on the server lists its staff from the server once it is set up there.
+  const srv = tenant.server ? server.info(tid) : null
+  const users = srv?.ready ? srv.staff || [] : list('users')
+  const [busy, setBusy] = useState(false)
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
   const [err, setErr] = useState('')
@@ -31,11 +34,12 @@ export default function Login() {
   const quick = [
     { role: 'admin', icon: ShieldCheck, label: 'Admin', sub: 'Full access, billing, staff, plan' },
     { role: 'doctor', icon: Stethoscope, label: 'Doctor', sub: 'Today’s patients, prescriptions' },
+    tenant.live && { role: 'receptionist', icon: ClipboardList, label: 'Reception', sub: 'Register patients, vitals, bills' },
     can('pharmacy') && { role: 'pharmacist', icon: Store, label: 'Pharmacist', sub: 'Stock and dispensing' },
     !tenant.live && { role: 'patient', icon: User, label: 'Patient', sub: 'Own records, bills, booking' },
   ].filter(Boolean)
 
-  const who = (u) => (u.role === 'patient' ? patient(u.refId) : staff(u.refId))?.name
+  const who = (u) => u.name || (u.role === 'patient' ? patient(u.refId) : staff(u.refId))?.name
 
   // A real clinic: pick who you are, then a password. The first time on a computer, that person sets it.
   const [pick, setPick] = useState(null)
@@ -43,11 +47,24 @@ export default function Login() {
   const typed = pw
   const choose = (u) => { setPick(u); setPw(''); setPw2(''); setErr('') }
   const preset = SITES[tenant.slug]?.pwHash
-  const needsSetup = !preset && !pick?.pwHash
+  const needsSetup = !tenant.server && !preset && !pick?.pwHash
   const liveSubmit = async (e) => {
     e.preventDefault()
     // Phones often add a space after autofill; a space is never part of the password.
     const pw = typed.trim()
+    if (tenant.server) {
+      if (!pw) return setErr('Type the password.')
+      setBusy(true)
+      try {
+        await server.login(tid, pick.id, pw)
+        return nav(`/t/${tenant.slug}`)
+      } catch (e2) {
+        setErr(e2.message || 'Could not reach the server. Check the internet and try again.')
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
     if (preset) {
       if ((await sha256(`${tenant.slug}:${pw}`)) !== preset) return setErr('That password is not right. Please try again.')
       return go(pick)
@@ -99,7 +116,7 @@ export default function Login() {
               <PasswordInput id="live-pw" label={needsSetup ? 'New password' : 'Password'} autoFocus autoComplete={needsSetup ? 'new-password' : 'current-password'} value={pw} onChange={(e) => setPw(e.target.value)} />
               {needsSetup && <PasswordInput id="live-pw2" label="Type it again" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />}
               {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
-              <button className="btn primary" type="submit" style={{ justifyContent: 'center' }}>{needsSetup ? 'Save password and sign in' : 'Sign in'}</button>
+              <button className="btn primary" type="submit" disabled={busy} style={{ justifyContent: 'center' }}>{busy ? 'Signing in…' : needsSetup ? 'Save password and sign in' : 'Sign in'}</button>
             </form>
           )}
           {!tenant.live && <form className="stack" style={{ gap: 10 }} onSubmit={submit}>

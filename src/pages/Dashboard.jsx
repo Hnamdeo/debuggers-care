@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, MonitorPlay, Stethoscope } from 'lucide-react'
 import RegisterQR from '../components/RegisterQR'
+import { TodayVisits, sendToDoctor } from '../components/visits'
+import { PatientFinder } from '../components/summary'
 import { useTenant, PageHead, Stat, Card, Table, Pill } from '../components/ui'
 import { today, addDays, fmtTime, money, billTotal, fmtDate } from '../lib/utils'
 
@@ -96,6 +98,8 @@ function AdminDash() {
           <Stat label="Lab reports pending" value={pendingLabs.length} sub="Ordered, results not entered" icon={FlaskConical} />
         )}
       </div>
+      <PatientFinder />
+      <TodayVisits />
       <div className="grid g2">
         <Card title="Today’s appointments" actions={<button className="btn sm" onClick={() => nav(`${base}/appointments`)}>Open schedule</button>}>
           <Table
@@ -138,12 +142,13 @@ function Attention({ icon: Icon, text, onClick }) {
 }
 
 function DoctorDash() {
-  const { me, list, patient, can, base } = useTenant()
+  const { me, list, patient, can, base, tid } = useTenant()
   const nav = useNavigate()
   const T = today()
   const mine = list('appointments').filter((a) => a.doctorId === me.id)
   const todays = mine.filter((a) => a.date === T).sort((a, b) => a.time.localeCompare(b.time))
   const next = todays.find((a) => a.status !== 'completed' && a.status !== 'cancelled')
+  const waitingVisit = list('visits').filter((v) => v.date === T && v.status === 'waiting').sort((a, b) => (a.time || '').localeCompare(b.time || ''))[0]
   const labs = list('reports').filter((r) => r.doctorId === me.id)
   const ipd = list('admissions').filter((a) => a.doctorId === me.id && a.status === 'admitted')
   const week = mine.filter((a) => a.date >= addDays(T, -6) && a.date <= T && a.status === 'completed').length
@@ -152,6 +157,7 @@ function DoctorDash() {
     <>
       <Hero title={`${greet()}, ${me.name}`} sub={`${me.dept} · ${fmtDate(T)}`} actions={[
         next ? { icon: Stethoscope, label: `Start: ${patient(next.patientId)?.name}`, hint: `${fmtTime(next.time)} · ${next.reason}`, onClick: () => nav(`${base}/consult/${next.id}`), main: true }
+          : waitingVisit ? { icon: Stethoscope, label: `Start: ${patient(waitingVisit.patientId)?.name}`, hint: `Walk-in · ${waitingVisit.complaint || 'waiting'}`, onClick: () => nav(`${base}/consult/${sendToDoctor(tid, list, waitingVisit, me.id)}`), main: true }
           : { icon: Stethoscope, label: 'No one waiting', hint: 'Queue is clear', onClick: () => nav(`${base}/appointments`), main: true },
         { icon: CalendarDays, label: 'My appointments', hint: `${todays.length} today`, onClick: () => nav(`${base}/appointments`) },
         { icon: FlaskConical, label: 'Lab reports', hint: `${labs.filter((r) => r.status === 'ordered').length} in lab`, onClick: () => nav(`${base}/reports`) },
@@ -163,6 +169,8 @@ function DoctorDash() {
         <Stat label="Reports to review" value={labs.filter((r) => r.status === 'completed' && r.date >= addDays(T, -3)).length} sub={`${labs.filter((r) => r.status === 'ordered').length} still in lab`} icon={FlaskConical} />
         {can('ipd') ? <Stat label="My admitted patients" value={ipd.length} sub="IPD and ICU" icon={BedDouble} /> : <Stat label="Upcoming bookings" value={mine.filter((a) => a.date > T && a.status === 'scheduled').length} sub="Next 7 days" icon={CalendarDays} />}
       </div>
+      <PatientFinder />
+      <TodayVisits />
       <Card title="My queue today">
         <Table
           rows={todays}

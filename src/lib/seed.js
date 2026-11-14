@@ -158,6 +158,8 @@ const TENANT_DEFS = [
     // Real clinic starting with an empty space: no sample patients, visits, bills or staff.
     prospect: true,
     live: true,
+    // Records live in the server database (api/), shared by every device in the clinic.
+    server: true,
     address: 'Bazar Chowk, Vidhan Sabha Road, Mowa, Raipur 492001',
     phone: 'Mon to Sat · 10 AM to 2 PM, 5 PM to 9 PM',
     email: 'clinic@drmourya.example',
@@ -192,8 +194,10 @@ const TENANT_DEFS = [
     short: 'Vedanta Dental',
     kind: 'Dental clinic',
     plan: 'clinic',
-    // Prospect demo: clinic name, town and doctors' names only. Patients and numbers are sample data.
+    // Real clinic (since 14 Nov 2026): empty space, records in the server database.
     prospect: true,
+    live: true,
+    server: true,
     address: 'Janjgir, Chhattisgarh',
     phone: '',
     email: 'clinic@vedantadental.example',
@@ -208,7 +212,7 @@ const TENANT_DEFS = [
       ['Front desk (sample)', 'F', 'receptionist', 'Front desk', 15000],
       ['Dental assistant (sample)', 'F', 'nurse', 'Chairside assistant', 14000],
     ],
-    admin: ['Clinic admin (sample)', 'F', 'Clinic manager', 25000],
+    admin: ['Clinic admin', 'F', 'Clinic manager', 0],
     patients: 26,
     reasons: ['Tooth pain', 'General dental check-up', 'Scaling & polishing', 'Root canal follow-up', 'Wisdom tooth pain', 'Braces consultation', 'Broken tooth', 'Bleeding gums', 'Crown follow-up', 'Tooth sensitivity'],
     services: [['Consultation', 200], ['Scaling & polishing', 800], ['Composite filling', 1000], ['Root canal treatment', 4000], ['Tooth extraction', 500], ['Impacted tooth extraction', 3500], ['Crown (ceramic)', 5000], ['Braces adjustment', 1000], ['Complete denture', 12000]],
@@ -267,7 +271,7 @@ function buildTenant(def, seedNum) {
     counters[prefix] = (counters[prefix] || 1000) + 1
     return `${prefix}-${counters[prefix]}`
   }
-  const data = { staff: [], patients: [], appointments: [], prescriptions: [], reports: [], bills: [], medicines: [], sales: [], beds: [], admissions: [], emergencies: [], payroll: [], users: [], videos: [], shares: [] }
+  const data = { staff: [], patients: [], appointments: [], prescriptions: [], reports: [], bills: [], medicines: [], sales: [], beds: [], admissions: [], emergencies: [], payroll: [], users: [], videos: [], shares: [], visits: [], images: [] }
   const domain = def.email.split('@')[1]
 
   // Staff and their logins
@@ -281,6 +285,12 @@ function buildTenant(def, seedNum) {
     data.staff.push({ id, name, gender: g, role: 'doctor', dept, title: dept, qualification: qual, fee, phone: fake('98' + int(10000000, 99999999)), email, salary: sal, joinDate: def.live ? T : addDays(T, -int(200, 1500)), regNo: fake(`MMC-${int(60000, 99999)}`) })
     data.users.push({ id: 'U-doc' + i, role: 'doctor', refId: id, email, password: 'demo123' })
   })
+  // A real clinic gets a front desk login for registering patients and taking vitals.
+  if (def.live) {
+    const id = nextId('S')
+    data.staff.push({ id, name: 'Front desk', gender: 'F', role: 'receptionist', dept: 'Reception', title: 'Receptionist', phone: '', email: `frontdesk@${domain}`, salary: 0, joinDate: T })
+    data.users.push({ id: 'U-front', role: 'receptionist', refId: id, email: `frontdesk@${domain}`, password: 'demo123' })
+  }
   ;(def.live ? [] : def.otherStaff).forEach(([name, g, role, dept, sal]) => {
     const id = nextId('S')
     const email = `${name.split(' ')[0].toLowerCase()}@${domain}`

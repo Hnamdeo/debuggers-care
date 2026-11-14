@@ -1,9 +1,9 @@
 import { tenantHost } from '../lib/plans'
 import { useRef, useState } from 'react'
-import { Check, Lock, Download, Upload, ImagePlus, Trash2, Palette } from 'lucide-react'
-import { useTenant, PageHead, Card, toast, BrandMark } from '../components/ui'
-import { db } from '../lib/store'
-import { PLANS, PLAN_ORDER, MODULES } from '../lib/plans'
+import { Check, Lock, Download, Upload, ImagePlus, Trash2, Palette, Phone, MessageCircle, BadgePercent } from 'lucide-react'
+import { useTenant, PageHead, Card, toast, BrandMark, PasswordInput } from '../components/ui'
+import { db, server } from '../lib/store'
+import { PLANS, PLAN_ORDER, MODULES, SALES_PHONE, salesWhatsApp } from '../lib/plans'
 
 export default function Settings() {
   const { tenant, tid } = useTenant()
@@ -13,7 +13,7 @@ export default function Settings() {
   }
   return (
     <>
-      <PageHead title="Plan & settings" sub="Switch plans any time. Records are never moved or lost." />
+      <PageHead title="Plan & settings" sub={tenant.live ? `Plans are monthly subscriptions. To buy or change a plan, call or WhatsApp ${SALES_PHONE}. Records are never moved or lost.` : 'Switch plans any time. Records are never moved or lost.'} />
       <div className="grid g3">
         {PLAN_ORDER.map((p) => {
           const P = PLANS[p]
@@ -21,7 +21,8 @@ export default function Settings() {
           return (
             <div key={p} className={`plan-col ${current ? 'current' : ''}`}>
               <div className="row between"><h3>{P.name}</h3>{current && <span className="pill brand plain">Current plan</span>}</div>
-              <div><span className="price">₹{P.price.toLocaleString('en-IN')}</span> <span className="muted small">/ month, indicative</span></div>
+              {P.offer && <span className="offer-tag"><BadgePercent size={13} /> {P.offerLabel}</span>}
+              <div><span className="price">{P.offer && <span className="was">₹{P.price.toLocaleString('en-IN')}</span>}₹{(P.offer || P.price).toLocaleString('en-IN')}</span> <span className="muted small">/ month{P.offer ? ' subscription' : ''}</span></div>
               <p className="muted small" style={{ margin: 0 }}>{P.blurb}</p>
               <div className="stack" style={{ gap: 4 }}>
                 {Object.keys(MODULES).filter((m) => m !== 'dashboard').map((m) => (
@@ -31,13 +32,22 @@ export default function Settings() {
                 ))}
                 <span className="small muted">{P.maxDoctors === Infinity ? 'Unlimited doctors' : `Up to ${P.maxDoctors} doctors`}</span>
               </div>
-              {!current && <button className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={() => switchTo(p)}>{PLAN_ORDER.indexOf(p) > PLAN_ORDER.indexOf(tenant.plan) ? 'Upgrade' : 'Switch'} to {P.name}</button>}
+              {tenant.live ? (
+                <div className="buy-box">
+                  <span className="small"><strong>{current ? 'To subscribe or renew' : `To ${PLAN_ORDER.indexOf(p) > PLAN_ORDER.indexOf(tenant.plan) ? 'upgrade' : 'switch'} to ${P.name}`}</strong>, call or WhatsApp Debuggers Space on {SALES_PHONE}.</span>
+                  <div className="row" style={{ gap: 6 }}>
+                    <a className="btn sm primary" href={`tel:+91${SALES_PHONE}`}><Phone /> Call</a>
+                    <a className="btn sm" href={salesWhatsApp(`Hello, I am from ${tenant.name}. I would like the ${P.name} plan at ₹${(P.offer || P.price).toLocaleString('en-IN')} per month.`)} target="_blank" rel="noreferrer"><MessageCircle /> WhatsApp</a>
+                  </div>
+                </div>
+              ) : !current && <button className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={() => switchTo(p)}>{PLAN_ORDER.indexOf(p) > PLAN_ORDER.indexOf(tenant.plan) ? 'Upgrade' : 'Switch'} to {P.name}</button>}
             </div>
           )
         })}
       </div>
       <ThemeCard tenant={tenant} tid={tid} />
       <BackupCard tenant={tenant} tid={tid} />
+      {db.onServer(tid) && <PasswordCard tid={tid} />}
       <Card title="Clinic details">
         <dl className="kv">
           <dt>Name</dt><dd>{tenant.name}</dd>
@@ -57,8 +67,11 @@ export default function Settings() {
 // Download the whole clinic as one file, and restore it on this or another computer.
 function BackupCard({ tenant, tid }) {
   const file = useRef(null)
-  const download = () => {
-    const blob = new Blob([JSON.stringify(db.exportTenant(tid))], { type: 'application/json' })
+  const onServer = db.onServer(tid)
+  const download = async () => {
+    let data
+    try { data = onServer ? await server.exportTenant(tid) : db.exportTenant(tid) } catch (err) { return toast(err.message || 'Could not reach the server') }
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
     a.download = `${tenant.slug}-backup-${new Date().toISOString().slice(0, 10)}.json`
@@ -80,7 +93,9 @@ function BackupCard({ tenant, tid }) {
   return (
     <Card title="Backup">
       <p className="muted small" style={{ margin: 0 }}>
-        {tenant.live
+        {onServer
+          ? 'All records are saved in the clinic’s own database on the server, so every computer and phone that signs in sees the same patients. You can still download a copy of everything for your own safekeeping.'
+          : tenant.live
           ? 'Until your clinic moves to the secure online server, records are saved only in this browser on this computer. Download a backup at the end of every day. If the browser is cleared or the computer changes, restore the latest backup here.'
           : 'Download everything in this clinic as one file, or restore from a file you saved earlier.'}
       </p>
@@ -89,6 +104,39 @@ function BackupCard({ tenant, tid }) {
         <button className="btn" onClick={() => file.current?.click()}><Upload /> Restore from backup</button>
         <input ref={file} type="file" accept="application/json,.json" hidden onChange={restore} />
       </div>
+    </Card>
+  )
+}
+
+// The one staff password for the clinic. Changing it signs every other computer out.
+function PasswordCard({ tid }) {
+  const [f, setF] = useState({ cur: '', next: '', again: '' })
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
+  const save = async (e) => {
+    e.preventDefault()
+    if (f.next.trim().length < 6) return setMsg('Use at least 6 characters.')
+    if (f.next.trim() !== f.again.trim()) return setMsg('The two new passwords do not match.')
+    setBusy(true)
+    try {
+      await server.changePassword(tid, f.cur.trim(), f.next.trim())
+      setF({ cur: '', next: '', again: '' })
+      setMsg('')
+      toast('Password changed. Other computers will need the new password.')
+    } catch (err) {
+      setMsg(err.message || 'Could not reach the server.')
+    } finally { setBusy(false) }
+  }
+  return (
+    <Card title="Staff password">
+      <form className="stack" style={{ gap: 10, maxWidth: 380 }} onSubmit={save}>
+        <PasswordInput id="cp-cur" label="Current password" autoComplete="current-password" value={f.cur} onChange={set('cur')} />
+        <PasswordInput id="cp-new" label="New password" autoComplete="new-password" value={f.next} onChange={set('next')} />
+        <PasswordInput id="cp-again" label="Type the new password again" autoComplete="new-password" value={f.again} onChange={set('again')} />
+        {msg && <div className="small" style={{ color: 'var(--bad)' }}>{msg}</div>}
+        <button className="btn primary" type="submit" disabled={busy} style={{ alignSelf: 'flex-start' }}>{busy ? 'Saving…' : 'Change password'}</button>
+      </form>
     </Card>
   )
 }

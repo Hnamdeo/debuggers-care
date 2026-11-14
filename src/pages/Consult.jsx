@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Trash2, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { Plus, Trash2, CheckCircle2, ArrowLeft, HeartPulse } from 'lucide-react'
+import { VisitForm, vitalsText } from '../components/visits'
 import { useTenant, Card, Input, Textarea, toast, Pill } from '../components/ui'
 import { PatientHeader } from './Patients'
 import { VideoPlayer, ShareButton } from '../components/videos'
@@ -26,7 +27,12 @@ export default function Consult() {
   const [procs, setProcs] = useState([])
   const [err, setErr] = useState('')
   const [play, setPlay] = useState(null)
+  const [vitals, setVitals] = useState(false)
+  const [plan, setPlan] = useState(null)
+  const [nextDate, setNextDate] = useState('')
+  const [nextTime, setNextTime] = useState('11:00')
   if (!appt || !p) return <div className="empty">Appointment not found.</div>
+  const visit = list('visits').find((v) => v.appointmentId === appt.id) || list('visits').find((v) => v.patientId === p.id && v.date === appt.date && v.status !== 'done')
 
   const history = list('prescriptions').filter((r) => r.patientId === p.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3)
   const reports = list('reports').filter((r) => r.patientId === p.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3)
@@ -41,7 +47,7 @@ export default function Consult() {
       const per = /Three/.test(l.freq) ? 3 : /Twice/.test(l.freq) ? 2 : /week/.test(l.freq) ? 1 / 7 : 1
       return { medicineId: m?.id, name: l.name, dose: l.dose, freq: l.freq, days: +l.days, qty: m && ['Tablet', 'Capsule'].includes(m.form) ? Math.ceil(per * l.days) : 1 }
     })
-    const rx = db.add(tid, 'prescriptions', { patientId: p.id, doctorId: doc.id, appointmentId: appt.id, date: today(), diagnosis: dx, notes, items, dispensed: false })
+    const rx = db.add(tid, 'prescriptions', { patientId: p.id, doctorId: doc.id, appointmentId: appt.id, date: today(), diagnosis: dx, notes, items, dispensed: false, ...(nextDate ? { nextVisit: nextDate } : {}) })
     tests.forEach((t) => db.add(tid, 'reports', { patientId: p.id, doctorId: doc.id, date: today(), test: t, category: LAB_CATALOG[t].category, price: LAB_CATALOG[t].price, status: 'ordered', results: [], findings: '', completedDate: '' }))
     const bill = db.add(tid, 'bills', {
       patientId: p.id, date: today(), source: 'OPD', ref: appt.id, discount: 0, paid: 0, mode: 'UPI',
@@ -52,7 +58,11 @@ export default function Consult() {
       ],
     })
     db.update(tid, 'appointments', appt.id, { status: 'completed', prescriptionId: rx.id })
-    toast(`Visit completed. Prescription ${rx.id} and bill ${bill.id} sent to the front desk.`)
+    if (plan !== null && plan.trim() !== (p.plan || '')) db.update(tid, 'patients', p.id, { plan: plan.trim(), planOn: today(), planBy: doc.id })
+    if (nextDate) db.add(tid, 'appointments', { patientId: p.id, doctorId: doc.id, date: nextDate, time: nextTime || '11:00', reason: (plan ?? p.plan ?? '').split('\n')[0].replace(/^\d+\.\s*/, '').slice(0, 60) || 'Follow-up', status: 'scheduled', type: 'OPD' })
+    if (visit) db.update(tid, 'visits', visit.id, { status: 'done', appointmentId: appt.id, prescriptionId: rx.id, doctorId: doc.id })
+    else db.add(tid, 'visits', { patientId: p.id, date: today(), time: appt.time, status: 'done', source: 'appointment', complaint: appt.reason, doctorId: doc.id, appointmentId: appt.id, prescriptionId: rx.id, vitals: {} })
+    toast(`Visit completed. Prescription ${rx.id} and bill ${bill.id} sent to the front desk.${nextDate ? ` Next visit booked for ${fmtDate(nextDate)}.` : ''}`)
     nav(`${base}/patients/${p.id}`)
   }
 
@@ -62,6 +72,15 @@ export default function Consult() {
       <PatientHeader p={p}>
         <span className="muted small">{fmtDate(appt.date)} · {fmtTime(appt.time)} · {appt.reason}</span>
       </PatientHeader>
+      {visit && (vitalsText(visit.vitals) || visit.complaint) && (
+        <div className="card pad row" style={{ gap: 10, alignItems: 'flex-start' }}>
+          <HeartPulse style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          <div><strong>Today’s vitals</strong>{visit.complaint && <span className="muted"> · {visit.complaint}</span>}<div className="small">{vitalsText(visit.vitals) || 'Not taken yet'}</div></div>
+          <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => setVitals(true)}>Edit</button>
+        </div>
+      )}
+      {!(visit && (vitalsText(visit.vitals) || visit.complaint)) ? <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setVitals(true)}><HeartPulse /> Add vitals</button> : null}
+      {vitals && <VisitForm patientId={p.id} onClose={() => setVitals(false)} />}
       {allergic && <div className="card pad" style={{ borderColor: 'var(--bad)', color: 'var(--bad)', fontWeight: 600 }}>Allergy alert: {p.name} is allergic to {p.allergies}. Check the antibiotic before you sign.</div>}
       <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)' }}>
         <div className="stack">
@@ -81,7 +100,12 @@ export default function Consult() {
               ))}
               <datalist id="med-list">{meds.map((m) => <option key={m.id} value={m.name}>{m.stock} in stock</option>)}</datalist>
               <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setLines([...lines, { name: '', dose: '1 tab', freq: 'Twice a day', days: 5 }])}><Plus /> Add medicine</button>
-              <Textarea id="cs-notes" label="Advice for the patient" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Review after 1 week" />
+              <Textarea id="cs-notes" label="Advice for the patient" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Avoid hard food on the left side" />
+              <Textarea id="cs-plan" label="Treatment plan (what happens next)" rows={3} value={plan ?? p.plan ?? ''} onChange={(e) => setPlan(e.target.value)} placeholder={'e.g. 1. RCT 36, second sitting\n2. Crown on 36'} />
+              <div className="grid g2">
+                <Input id="cs-next" label="Next visit (books it)" type="date" min={today()} value={nextDate} onChange={(e) => setNextDate(e.target.value)} />
+                <Input id="cs-next-t" label="Time" type="time" value={nextTime} onChange={(e) => setNextTime(e.target.value)} />
+              </div>
             </div>
           </Card>
           <div className="grid g2">

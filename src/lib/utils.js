@@ -35,6 +35,7 @@ const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 })
 export const money = (n) => '₹' + inr.format(Math.round(n || 0))
 
 export const age = (dob) => {
+  if (!dob) return '–'
   const b = new Date(dob + 'T00:00:00')
   const n = new Date()
   let a = n.getFullYear() - b.getFullYear()
