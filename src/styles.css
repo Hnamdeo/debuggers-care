@@ -745,3 +745,10 @@ tbody tr:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
 @media (min-width: 901px) and (max-height: 600px) {
   .login-page .about-foot, .login-page .about-list .small { display: none; }
 }
+
+/* Password box with a show/hide eye button */
+.pw-wrap { position: relative; display: flex; }
+.pw-wrap .input { flex: 1; min-width: 0; padding-right: 44px; }
+.pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
+.pw-eye:hover { color: var(--text, inherit); background: rgba(127, 127, 127, .12); }
+.pw-eye:focus-visible { outline: 2px solid var(--primary, #0e7490); outline-offset: 1px; }

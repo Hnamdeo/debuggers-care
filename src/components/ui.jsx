@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { X, Search, Printer, HeartPulse } from 'lucide-react'
+import { X, Search, Printer, HeartPulse, Eye, EyeOff } from 'lucide-react'
 import { initials } from '../lib/utils'
 
 export const TenantCtx = createContext(null)
@@ -137,6 +137,19 @@ export function Field({ label, children }) {
 
 export function Input({ label, ...p }) {
   const el = <input className="input" {...p} />
+  return label ? <Field label={label}>{el}</Field> : el
+}
+// A password box with an eye button to show or hide what was typed.
+export function PasswordInput({ label, ...p }) {
+  const [show, setShow] = useState(false)
+  const el = (
+    <div className="pw-wrap">
+      <input className="input" autoCapitalize="none" autoCorrect="off" spellCheck={false} {...p} type={show ? 'text' : 'password'} />
+      <button type="button" className="pw-eye" onClick={() => setShow((v) => !v)} aria-label={show ? 'Hide password' : 'Show password'} aria-pressed={show} title={show ? 'Hide password' : 'Show password'}>
+        {show ? <EyeOff size={18} /> : <Eye size={18} />}
+      </button>
+    </div>
+  )
   return label ? <Field label={label}>{el}</Field> : el
 }
 export function Select({ label, options, ...p }) {

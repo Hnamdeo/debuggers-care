@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, Stethoscope, Store, User, ArrowLeft, Lock, Clock, MapPin, Phone, GraduationCap, Building2, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
 import { auth, db } from '../lib/store'
-import { useTenant, Input, BrandMark, CompanyLink, SiteFooter } from '../components/ui'
+import { useTenant, Input, PasswordInput, BrandMark, CompanyLink, SiteFooter } from '../components/ui'
 import { DemoBand } from '../App'
 import { SITES } from '../lib/sites'
 import { useOpenNow, slots } from './ClinicSite'
@@ -40,11 +40,14 @@ export default function Login() {
   // A real clinic: pick who you are, then a password. The first time on a computer, that person sets it.
   const [pick, setPick] = useState(null)
   const [pw2, setPw2] = useState('')
+  const typed = pw
   const choose = (u) => { setPick(u); setPw(''); setPw2(''); setErr('') }
   const preset = SITES[tenant.slug]?.pwHash
   const needsSetup = !preset && !pick?.pwHash
   const liveSubmit = async (e) => {
     e.preventDefault()
+    // Phones often add a space after autofill; a space is never part of the password.
+    const pw = typed.trim()
     if (preset) {
       if ((await sha256(`${tenant.slug}:${pw}`)) !== preset) return setErr('That password is not right. Please try again.')
       return go(pick)
@@ -52,7 +55,7 @@ export default function Login() {
     const hash = await sha256(`${tid}:${pick.id}:${pw}`)
     if (needsSetup) {
       if (pw.length < 6) return setErr('Use at least 6 characters.')
-      if (pw !== pw2) return setErr('The two passwords do not match.')
+      if (pw !== pw2.trim()) return setErr('The two passwords do not match.')
       db.update(tid, 'users', pick.id, { pwHash: hash })
       return go(pick)
     }
@@ -93,8 +96,8 @@ export default function Login() {
             <form className="stack" style={{ gap: 10 }} onSubmit={liveSubmit}>
               <span className="eyebrow"><Lock size={12} style={{ verticalAlign: '-1px' }} /> {needsSetup ? `Set a password for ${who(pick)}` : `Password for ${who(pick)}`}</span>
               {needsSetup && <div className="small muted">First time on this computer. Choose a password; it will be asked every time you sign in.</div>}
-              <Input id="live-pw" type="password" label={needsSetup ? 'New password' : 'Password'} autoFocus autoComplete={needsSetup ? 'new-password' : 'current-password'} value={pw} onChange={(e) => setPw(e.target.value)} />
-              {needsSetup && <Input id="live-pw2" type="password" label="Type it again" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />}
+              <PasswordInput id="live-pw" label={needsSetup ? 'New password' : 'Password'} autoFocus autoComplete={needsSetup ? 'new-password' : 'current-password'} value={pw} onChange={(e) => setPw(e.target.value)} />
+              {needsSetup && <PasswordInput id="live-pw2" label="Type it again" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />}
               {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
               <button className="btn primary" type="submit" style={{ justifyContent: 'center' }}>{needsSetup ? 'Save password and sign in' : 'Sign in'}</button>
             </form>
@@ -102,7 +105,7 @@ export default function Login() {
           {!tenant.live && <form className="stack" style={{ gap: 10 }} onSubmit={submit}>
             <span className="eyebrow">Or sign in with email</span>
             <Input id="login-email" type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={users[0].email} />
-            <Input id="login-pw" type="password" label="Password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="demo123" />
+            <PasswordInput id="login-pw" label="Password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="demo123" />
             {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
             <button className="btn primary" type="submit" style={{ justifyContent: 'center' }}>Sign in</button>
           </form>}
