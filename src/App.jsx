@@ -102,7 +102,7 @@ function TenantApp() {
   const waiting = onServer && auth.token(ctx.tid) && !srv.loaded
   return (
     <TenantCtx.Provider value={ctx}>
-      <div style={style} className="landing">
+      <div style={style} className="landing" id="tenant-root">
         <Routes>
           {/* Public: patients open this from the clinic's QR code or shared link, no login */}
           <Route path="register" element={<SelfRegister />} />
