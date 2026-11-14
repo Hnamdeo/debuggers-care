@@ -32,8 +32,10 @@ jobs:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
         run: |
           host="$(printf '%s' "$FTP_SERVER" | sed -E 's#^[a-z]+://##; s#[/:].*$##' | tr -d '[:space:]')"
-          echo "Connecting to the FTP server on port 21..."
-          if timeout 20 bash -c "exec 3<>/dev/tcp/$host/21; head -c 200 <&3"; then echo; echo "FTP port 21 answered."; else echo "::warning::FTP port 21 did not answer from GitHub."; fi
+          for h in "$host" ftp.debuggersspace.com debuggersspace.com; do
+            echo "== $h ($(getent hosts "$h" | awk '{print $1}' | head -1))"
+            if timeout 15 bash -c "exec 3<>/dev/tcp/$h/21; head -c 120 <&3"; then echo; echo "port 21 answered"; else echo "port 21 no answer"; fi
+          done
       - name: Upload to Hostinger (only changed files)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
