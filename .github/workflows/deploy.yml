@@ -1,8 +1,9 @@
-# Builds the app whenever main changes (i.e. when a PR is merged) and saves the
-# ready-to-serve files to the `deploy` branch. Hostinger's Git deploy (hPanel >
-# Advanced > Git) pulls that branch into the care folder; a GitHub webhook tells
-# Hostinger to pull after every update. (Hostinger's FTP does not accept
-# connections from GitHub's servers, so we can't push by FTP.)
+# Builds the app whenever main changes (i.e. when a PR is merged), saves the
+# ready-to-serve files to the `deploy` branch, and uploads them to Hostinger with
+# lftp (same settings as the debuggers-demos repo; Hostinger's FTP can be slow to
+# answer GitHub, so lftp retries). Secrets: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD.
+# Variable FTP_DIR: folder on the FTP account (default ./ for an account whose
+# directory is /public_html/care).
 name: Deploy to Hostinger
 
 on:
@@ -20,6 +21,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_FTP: ${{ secrets.FTP_SERVER != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,3 +40,19 @@ jobs:
           git add -A
           git commit -q -m "Built from ${GITHUB_SHA::7}"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" deploy
+      - name: Upload to Hostinger
+        if: ${{ env.HAS_FTP == 'true' }}
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR: ${{ vars.FTP_DIR || './' }}
+        run: |
+          sudo apt-get update -qq || true
+          sudo apt-get install -y -qq lftp > /dev/null
+          host="$(printf '%s' "$FTP_SERVER" | sed -E 's#^[a-z]+://##; s#/.*$##' | tr -d '[:space:]')"
+          lftp -u "$FTP_USERNAME" --env-password "$host" -e "
+            set ftp:ssl-allow yes; set ssl:verify-certificate no; set ftp:passive-mode yes;
+            set net:timeout 30; set net:max-retries 8; set net:reconnect-interval-base 5;
+            mirror --reverse --parallel=4 --verbose --exclude-glob .git* dist/ $FTP_DIR;
+            bye"
