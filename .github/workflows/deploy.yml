@@ -1,8 +1,10 @@
 # Publishes the app to Hostinger whenever main changes (i.e. when a PR is merged).
 # Needs three repository secrets (Settings > Secrets and variables > Actions):
 #   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD  (from hPanel > Files > FTP Accounts)
-# Optional repository variable FTP_DIR: the care folder as the FTP account sees it
-#   (default: public_html/care/ for the main FTP account).
+# Use a separate FTP account whose directory is /public_html/care, so this job can
+# only touch the app folder; it then uploads to the account's own root (./).
+# Optional repository variable FTP_DIR overrides that, e.g. public_html/care/ for the
+# main FTP account.
 name: Deploy to Hostinger
 
 on:
@@ -32,4 +34,4 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
-          server-dir: ${{ vars.FTP_DIR || 'public_html/care/' }}
+          server-dir: ${{ vars.FTP_DIR || './' }}
