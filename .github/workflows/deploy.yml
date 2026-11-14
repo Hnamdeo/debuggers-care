@@ -1,8 +1,8 @@
-# Builds the app whenever main changes (i.e. when a PR is merged) and saves the
-# ready-to-serve files to the `deploy` branch. Hostinger's Git deploy (hPanel >
-# Advanced > Git) pulls that branch into the care folder; a GitHub webhook tells
-# Hostinger to pull after every update. (Hostinger's FTP does not accept
-# connections from GitHub's servers, so we can't push by FTP.)
+# Builds the app whenever main changes (i.e. when a PR is merged) and sends the
+# built site to care.debuggersspace.com/deploy.php, which puts it live.
+# Hostinger's FTP does not accept connections from GitHub's servers, so the
+# server receives the files over HTTPS instead. The secret CARE_DEPLOY_KEY must
+# match the text in public_html/care/api/data/deploy.key on the server.
 name: Deploy to Hostinger
 
 on:
@@ -11,14 +11,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: deploy-care
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,12 +28,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Save the built site to the deploy branch
+      - name: Zip the built site (clinic data folder left out)
+        run: cd dist && zip -qr ../site.zip . -x 'api/data/*'
+      - name: Send it to the server
+        env:
+          KEY: ${{ secrets.CARE_DEPLOY_KEY }}
         run: |
-          cd dist
-          git init -q -b deploy
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -q -m "Built from ${GITHUB_SHA::7}"
-          git push -f "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" deploy
+          test -n "$KEY" || { echo "Add the CARE_DEPLOY_KEY secret in the repo settings first."; exit 1; }
+          curl -fsS --retry 3 --max-time 120 -X POST \
+            -H "X-Deploy-Key: $KEY" -H "Content-Type: application/zip" \
+            --data-binary @site.zip https://care.debuggersspace.com/deploy.php
