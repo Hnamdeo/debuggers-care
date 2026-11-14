@@ -1,4 +1,4 @@
-import { PlayCircle, Share2, ExternalLink, Check } from 'lucide-react'
+import { PlayCircle, Share2, ExternalLink, Check, MessageCircle } from 'lucide-react'
 import { Modal, useTenant, toast } from './ui'
 import { db } from '../lib/store'
 import { today } from '../lib/utils'
@@ -14,6 +14,7 @@ export function VideoPlayer({ video, onClose, patientId }) {
   return (
     <Modal wide title={video.title} onClose={onClose} footer={<>
       {patientId && <ShareButton video={video} patientId={patientId} />}
+      {id && <WhatsAppVideo video={video} patientId={patientId} />}
       <a className="btn" href={video.url} target="_blank" rel="noreferrer"><ExternalLink /> Open on YouTube</a>
       <button className="btn primary" onClick={onClose}>Done</button>
     </>}>
@@ -45,6 +46,15 @@ export function ShareButton({ video, patientId, small }) {
   ) : (
     <button className={`btn ${small ? 'sm' : ''}`} onClick={share}><Share2 /> Share with patient</button>
   )
+}
+
+// Sends the video link on WhatsApp: to the patient's number when we know it, otherwise the doctor picks the chat.
+function WhatsAppVideo({ video, patientId }) {
+  const { patient } = useTenant()
+  const p = patientId ? patient(patientId) : null
+  const text = `${p ? `Hello ${p.name.split(' ')[0]}, ` : ''}please watch this short video from your doctor: ${video.title} ${video.url}`
+  const href = p?.phone ? whatsappLink(p.phone, text) : `https://wa.me/?text=${encodeURIComponent(text)}`
+  return <a className="btn" href={href} target="_blank" rel="noreferrer"><MessageCircle /> WhatsApp</a>
 }
 
 // WhatsApp share text for the clinic to send (opens WhatsApp where available).
