@@ -1,5 +1,5 @@
 import { tenantHost } from '../lib/plans'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PatientSignIn } from '../components/patientlogin'
 import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, Stethoscope, Store, User, ClipboardList, ArrowLeft, Lock, Clock, MapPin, Phone, GraduationCap, Building2, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
@@ -14,7 +14,9 @@ export default function Login() {
   const nav = useNavigate()
   // A clinic on the server lists its staff from the server once it is set up there.
   const srv = tenant.server ? server.info(tid) : null
-  const users = srv?.ready ? srv.staff || [] : list('users')
+  const users = srv?.staff?.length ? srv.staff : list('users')
+  const needStaff = !!tenant.server && !srv?.staff?.length
+  useEffect(() => { if (needStaff) server.refreshStaff(tid) }, [needStaff, tid])
   const [busy, setBusy] = useState(false)
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
