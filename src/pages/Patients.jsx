@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse, ScanLine } from 'lucide-react'
+import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse, ScanLine, KeyRound } from 'lucide-react'
 import { useTenant, PageHead, Card, Table, Pill, SearchBox, Avatar, Tabs, Stat } from '../components/ui'
 import RegisterQR from '../components/RegisterQR'
+import { PinModal } from '../components/patientlogin'
 import { PatientForm, BookAppointment, NewBill, AdmitForm } from '../components/forms'
 import { PrescriptionDoc, ReportDoc, InvoiceDoc } from '../components/docs'
 import { VideoPlayer, whatsappLink } from '../components/videos'
@@ -21,7 +22,7 @@ export default function Patients() {
   const appts = list('appointments')
   const lastVisit = (pid) => appts.filter((a) => a.patientId === pid && a.status === 'completed').map((a) => a.date).sort().pop()
   const rows = list('patients')
-    .filter((p) => !q || `${p.name} ${p.phone} ${p.id}`.toLowerCase().includes(q.toLowerCase()))
+    .filter((p) => !q || `${p.name} ${p.phone} ${p.id} ${p.opdNo || ''}`.toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => b.regDate.localeCompare(a.regDate))
 
   return (
@@ -38,7 +39,7 @@ export default function Patients() {
           empty="No patient matches that search."
           cols={[
             { label: 'Patient', render: (p) => <div className="row" style={{ flexWrap: 'nowrap' }}><Avatar name={p.name} /><div><div className="cell-main">{p.name}</div><div className="cell-sub">{p.id}{p.selfRegistered ? ' · self-registered' : ''}</div></div></div> },
-            { label: 'Age / Sex', render: (p) => `${age(p.dob)} y · ${p.gender}` },
+            { label: 'Age / Sex', render: (p) => `${p.dob ? `${age(p.dob)} y` : '–'} · ${p.gender || '–'}` },
             { label: 'Mobile', render: (p) => <span className="tabular">{p.phone}</span> },
             { label: 'Blood', key: 'blood' },
             { label: 'Last visit', render: (p) => fmtDate(lastVisit(p.id)) },
@@ -68,10 +69,12 @@ export function PatientProfile() {
         <button className="btn primary" onClick={() => setModal('visit')}><HeartPulse /> Today’s visit & vitals</button>
         <button className="btn" onClick={() => setModal('image')}><ScanLine /> X-ray / photo</button>
         <button className="btn" onClick={() => setModal('book')}><CalendarPlus /> Book</button>
+        <button className="btn" onClick={() => setModal('pin')}><KeyRound /> Patient login</button>
         {can('ipd') && <button className="btn" onClick={() => setModal('admit')}><BedDouble /> Admit</button>}
         {user.role === 'admin' && <button className="btn" onClick={() => setModal('bill')}><Receipt /> New bill</button>}
       </PatientHeader>
       <PatientRecord p={p} canCollect={staffView && user.role === 'admin'} onBook={() => setModal('book')} onBill={user.role === 'admin' ? () => setModal('bill') : null} />
+      {modal === 'pin' && <PinModal p={p} onClose={() => setModal(null)} />}
       {modal === 'edit' && <PatientForm initial={p} onClose={() => setModal(null)} />}
       {modal === 'image' && <ImageUpload patientId={p.id} onClose={() => setModal(null)} />}
       {modal === 'visit' && <VisitForm patientId={p.id} onClose={() => setModal(null)} />}
@@ -91,7 +94,7 @@ export function PatientHeader({ p, children }) {
           <div className="stack" style={{ gap: 6, minWidth: 0 }}>
             <div>
               <h1 style={{ fontSize: '1.35rem' }}>{p.name}</h1>
-              <div className="muted small">UHID {p.id} · {age(p.dob)} years · {p.gender === 'F' ? 'Female' : p.gender === 'M' ? 'Male' : 'Other'} {p.blood ? ` · Blood ${p.blood}` : ''}{p.email ? ` · ${p.email}` : ''}</div>
+              <div className="muted small">UHID {p.id} · {p.dob ? `${age(p.dob)} years · ` : ''}{{ F: 'Female', M: 'Male', O: 'Other' }[p.gender] || 'Sex not recorded'} {p.blood ? ` · Blood ${p.blood}` : ''}{p.email ? ` · ${p.email}` : ''}</div>
             </div>
             <div className="row" style={{ gap: 6 }}>
               {p.allergies && <span className="pill bad"><AlertTriangle size={11} /> Allergy: {p.allergies}</span>}

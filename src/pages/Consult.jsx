@@ -8,7 +8,10 @@ import { VideoPlayer, ShareButton } from '../components/videos'
 import { MonitorPlay } from 'lucide-react'
 import { db } from '../lib/store'
 import { LAB_CATALOG } from '../lib/seed'
-import { fmtDate, fmtTime, money, today } from '../lib/utils'
+import { fmtDate, fmtTime, money, today, age } from '../lib/utils'
+import { HISTORY, historyFor, usePad } from '../components/rxpad'
+import { PrescriptionDoc } from '../components/docs'
+import { FileText } from 'lucide-react'
 
 const FREQ = ['Once a day', 'Twice a day', 'Three times a day', 'At night', 'Before breakfast', 'Twice a day after food', 'When needed for pain', 'Once a week']
 
@@ -31,6 +34,12 @@ export default function Consult() {
   const [plan, setPlan] = useState(null)
   const [nextDate, setNextDate] = useState('')
   const [nextTime, setNextTime] = useState('11:00')
+  const [co, setCo] = useState(null)
+  const [oe, setOe] = useState('')
+  const [hist, setHist] = useState(() => historyFor(appt && patient(appt.patientId)))
+  const [histNote, setHistNote] = useState(() => (appt && patient(appt.patientId)?.historyNote) || '')
+  const [preview, setPreview] = useState(false)
+  const pad = usePad()
   if (!appt || !p) return <div className="empty">Appointment not found.</div>
   const visit = list('visits').find((v) => v.appointmentId === appt.id) || list('visits').find((v) => v.patientId === p.id && v.date === appt.date && v.status !== 'done')
 
@@ -40,6 +49,11 @@ export default function Consult() {
   const toggle = (arr, set, v) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
   const allergic = p.allergies && lines.some((l) => l.name && p.allergies.toLowerCase().includes('penicillin') && /amoxi|penicillin/i.test(l.name))
 
+  const complaint = co ?? (visit?.complaint || (appt.reason !== 'Consultation' ? appt.reason : '') || '')
+  const draftItems = () => lines.filter((l) => l.name.trim()).map((l) => ({ name: l.name, dose: l.dose, freq: l.freq, days: +l.days }))
+  const extra = () => ({ complaint: complaint.trim(), findings: oe.trim(), history: hist, historyNote: hist.includes('Others') ? histNote.trim() : '', tests, done: procs })
+  const draft = { id: 'Draft', patientId: p.id, doctorId: doc.id, date: today(), diagnosis: dx, notes, items: draftItems(), ...extra(), ...(nextDate ? { nextVisit: nextDate } : {}) }
+
   const finish = () => {
     if (!dx.trim()) return setErr('Add a diagnosis before completing the visit.')
     const items = lines.filter((l) => l.name.trim()).map((l) => {
@@ -47,7 +61,7 @@ export default function Consult() {
       const per = /Three/.test(l.freq) ? 3 : /Twice/.test(l.freq) ? 2 : /week/.test(l.freq) ? 1 / 7 : 1
       return { medicineId: m?.id, name: l.name, dose: l.dose, freq: l.freq, days: +l.days, qty: m && ['Tablet', 'Capsule'].includes(m.form) ? Math.ceil(per * l.days) : 1 }
     })
-    const rx = db.add(tid, 'prescriptions', { patientId: p.id, doctorId: doc.id, appointmentId: appt.id, date: today(), diagnosis: dx, notes, items, dispensed: false, ...(nextDate ? { nextVisit: nextDate } : {}) })
+    const rx = db.add(tid, 'prescriptions', { patientId: p.id, doctorId: doc.id, appointmentId: appt.id, date: today(), diagnosis: dx, notes, items, dispensed: false, ...extra(), ...(nextDate ? { nextVisit: nextDate } : {}) })
     tests.forEach((t) => db.add(tid, 'reports', { patientId: p.id, doctorId: doc.id, date: today(), test: t, category: LAB_CATALOG[t].category, price: LAB_CATALOG[t].price, status: 'ordered', results: [], findings: '', completedDate: '' }))
     const bill = db.add(tid, 'bills', {
       patientId: p.id, date: today(), source: 'OPD', ref: appt.id, discount: 0, paid: 0, mode: 'UPI',
@@ -58,6 +72,7 @@ export default function Consult() {
       ],
     })
     db.update(tid, 'appointments', appt.id, { status: 'completed', prescriptionId: rx.id })
+    if (JSON.stringify(hist) !== JSON.stringify(p.history) || histNote.trim() !== (p.historyNote || '')) db.update(tid, 'patients', p.id, { history: hist, historyNote: histNote.trim() })
     if (plan !== null && plan.trim() !== (p.plan || '')) db.update(tid, 'patients', p.id, { plan: plan.trim(), planOn: today(), planBy: doc.id })
     if (nextDate) db.add(tid, 'appointments', { patientId: p.id, doctorId: doc.id, date: nextDate, time: nextTime || '11:00', reason: (plan ?? p.plan ?? '').split('\n')[0].replace(/^\d+\.\s*/, '').slice(0, 60) || 'Follow-up', status: 'scheduled', type: 'OPD' })
     if (visit) db.update(tid, 'visits', visit.id, { status: 'done', appointmentId: appt.id, prescriptionId: rx.id, doctorId: doc.id })
@@ -82,13 +97,32 @@ export default function Consult() {
       {!(visit && (vitalsText(visit.vitals) || visit.complaint)) ? <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setVitals(true)}><HeartPulse /> Add vitals</button> : null}
       {vitals && <VisitForm patientId={p.id} onClose={() => setVitals(false)} />}
       {allergic && <div className="card pad" style={{ borderColor: 'var(--bad)', color: 'var(--bad)', fontWeight: 600 }}>Allergy alert: {p.name} is allergic to {p.allergies}. Check the antibiotic before you sign.</div>}
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)' }}>
+      <div className="grid consult-grid">
         <div className="stack">
-          <Card title="Consultation">
+          <Card title="Prescription pad" actions={<button className="btn sm" onClick={() => setPreview(true)}><FileText /> See printed pad</button>}>
             <div className="stack">
+              <div className="pad-strip">
+                <span>OPD No. <b>{p.opdNo || p.id}</b></span>
+                <span>Date <b>{fmtDate(today())}</b></span>
+                <span>Age/Sex <b>{p.dob ? `${age(p.dob)} y` : '–'} / {p.gender || '–'}</b></span>
+                <span style={{ flexBasis: '100%' }}>Name <b>{p.name}</b></span>
+              </div>
+              <div className="field"><span>Medical history (tick what applies)</span></div>
+              <div className="hist-chips">
+                {(pad.history || HISTORY).map((h) => (
+                  <label key={h} className={`hist-chip${hist.includes(h) ? ' on' : ''}`}>
+                    <input type="checkbox" checked={hist.includes(h)} onChange={() => toggle(hist, setHist, h)} /> {h}
+                  </label>
+                ))}
+              </div>
+              {hist.includes('Others') && <Input id="cs-hist-o" label="Other history" value={histNote} onChange={(e) => setHistNote(e.target.value)} placeholder="e.g. On blood thinners" />}
+              <div className="grid g2">
+                <Textarea id="cs-co" label="C/O (patient’s complaint)" rows={2} value={complaint} onChange={(e) => setCo(e.target.value)} placeholder="e.g. Pain in lower left back tooth, 3 days" />
+                <Textarea id="cs-oe" label="O/E (what you found)" rows={2} value={oe} onChange={(e) => setOe(e.target.value)} placeholder="e.g. Deep caries 36, tender on percussion" />
+              </div>
               <Input id="cs-dx" label="Diagnosis" list="dx-list" value={dx} onChange={(e) => setDx(e.target.value)} placeholder="Start typing" />
               <datalist id="dx-list">{tenant.diagnoses.map((d) => <option key={d} value={d} />)}</datalist>
-              <div className="field"><span>Medicines</span></div>
+              <div className="field"><span><span className="pad-rx-mark">℞</span> Medicines</span></div>
               {lines.map((l, i) => (
                 <div key={i} className="rx-line">
                   <Input id={`cs-m${i}`} list="med-list" value={l.name} onChange={(e) => upd(i, 'name', e.target.value)} placeholder="Medicine" aria-label="Medicine" />
@@ -157,6 +191,7 @@ export default function Consult() {
           </Card>
         </div>
       </div>
+      {preview && <PrescriptionDoc rx={draft} title="Prescription pad · preview" onClose={() => setPreview(false)} />}
       {play && <VideoPlayer video={play} patientId={p.id} onClose={() => setPlay(null)} />}
     </>
   )

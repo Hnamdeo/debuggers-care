@@ -187,9 +187,19 @@ export const auth = {
     emit()
   },
   current(tid) {
+    // A live clinic needs a server sign-in; an old session left in this browser is not enough.
+    if (db.onServer(tid) && !tokens[tid]) return null
     const uid = session[tid]
     return uid ? db.get(tid, 'users', uid) : null
   },
+}
+
+// Browsers that opened a clinic before the front desk login existed get one added before the clinic goes live.
+function withFrontDesk(tid, data) {
+  if (!data || data.users?.some((u) => u.role === 'receptionist')) return data
+  const domain = (data.users?.find((u) => u.id === 'U-admin')?.email || '@clinic.in').split('@')[1]
+  const staff = { id: 'S-FD', name: 'Front desk', gender: 'F', role: 'receptionist', dept: 'Reception', title: 'Receptionist', phone: '', email: `frontdesk@${domain}`, salary: 0, joinDate: new Date().toISOString().slice(0, 10) }
+  return { ...data, staff: [...(data.staff || []), staff], users: [...(data.users || []), { id: 'U-front', role: 'receptionist', refId: staff.id, email: staff.email, password: 'demo123' }] }
 }
 
 // ---------------------------------------------------------------------------
@@ -314,7 +324,7 @@ export const server = {
     const r = (remote[tid] ||= { rev: 0 })
     const body = { userId, password }
     // The first sign-in sets the clinic up on the server with what this computer has.
-    if (!r.ready) body.seed = { tenant: tenantById(tid), data: state.data[tid], counters: state.counters[tid] }
+    if (!r.ready) body.seed = { tenant: tenantById(tid), data: withFrontDesk(tid, state.data[tid]), counters: state.counters[tid] }
     const res = await post(tid, 'login', body)
     tokens = { ...tokens, [tid]: res.token }
     session = { ...session, [tid]: res.user.id }
@@ -324,6 +334,22 @@ export const server = {
     await pull(tid)
     clearInterval(r.timer)
     r.timer = setInterval(() => tokens[tid] && pull(tid), POLL_MS)
+  },
+  // A patient signs in with their mobile number and the PIN the clinic gave them.
+  async patientLogin(tid, phone, pin) {
+    const r = (remote[tid] ||= { rev: 0 })
+    const res = await post(tid, 'plogin', { phone, pin })
+    tokens = { ...tokens, [tid]: res.token }
+    session = { ...session, [tid]: res.user.id }
+    r.rev = 0
+    state.data[tid] = EMPTY()
+    applyRow(tid, 'users', res.user)
+    await pull(tid)
+    clearInterval(r.timer)
+    r.timer = setInterval(() => tokens[tid] && pull(tid), POLL_MS)
+  },
+  async setPin(tid, patientId) {
+    return (await post(tid, 'setpin', { patientId })).pin
   },
   async exportTenant(tid) {
     return post(tid, 'export')

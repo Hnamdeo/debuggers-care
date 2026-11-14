@@ -8,11 +8,12 @@ const SLOTS = ['09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '1
 
 export function PatientForm({ onClose, onSaved, initial }) {
   const { tid } = useTenant()
-  const [f, setF] = useState(initial || { name: '', gender: 'F', dob: '', phone: '', email: '', blood: 'O+', address: '', allergies: '', conditions: '', emergencyContact: '' })
+  const [f, setF] = useState(initial || { name: '', gender: '', dob: '', phone: '', email: '', blood: '', address: '', allergies: '', conditions: '', emergencyContact: '' })
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
   const [err, setErr] = useState('')
   const save = () => {
-    if (!f.name.trim() || !/^\d{10}$/.test(f.phone)) return setErr('Add the patient’s name and a 10-digit mobile number.')
+    if (!f.name.trim()) return setErr('Add the patient’s name.')
+    if (!/^\d{10}$/.test(f.phone || '') && !(f.noPhone && !f.phone)) return setErr('Add a 10-digit mobile number, or tick “No mobile number”.')
     if (!f.dob && f.ageYears) { f.dob = `${new Date().getFullYear() - +f.ageYears}-01-01`; f.dobApprox = true }
     else if (f.dob && f.dobApprox && initial?.dob !== f.dob) f.dobApprox = false
     let row
@@ -31,11 +32,15 @@ export function PatientForm({ onClose, onSaved, initial }) {
     <Modal title={initial?.id ? 'Edit patient' : 'Register new patient'} onClose={onClose} footer={<><button className="btn" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save}>{initial?.id ? 'Save' : 'Register patient'}</button></>}>
       <div className="grid g2">
         <Input id="pf-name" label="Full name" value={f.name} onChange={set('name')} placeholder="e.g. Sneha Kulkarni" />
-        <Input id="pf-phone" label="Mobile number" value={f.phone} onChange={set('phone')} placeholder="10 digits" inputMode="numeric" />
+        <div className="stack" style={{ gap: 4 }}>
+          <Input id="pf-phone" label="Mobile number" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value.replace(/\D/g, '').slice(-10), noPhone: false })} placeholder="10 digits" inputMode="numeric" />
+          {!f.phone && <label className="small row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={!!f.noPhone} onChange={(e) => setF({ ...f, noPhone: e.target.checked })} /> No mobile number</label>}
+        </div>
         <Input id="pf-dob" label="Date of birth (or age below)" type="date" value={f.dobApprox ? '' : f.dob} onChange={set('dob')} max={today()} />
         {(!f.dob || f.dobApprox) && <Input id="pf-age" label="Age in years" value={f.ageYears || ''} onChange={(e) => setF({ ...f, ageYears: e.target.value.replace(/\D/g, '').slice(0, 3), dob: '', dobApprox: false })} inputMode="numeric" placeholder="If date of birth is not known" />}
-        <Select id="pf-gender" label="Sex" value={f.gender} onChange={set('gender')} options={[{ value: 'F', label: 'Female' }, { value: 'M', label: 'Male' }, { value: 'O', label: 'Other' }]} />
-        <Select id="pf-blood" label="Blood group" value={f.blood} onChange={set('blood')} options={['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']} />
+        <Select id="pf-gender" label="Sex" value={f.gender} onChange={set('gender')} options={[{ value: '', label: 'Not recorded' }, { value: 'F', label: 'Female' }, { value: 'M', label: 'Male' }, { value: 'O', label: 'Other' }]} />
+        <Select id="pf-blood" label="Blood group" value={f.blood} onChange={set('blood')} options={[{ value: '', label: 'Not known' }, ...['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']]} />
+        <Input id="pf-opd" label="OPD / register no. (optional)" value={f.opdNo || ''} onChange={set('opdNo')} placeholder="From the paper register" />
         <Input id="pf-email" label="Email (optional)" value={f.email} onChange={set('email')} />
         <Input id="pf-allergies" label="Allergies" value={f.allergies} onChange={set('allergies')} placeholder="None known" />
         <Input id="pf-cond" label="Existing conditions" value={f.conditions} onChange={set('conditions')} placeholder="e.g. Diabetes" />

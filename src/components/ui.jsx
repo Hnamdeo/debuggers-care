@@ -220,7 +220,7 @@ export function DocModal({ title, onClose, children, extra }) {
 
 // The clinic's own logo when it has uploaded one, otherwise the default mark in its colour.
 // Company credit, linked to the main Debuggers Space site.
-export const COMPANY_URL = 'https://debuggersspace.com'
+export const COMPANY_URL = 'https://solutions.debuggersspace.com/'
 export function CompanyLink() {
   return <a className="company-link" href={COMPANY_URL} target="_blank" rel="noopener noreferrer">Debuggers Space Solutions</a>
 }
