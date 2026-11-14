@@ -17,11 +17,14 @@ const FREQ = ['Once a day', 'Twice a day', 'Three times a day', 'At night', 'Bef
 
 export default function Consult() {
   const { id } = useParams()
-  const { tid, tenant, list, patient, staff, base } = useTenant()
+  const { tid, tenant, list, patient, staff, doctors, base } = useTenant()
   const nav = useNavigate()
   const appt = list('appointments').find((a) => a.id === id)
   const p = appt && patient(appt.patientId)
-  const doc = appt && staff(appt.doctorId)
+  // One login is shared by the clinic's doctors, so the doctor writing this prescription is picked here.
+  const [docId, setDocId] = useState(appt?.doctorId)
+  const doc = appt && (staff(docId) || staff(appt.doctorId))
+  const docs = doctors()
   const meds = list('medicines')
   const [dx, setDx] = useState('')
   const [notes, setNotes] = useState('')
@@ -61,6 +64,7 @@ export default function Consult() {
       const per = /Three/.test(l.freq) ? 3 : /Twice/.test(l.freq) ? 2 : /week/.test(l.freq) ? 1 / 7 : 1
       return { medicineId: m?.id, name: l.name, dose: l.dose, freq: l.freq, days: +l.days, qty: m && ['Tablet', 'Capsule'].includes(m.form) ? Math.ceil(per * l.days) : 1 }
     })
+    if (doc.id !== appt.doctorId) db.update(tid, 'appointments', appt.id, { doctorId: doc.id })
     const rx = db.add(tid, 'prescriptions', { patientId: p.id, doctorId: doc.id, appointmentId: appt.id, date: today(), diagnosis: dx, notes, items, dispensed: false, ...extra(), ...(nextDate ? { nextVisit: nextDate } : {}) })
     tests.forEach((t) => db.add(tid, 'reports', { patientId: p.id, doctorId: doc.id, date: today(), test: t, category: LAB_CATALOG[t].category, price: LAB_CATALOG[t].price, status: 'ordered', results: [], findings: '', completedDate: '' }))
     const bill = db.add(tid, 'bills', {
@@ -104,6 +108,13 @@ export default function Consult() {
                 <span>Date <b>{fmtDate(today())}</b></span>
                 <span>Age/Sex <b>{p.dob ? `${age(p.dob)} y` : '–'} / {p.gender || '–'}</b></span>
                 <span style={{ flexBasis: '100%' }}>Name <b>{p.name}</b></span>
+                {docs.length > 1 && (
+                  <label className="pad-doc" style={{ flexBasis: '100%' }}>Doctor
+                    <select className="input" value={doc.id} onChange={(e) => setDocId(e.target.value)}>
+                      {docs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </label>
+                )}
               </div>
               <div className="field"><span>Medical history (tick what applies)</span></div>
               <div className="hist-chips">
