@@ -333,6 +333,13 @@ export const server = {
     window.addEventListener('focus', () => tokens[tid] && pull(tid))
   },
   info: (tid) => remote[tid] || {},
+  // The sign-in screen asks again for the staff list when it has none (after sign-out or an expired session).
+  refreshStaff(tid) {
+    const r = (remote[tid] ||= { rev: 0 })
+    if (r.asking) return
+    r.asking = true
+    status(tid).finally(() => { r.asking = false })
+  },
   async login(tid, userId, password) {
     const r = (remote[tid] ||= { rev: 0 })
     const body = { userId, password }
