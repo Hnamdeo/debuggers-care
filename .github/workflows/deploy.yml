@@ -1,8 +1,13 @@
-# Builds the app whenever main changes (i.e. when a PR is merged) and sends the
-# built site to care.debuggersspace.com/deploy.php, which puts it live.
-# Hostinger's FTP does not accept connections from GitHub's servers, so the
-# server receives the files over HTTPS instead. The secret CARE_DEPLOY_KEY must
-# match the text in public_html/care/api/data/deploy.key on the server.
+# Builds the app whenever main changes (i.e. when a PR is merged) and uploads it
+# to Hostinger over FTP, the same way as the debuggers-demos repo.
+#
+# Secrets (Settings > Secrets and variables > Actions), same values as debuggers-demos:
+#   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD   (the debuggersspace.com FTP account)
+# Variable (optional):
+#   CARE_FTP_DIR   the care folder as seen over FTP, default "care/"
+#
+# The clinics' databases and uploaded pictures (api/data/) live only on the server
+# and are never overwritten or deleted.
 name: Deploy to Hostinger
 
 on:
@@ -20,6 +25,8 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,13 +35,29 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Zip the built site (clinic data folder left out)
-        run: cd dist && zip -qr ../site.zip . -x 'api/data/*'
-      - name: Send it to the server
+      - name: Upload to Hostinger
+        if: env.FTP_SERVER != ''
         env:
-          KEY: ${{ secrets.CARE_DEPLOY_KEY }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR: ${{ vars.CARE_FTP_DIR || 'care/' }}
         run: |
-          test -n "$KEY" || { echo "Add the CARE_DEPLOY_KEY secret in the repo settings first."; exit 1; }
-          curl -fsS --retry 3 --max-time 120 -X POST \
-            -H "X-Deploy-Key: $KEY" -H "Content-Type: application/zip" \
-            --data-binary @site.zip https://care.debuggersspace.com/deploy.php
+          sudo apt-get update -qq || true
+          sudo apt-get install -y -qq lftp > /dev/null
+          # Scripts and styles first, then the page that loads them, so nobody gets a half-updated site.
+          lftp --env-password -u "$FTP_USERNAME" "$FTP_SERVER" <<LFTP
+          set ftp:ssl-allow yes
+          set ssl:verify-certificate no
+          set ftp:passive-mode yes
+          set net:timeout 30
+          set net:max-retries 8
+          set net:reconnect-interval-base 5
+          mirror --reverse --parallel=4 dist/assets/ ${FTP_DIR}assets/
+          mirror --reverse --parallel=4 --exclude ^data/ dist/api/ ${FTP_DIR}api/
+          put -O ${FTP_DIR} dist/.htaccess
+          put -O ${FTP_DIR} dist/index.html
+          bye
+          LFTP
+      - name: Check the site answers
+        if: env.FTP_SERVER != ''
+        run: curl -fsS -o /dev/null -w "care.debuggersspace.com %{http_code}\n" https://care.debuggersspace.com/
