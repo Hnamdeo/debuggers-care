@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse, ScanLine, KeyRound } from 'lucide-react'
 import { useTenant, PageHead, Card, Table, Pill, SearchBox, Avatar, Tabs, Stat } from '../components/ui'
 import RegisterQR from '../components/RegisterQR'
+import { findOldVideo } from '../lib/healthvideos'
 import { PinModal } from '../components/patientlogin'
 import { PatientForm, BookAppointment, NewBill, AdmitForm } from '../components/forms'
 import { PrescriptionDoc, ReportDoc, InvoiceDoc } from '../components/docs'
@@ -125,7 +126,7 @@ export function PatientRecord({ p, canCollect, onBook, onBill }) {
   const due = bills.reduce((s, b) => s + Math.max(0, billTotal(b) - b.paid), 0)
   const beds = list('beds')
   const vids = list('videos')
-  const shared = mine('shares').sort((a, b) => b.date.localeCompare(a.date)).map((sh) => ({ ...sh, v: vids.find((v) => v.id === sh.videoId) })).filter((x) => x.v)
+  const shared = mine('shares').sort((a, b) => b.date.localeCompare(a.date)).map((sh) => ({ ...sh, v: vids.find((v) => v.id === sh.videoId) || findOldVideo(sh.videoId) })).filter((x) => x.v)
 
   const tabs = [
     { id: 'overview', label: 'Summary' },
