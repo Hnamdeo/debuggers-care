@@ -27,6 +27,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Check the FTP server answers
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run: |
+          host="$(printf '%s' "$FTP_SERVER" | sed -E 's#^[a-z]+://##; s#[/:].*$##' | tr -d '[:space:]')"
+          echo "Connecting to the FTP server on port 21..."
+          if timeout 20 bash -c "exec 3<>/dev/tcp/$host/21; head -c 200 <&3"; then echo; echo "FTP port 21 answered."; else echo "::warning::FTP port 21 did not answer from GitHub."; fi
       - name: Upload to Hostinger (only changed files)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -35,3 +42,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
           server-dir: ${{ vars.FTP_DIR || './' }}
+          timeout: 120000
+          log-level: verbose
