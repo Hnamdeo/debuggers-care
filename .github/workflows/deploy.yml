@@ -1,10 +1,8 @@
-# Publishes the app to Hostinger whenever main changes (i.e. when a PR is merged).
-# Needs three repository secrets (Settings > Secrets and variables > Actions):
-#   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD  (from hPanel > Files > FTP Accounts)
-# Use a separate FTP account whose directory is /public_html/care, so this job can
-# only touch the app folder; it then uploads to the account's own root (./).
-# Optional repository variable FTP_DIR overrides that, e.g. public_html/care/ for the
-# main FTP account.
+# Builds the app whenever main changes (i.e. when a PR is merged) and saves the
+# ready-to-serve files to the `deploy` branch. Hostinger's Git deploy (hPanel >
+# Advanced > Git) pulls that branch into the care folder; a GitHub webhook tells
+# Hostinger to pull after every update. (Hostinger's FTP does not accept
+# connections from GitHub's servers, so we can't push by FTP.)
 name: Deploy to Hostinger
 
 on:
@@ -12,12 +10,15 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: deploy-care
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,11 +28,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Upload to Hostinger (only changed files)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./dist/
-          server-dir: ${{ vars.FTP_DIR || './' }}
+      - name: Save the built site to the deploy branch
+        run: |
+          cd dist
+          git init -q -b deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Built from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" deploy
