@@ -20,7 +20,7 @@ export function VideoPlayer({ video, onClose, patientId }) {
     </>}>
       {id ? (
         <div className="video-frame">
-          <iframe src={`https://www.youtube-nocookie.com/embed/${id}?rel=0`} title={video.title} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+          <iframe src={`https://www.youtube-nocookie.com/embed/${id}?rel=0&autoplay=1&modestbranding=1&playsinline=1`} title={video.title} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
         </div>
       ) : (
         <div className="video-frame placeholder">
