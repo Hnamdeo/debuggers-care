@@ -1,4 +1,5 @@
 import { slotsOn } from '../lib/slots'
+import { QrPanel } from './qrpanel'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Modal, Input, Select, Textarea, useTenant, toast } from './ui'
@@ -29,7 +30,9 @@ export function PatientForm({ onClose, onSaved, initial }) {
     else onClose()
   }
   return (
-    <Modal title={initial?.id ? 'Edit patient' : 'Register new patient'} onClose={onClose} footer={<><button className="btn" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save}>{initial?.id ? 'Save' : 'Register patient'}</button></>}>
+    <Modal wide={!initial?.id} title={initial?.id ? 'Edit patient' : 'Register new patient'} onClose={onClose} footer={<><button className="btn" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save}>{initial?.id ? 'Save' : 'Register patient'}</button></>}>
+      <div className={initial?.id ? '' : 'reg-split'}>
+      <div className="stack">
       <div className="grid g2">
         <Input id="pf-name" label="Full name" value={f.name} onChange={set('name')} placeholder="e.g. Sneha Kulkarni" />
         <div className="stack" style={{ gap: 4 }}>
@@ -48,6 +51,9 @@ export function PatientForm({ onClose, onSaved, initial }) {
       <Input id="pf-address" label="Address" value={f.address} onChange={set('address')} />
       <Input id="pf-ec" label="Emergency contact" value={f.emergencyContact} onChange={set('emergencyContact')} placeholder="Name · phone" />
       {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
+      </div>
+      {!initial?.id && <QrPanel phone={f.phone} />}
+      </div>
     </Modal>
   )
 }

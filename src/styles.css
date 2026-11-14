@@ -916,3 +916,11 @@ button.slot:hover { transform: translateY(-2px); border-color: var(--brand); box
 .chip-slot.s-checked-in { background: color-mix(in srgb, #f59e0b 14%, var(--surface)); }
 .chip-slot.s-completed { opacity: .65; }
 .chip-slot:hover { border-color: var(--brand); }
+
+/* Register popup: form on the left, QR for the patient on the right */
+.reg-split { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 20px; align-items: start; }
+.qr-panel { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px; border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--brand) 45%, var(--line)); background: color-mix(in srgb, var(--brand) 5%, var(--surface)); position: sticky; top: 0; }
+.qr-panel .qr { width: 190px; }
+.qr-panel .btn.primary { width: 100%; justify-content: center; }
+.qr-panel-h { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; }
+@media (max-width: 760px) { .reg-split { grid-template-columns: minmax(0, 1fr); } .qr-panel { position: static; } }
