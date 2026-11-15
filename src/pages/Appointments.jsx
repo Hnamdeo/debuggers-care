@@ -7,6 +7,7 @@ import { db } from '../lib/store'
 import { today, addDays, fmtDate, fmtTime } from '../lib/utils'
 import { slotsOn, slotMinutes, hoursOn } from '../lib/slots'
 import { BookAppointment as Book } from '../components/forms'
+import { RemindButton } from '../components/reminders'
 
 export default function Appointments() {
   const { tid, tenant, list, patient, staff, doctors, user, me, base } = useTenant()
@@ -64,6 +65,7 @@ export default function Appointments() {
             {
               label: '', render: (a) => (
                 <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                  {a.status === 'scheduled' && a.date >= today() && <RemindButton a={a} />}
                   {a.status === 'scheduled' && <button className="btn sm" onClick={() => setStatus(a, 'checked-in')}>Check in</button>}
                   {(a.status === 'scheduled' || a.status === 'checked-in') && (isDoc || user.role === 'admin') && <button className="btn sm primary" onClick={() => nav(`${base}/consult/${a.id}`)}>Consult</button>}
                   {a.status === 'scheduled' && <button className="btn sm ghost danger" onClick={() => setStatus(a, 'cancelled')}>Cancel</button>}
