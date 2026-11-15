@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarClock, Pill as PillIcon, Wallet, ClipboardList, HeartPulse, ScanLine, Pencil, Search, Phone } from 'lucide-react'
+import { CalendarClock, Pill as PillIcon, Wallet, ClipboardList, HeartPulse, ScanLine, Pencil, Search, Phone, Sparkles } from 'lucide-react'
 import { Card, Modal, Textarea, Input, Avatar, useTenant, toast } from './ui'
 import { db } from '../lib/store'
 import { fmtDate, fmtTime, money, billTotal, today, age } from '../lib/utils'
@@ -142,8 +142,8 @@ export function PatientFinder({ autoFocus }) {
   const open = (p) => { setQ(''); nav(`${base}/patients/${p.id}`) }
   return (
     <div className="finder">
-      <Search />
-      <Input id="finder" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && hits[0]) open(hits[0]) }} placeholder="Find patient: type mobile number or name" aria-label="Find patient by mobile number or name" inputMode="search" autoComplete="off" autoFocus={autoFocus} />
+      <Sparkles />
+      <Input id="finder" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && hits[0]) open(hits[0]) }} placeholder="AI search: type a mobile number or name" aria-label="Find patient by mobile number or name" inputMode="search" autoComplete="off" autoFocus={autoFocus} />
       {term.length >= 2 && (
         <div className="finder-list" role="listbox">
           {hits.length ? hits.map((p) => (

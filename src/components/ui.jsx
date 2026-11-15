@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Search, Printer, HeartPulse, Eye, EyeOff } from 'lucide-react'
+import { X, Search, Printer, HeartPulse, Eye, EyeOff, Sparkles } from 'lucide-react'
 import { initials } from '../lib/utils'
 
 export const TenantCtx = createContext(null)
@@ -204,10 +204,19 @@ export function Textarea({ label, ...p }) {
 }
 
 export function SearchBox({ value, onChange, placeholder = 'Search' }) {
+  const [busy, setBusy] = useState(false)
+  const t = useRef(0)
+  const type = (v) => {
+    onChange(v)
+    setBusy(true)
+    clearTimeout(t.current)
+    t.current = setTimeout(() => setBusy(false), 450)
+  }
   return (
-    <div className="search">
-      <Search />
-      <input className="input" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
+    <div className="search ai">
+      <Sparkles />
+      <input className="input" value={value} onChange={(e) => type(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
+      {busy && <span className="search-scan" aria-hidden="true" />}
     </div>
   )
 }
