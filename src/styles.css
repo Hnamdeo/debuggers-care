@@ -2189,3 +2189,27 @@ body:has(.chat-page) { background: #070b17; }
 .ts-results li { padding: 5px 9px; }
 .ts-results b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
 .ts-results li.ok { border-color: #34d399; }
+
+/* ---- Left menu, modern dark AI style (16 Nov): matches the header bar and AI panel ---- */
+.rail { --surface: #0f1629; --surface-2: #141c33; --line: rgb(148 163 184 / 14%); --fg: #e5e9f5; --muted: #94a3b8; --faint: #5b6478;
+  color: var(--fg); padding: 16px 12px; gap: 2px; border-right: 1px solid rgb(129 140 248 / 18%); scrollbar-width: thin; scrollbar-color: rgb(148 163 184 / 25%) transparent;
+  background: radial-gradient(120% 40% at 0% 0%, rgb(99 102 241 / 22%), transparent 60%), radial-gradient(100% 30% at 100% 100%, rgb(6 182 212 / 14%), transparent 60%), #0b1020; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.rail .brand-block { padding: 2px 6px 16px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+.rail .brand-name { font: 700 14px/1.25 var(--font-head); color: #fff; }
+.rail .brand-block .small { font-size: 11.5px; color: #a5b4fc; }
+.rail .brand-mark { border-radius: 11px; box-shadow: 0 0 18px color-mix(in srgb, var(--brand) 55%, transparent); }
+.rail .nav-sep { margin: 14px 10px 4px; font: 700 10.5px var(--font-body); letter-spacing: .1em; text-transform: uppercase; color: #64748b; }
+.rail .nav-item { gap: 11px; padding: 8px 10px; border-radius: 10px; font: 500 13.5px/1.2 var(--font-body); color: #cbd5e1; transform: none; box-shadow: none; }
+.rail .nav-item svg { width: 18px; height: 18px; padding: 0; border-radius: 0; background: none; box-shadow: none; color: #8b9bc0; transform: none; }
+.rail .nav-item:hover { background: rgb(255 255 255 / 5%); color: #fff; transform: none; }
+.rail .nav-item:hover svg { color: #c7d2fe; transform: none; }
+.rail .nav-item.active { color: #fff; font-weight: 600; background: linear-gradient(90deg, rgb(99 102 241 / 30%), rgb(6 182 212 / 10%)); box-shadow: inset 3px 0 0 #22d3ee; }
+.rail .nav-item.active svg { color: #67e8f9; background: none; box-shadow: none; }
+.rail .nav-item.locked { color: #5b6478; }
+.rail .nav-item.locked svg { color: #4b5468; background: none; }
+.rail .nav-item .lock { color: #5b6478; }
+.rail .rail-foot { border-top: 1px solid var(--line); }
+.rail .rail-foot .me div:first-child + div > div:first-child { color: #fff; }
+.rail .rail-foot .small { color: #94a3b8; }
+.rail .avatar { background: rgb(99 102 241 / 22%); color: #c7d2fe; }
+.rail .nav-item svg.lock { width: 13px; height: 13px; margin-left: auto; color: #5b6478; }
