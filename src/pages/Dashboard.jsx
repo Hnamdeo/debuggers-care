@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, MonitorPlay, Stethoscope, Sparkles } from 'lucide-react'
 import { NotesCard } from '../components/notes'
+import { InsightsCard } from '../components/insights'
 import RegisterQR from '../components/RegisterQR'
 import { TodayTimings } from './Appointments'
 import { ReminderCard } from '../components/reminders'
@@ -102,6 +103,7 @@ function AdminDash() {
         )}
       </div>
       <TodayTimings />
+      <InsightsCard />
       <NotesCard />
       <ReminderCard />
       <PatientFinder />
@@ -181,6 +183,7 @@ function DoctorDash() {
         <Stat label="Reports to review" value={labs.filter((r) => r.status === 'completed' && r.date >= addDays(T, -3)).length} sub={`${labs.filter((r) => r.status === 'ordered').length} still in lab`} icon={FlaskConical} />
         {can('ipd') ? <Stat label="My admitted patients" value={ipd.length} sub="IPD and ICU" icon={BedDouble} /> : <Stat label="Upcoming bookings" value={mine.filter((a) => a.date > T && a.status === 'scheduled').length} sub="Next 7 days" icon={CalendarDays} />}
       </div>
+      <InsightsCard doctorId={shared ? undefined : me.id} />
       <NotesCard />
       <TodayTimings doctorId={shared ? undefined : me.id} />
       <ReminderCard doctorId={shared ? undefined : me.id} />

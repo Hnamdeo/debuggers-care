@@ -115,7 +115,7 @@ export function Stat({ label, value, sub, icon: Icon }) {
     <div className="card stat">
       <div className="row between">
         <span className="eyebrow">{label}</span>
-        {Icon && <Icon size={16} className="faint" />}
+        {Icon && <span className="stat-ic"><Icon size={16} /></span>}
       </div>
       <span className="v">{typeof value === 'number' ? <CountUp to={value} /> : value}</span>
       {sub && <span className="sub">{sub}</span>}

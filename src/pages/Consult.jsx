@@ -13,7 +13,8 @@ import { slotsOn } from '../lib/slots'
 import { HISTORY, historyFor, usePad } from '../components/rxpad'
 import { PrescriptionDoc } from '../components/docs'
 import { groupByLanguage } from '../lib/healthvideos'
-import { FileText } from 'lucide-react'
+import { FileText, Mic } from 'lucide-react'
+import { VoiceRx } from '../components/voice'
 
 // One-tap timings, written the way doctors write them (1-0-1) with the words patients read.
 const QUICK_FREQ = [['1-0-0', 'Once a day'], ['1-0-1', 'Twice a day'], ['1-1-1', 'Three times a day'], ['0-0-1', 'At night'], ['SOS', 'When needed for pain']]
@@ -59,6 +60,7 @@ export default function Consult() {
   const [hist, setHist] = useState(() => historyFor(appt && patient(appt.patientId)))
   const [histNote, setHistNote] = useState(() => (appt && patient(appt.patientId)?.historyNote) || '')
   const [preview, setPreview] = useState(false)
+  const [voice, setVoice] = useState(false)
   const pad = usePad()
   if (!appt || !p) return <div className="empty">Appointment not found.</div>
   const visit = list('visits').find((v) => v.appointmentId === appt.id) || list('visits').find((v) => v.patientId === p.id && v.date === appt.date && v.status !== 'done')
@@ -147,11 +149,21 @@ export default function Consult() {
           {dental && <button className="btn sm smile-link" onClick={() => nav(`${base}/smile`)}><Sparkles /> AI Smile preview</button>}
         </div>
       </PatientHeader>
+      {voice && <VoiceRx medNames={[...new Set([...sets.flat().map((x) => x[0]), ...meds.map((m) => m.name)])]} onClose={() => setVoice(false)} onApply={(v) => {
+        if (v.complaint) setCo(v.complaint)
+        if (v.findings) setOe(v.findings)
+        if (v.diagnosis) setDx(v.diagnosis.charAt(0).toUpperCase() + v.diagnosis.slice(1))
+        if (v.meds.length) addMeds(v.meds.map((m) => (m.dose === '1 tab' ? { ...m, dose: doseFor(m.name) } : m)))
+        if (v.advice) addAdvice(v.advice.charAt(0).toUpperCase() + v.advice.slice(1))
+        if (v.nextDays) setNextDate(addDays(today(), v.nextDays))
+        setVoice(false)
+        toast('Prescription filled from your voice. Please check it.')
+      }} />}
       {vitals && <VisitForm patientId={p.id} onClose={() => setVitals(false)} />}
       {allergic && <div className="card pad" style={{ borderColor: 'var(--bad)', color: 'var(--bad)', fontWeight: 600 }}>Allergy alert: {p.name} is allergic to {p.allergies}. Check the antibiotic before you sign.</div>}
       <div className="grid consult-grid">
         <div className="stack">
-          <Card title="Prescription pad" actions={<button className="btn sm" onClick={() => setPreview(true)}><FileText /> See printed pad</button>}>
+          <Card title="Prescription pad" actions={<><button className="btn sm voice-btn" onClick={() => setVoice(true)}><Mic /> Speak prescription</button><button className="btn sm" onClick={() => setPreview(true)}><FileText /> See printed pad</button></>}>
             <div className="stack">
               <div className="pad-strip">
                 <span>OPD No. <b>{p.opdNo || p.id}</b></span>
