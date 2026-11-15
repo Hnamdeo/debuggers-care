@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, MonitorPlay, Stethoscope, Sparkles } from 'lucide-react'
 import { NotesCard } from '../components/notes'
 import { DentalScanCard } from '../components/toothscan'
@@ -22,23 +22,36 @@ const greet = () => { const h = new Date().getHours(); return h < 12 ? 'Good mor
 
 // Gradient welcome banner with big, plain-language action tiles: the first thing a
 // non-technical doctor or receptionist needs, one tap away.
+function IstClock() {
+  const [t, setT] = useState(() => new Date())
+  useEffect(() => { const i = setInterval(() => setT(new Date()), 1000 * 15); return () => clearInterval(i) }, [])
+  return <span className="hb-chip mono">{t.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST</span>
+}
+
 function Hero({ title, sub, actions }) {
+  const { tenant } = useTenant()
   return (
-    <section className="hero-band">
-      <div className="hero-text">
-        <h1>{title}</h1>
-        <p>{sub}</p>
-      </div>
-      <div className="tiles">
+    <>
+      <section className="hero-bar">
+        <div className="hb-text">
+          <h1>{title}</h1>
+          <p>{sub}</p>
+        </div>
+        <div className="hb-chips">
+          <span className="hb-chip"><i className="hb-dot" /> {tenant.server ? 'Server online' : 'Saved on this computer'}</span>
+          <span className="hb-chip">✦ AI ready</span>
+          <IstClock />
+        </div>
+      </section>
+      <div className="qa-row">
         {actions.filter(Boolean).map((a) => (
-          <button key={a.label} className={`tile ${a.main ? 'main' : ''}`} onClick={a.onClick}>
-            <span className="tile-icon"><a.icon /></span>
-            <span className="tile-label">{a.label}</span>
-            {a.hint && <span className="tile-hint">{a.hint}</span>}
+          <button key={a.label} className={`qa ${a.main ? 'hot' : ''}`} onClick={a.onClick}>
+            <span className="qa-icon"><a.icon /></span>
+            <span className="qa-t"><b>{a.label}</b>{a.hint && <small>{a.hint}</small>}</span>
           </button>
         ))}
       </div>
-    </section>
+    </>
   )
 }
 
