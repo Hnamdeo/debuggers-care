@@ -10,8 +10,9 @@ import { ReminderCard } from '../components/reminders'
 import { TodayVisits, sendToDoctor } from '../components/visits'
 import { PatientFinder } from '../components/summary'
 import { AskBar, callName } from '../components/assistant'
-import { useTenant, PageHead, Stat, Card, Table, Pill } from '../components/ui'
-import { today, addDays, fmtTime, money, billTotal, fmtDate } from '../lib/utils'
+import { useTenant, PageHead, Stat, Card, Table, Pill, toast } from '../components/ui'
+import { db } from '../lib/store'
+import { today, addDays, fmtTime, money, billTotal, fmtDate, nowTime } from '../lib/utils'
 
 export default function Dashboard() {
   const t = useTenant()
@@ -240,7 +241,11 @@ function DoctorDash() {
   const T = today()
   const mine = list('appointments').filter((a) => (shared ? true : a.doctorId === me.id))
   const todays = mine.filter((a) => a.date === T).sort((a, b) => a.time.localeCompare(b.time))
-  const next = todays.find((a) => a.status !== 'completed' && a.status !== 'cancelled')
+  const next = todays.find((a) => !['completed', 'cancelled', 'no-show'].includes(a.status))
+  // A booked patient who has not turned up 15 minutes after their time is shown as late.
+  const mins = (t) => { const [h, m] = (t || '0:0').split(':').map(Number); return h * 60 + m }
+  const late = (a) => a.status === 'scheduled' && mins(nowTime()) - mins(a.time) > 15
+  const mark = (a, status) => { db.update(tid, 'appointments', a.id, { status }); toast(`${patient(a.patientId)?.name}: ${status === 'no-show' ? 'marked as didn’t come' : 'appointment cancelled'}`) }
   const waitingVisit = list('visits').filter((v) => v.date === T && v.status === 'waiting').sort((a, b) => (a.time || '').localeCompare(b.time || ''))[0]
   const labs = list('reports').filter((r) => r.doctorId === me.id)
   const ipd = list('admissions').filter((a) => a.doctorId === me.id && a.status === 'admitted')
@@ -278,8 +283,14 @@ function DoctorDash() {
             { label: 'Time', render: (a) => <span className="tabular">{fmtTime(a.time)}</span> },
             { label: 'Patient', render: (a) => <><div className="cell-main">{patient(a.patientId)?.name}</div><div className="cell-sub">{a.reason}</div></> },
             ...(shared ? [{ label: 'Doctor', render: (a) => staff(a.doctorId)?.name }] : []),
-            { label: 'Status', render: (a) => <Pill status={a.status} /> },
-            { label: '', render: (a) => a.status === 'completed' ? <button className="btn sm" onClick={() => nav(`${base}/patients/${a.patientId}`)}>View record</button> : a.status !== 'cancelled' && <button className="btn sm primary" onClick={() => nav(`${base}/consult/${a.id}`)}>Consult</button> },
+            { label: 'Status', render: (a) => <span className="row" style={{ gap: 6 }}><Pill status={a.status}>{a.status === 'no-show' ? 'Didn’t come' : undefined}</Pill>{late(a) && <span className="pill late">Late</span>}</span> },
+            { label: '', render: (a) => a.status === 'completed' ? <button className="btn sm" onClick={() => nav(`${base}/patients/${a.patientId}`)}>View record</button>
+              : ['cancelled', 'no-show'].includes(a.status) ? <button className="btn sm" onClick={() => nav(`${base}/appointments`)}>Rebook</button>
+              : <span className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                  <button className="btn sm primary" onClick={() => nav(`${base}/consult/${a.id}`)}>Consult</button>
+                  {a.status === 'scheduled' && <button className="btn sm ghost" onClick={() => mark(a, 'no-show')} title="Patient did not come and did not inform">Didn’t come</button>}
+                  {a.status === 'scheduled' && <button className="btn sm ghost danger" onClick={() => mark(a, 'cancelled')} title="Patient cancelled">Cancel</button>}
+                </span> },
           ]}
         />
       </Card>
