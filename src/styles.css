@@ -1553,3 +1553,58 @@ td { padding: 12px 14px; }
 @media (prefers-reduced-motion: reduce) { .ts-traces path, .ts-pulp, .ts-decay, .ts-scanline, .ts-laser, .ts-spark, .ts-ring, .ts-dot { animation: none !important; } .ts-call { opacity: 1; animation: none; } .ts-scanline { display: none; } }
 .ts-scanband { fill: rgb(34 211 238 / 16%); }
 .lx-hero-scan .ts-body { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } @media (max-width: 480px) { .lx-hero-scan .ts-body { grid-template-columns: minmax(0, 1fr); } }
+
+/* Clinic front page: animated dental screen */
+.cs-hero-side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.dsx { position: relative; height: 300px; perspective: 1100px; }
+.dsx-stage { position: absolute; inset: 0 40px 0 30px; transform-style: preserve-3d; animation: dsx-float 7s ease-in-out infinite; }
+.dsx-screen { position: absolute; inset: 6% 6% 4% 10%; border-radius: 18px; overflow: hidden; transform: rotateY(-20deg) rotateX(6deg); transform-origin: left center; background: linear-gradient(160deg, #fb7185 0%, #f9a8a8 55%, #fdba74 100%); box-shadow: 18px 22px 0 -4px rgb(255 255 255 / 55%), 0 40px 70px -24px rgb(0 0 0 / 55%), inset 0 0 0 1px rgb(255 255 255 / 40%); }
+.dsx-sheen { position: absolute; inset: 0; background: radial-gradient(60% 50% at 50% 42%, rgb(255 255 255 / 45%), transparent 70%); animation: dsx-sheen 4s ease-in-out infinite; }
+.dsx-tooth { position: absolute; left: 50%; top: 50%; height: 88%; transform: translate(-50%, -50%); overflow: visible; }
+.dsx-mesh path, .dsx-mesh line { fill: none; stroke: rgb(255 255 255 / 75%); stroke-width: .9; }
+.dsx-mesh line.faint { stroke: rgb(255 255 255 / 35%); }
+.dsx-spin { animation: dsx-spin 9s linear infinite; }
+.dsx-spin.slow { animation: dsx-spin2 14s linear infinite; }
+.dsx-outline { fill: none; stroke: #fff; stroke-width: 2.4; }
+.dsx-dot { fill: #fff; filter: drop-shadow(0 0 4px #fff); animation: dsx-twinkle 2.1s ease-in-out infinite; }
+.dsx-scan { position: absolute; left: 0; right: 0; height: 28%; background: linear-gradient(180deg, transparent, rgb(255 255 255 / 28%), transparent); animation: dsx-scan 3.8s ease-in-out infinite; }
+.dsx-card { position: absolute; border-radius: 10px; box-shadow: 0 18px 30px -16px rgb(0 0 0 / 55%), inset 0 0 0 1px rgb(255 255 255 / 35%); }
+.dsx-card.chart { left: -4px; top: 2%; width: 36%; aspect-ratio: 2 / 1; background: linear-gradient(135deg, #3b82f6, #14b8a6); transform: rotateY(-20deg) translateZ(40px); animation: dsx-bob 5s ease-in-out infinite; }
+.dsx-card.chart svg { width: 100%; height: 100%; display: block; }
+.dsx-bars line { stroke: rgb(255 255 255 / 25%); stroke-width: 1; }
+.dsx-wave { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 220; animation: dsx-draw 4s ease-in-out infinite; }
+.dsx-card.rec { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: linear-gradient(135deg, #fb923c, #f43f5e); }
+.dsx-card.rec.left { left: 0; bottom: 14%; width: 30%; transform: rotateY(-20deg) translateZ(60px); animation: dsx-bob 6s -2s ease-in-out infinite; }
+.dsx-card.rec.right { right: -8px; bottom: 4%; width: 26%; flex-direction: column; align-items: flex-start; transform: rotateY(-20deg) translateZ(30px); animation: dsx-bob 5.5s -1s ease-in-out infinite; }
+.dsx-mini { width: 30px; height: 30px; flex: none; fill: #fff7ed; stroke: #f59e0b; stroke-width: 1; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 25%)); }
+.dsx-lines { display: grid; gap: 4px; flex: 1; width: 100%; }
+.dsx-lines i { height: 3px; border-radius: 2px; background: rgb(255 255 255 / 80%); }
+.dsx-lines i:nth-child(2n) { width: 70%; } .dsx-lines i:nth-child(3n) { width: 85%; }
+.dsx-tools { position: absolute; right: 0; bottom: 0; height: 62%; overflow: visible; animation: dsx-bob 7s -3s ease-in-out infinite; }
+.dsx-tools .mirror { fill: #e2e8f0; stroke: #fff; stroke-width: 2; } .dsx-tools .glass { fill: #bfdbfe; }
+.dsx-tools .handle, .dsx-tools .probe { fill: none; stroke: #f1f5f9; stroke-width: 3.2; stroke-linecap: round; }
+@keyframes dsx-float { 50% { transform: translateY(-8px); } }
+@keyframes dsx-bob { 50% { translate: 0 -7px; } }
+@keyframes dsx-spin { to { transform: translateX(-169px); } }
+@keyframes dsx-spin2 { to { transform: translateX(-44px); } }
+@keyframes dsx-twinkle { 50% { opacity: .25; } }
+@keyframes dsx-scan { 0% { top: -30%; } 100% { top: 105%; } }
+@keyframes dsx-sheen { 50% { opacity: .55; } }
+@keyframes dsx-draw { 0% { stroke-dashoffset: 220; } 45%, 80% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -220; } }
+@media (max-width: 900px) { .dsx { height: 240px; } }
+@media (max-width: 480px) { .dsx { height: 210px; } .dsx-stage { inset: 0 26px 0 6px; } .dsx-tools { height: 52%; } }
+@media (prefers-reduced-motion: reduce) { .dsx-stage, .dsx-card, .dsx-tools, .dsx-spin, .dsx-dot, .dsx-scan, .dsx-sheen, .dsx-wave { animation: none !important; } .dsx-wave { stroke-dashoffset: 0; } }
+.dsx-art { position: absolute; inset: 0; transition: opacity .9s ease, transform 1.1s cubic-bezier(.3,.7,.2,1); }
+.dsx-art.on { opacity: 1; transform: rotateY(0deg) scale(1); }
+.dsx-art.off { opacity: 0; transform: rotateY(160deg) scale(.7); }
+.dsx-smile { position: absolute; left: 50%; top: 46%; width: 74%; transform: translate(-50%, -50%); filter: drop-shadow(0 10px 18px rgb(127 29 29 / 30%)); }
+.dsx-teeth { fill: #fff; stroke: #e2e8f0; stroke-width: 1; }
+.dsx-sparkles path { fill: #fff; filter: drop-shadow(0 0 4px #fff); animation: dsx-twinkle 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.dsx-sparkles path:nth-child(2) { animation-delay: .5s; } .dsx-sparkles path:nth-child(3) { animation-delay: 1s; }
+.dsx-cap { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); padding: 5px 12px; border-radius: 999px; font: 700 12px var(--font-body); color: #be123c; background: rgb(255 255 255 / 85%); white-space: nowrap; }
+.cs-hero .dsx svg.dsx-tooth { width: auto; height: 88%; }
+.cs-hero .dsx svg.dsx-smile { width: 74%; height: auto; }
+.cs-hero .dsx .dsx-card.chart svg { width: 100%; height: 100%; }
+.cs-hero .dsx svg.dsx-mini { width: 30px; height: 30px; }
+.cs-hero .dsx svg.dsx-tools { width: auto; height: 62%; }
+@media (max-width: 480px) { .cs-hero .dsx svg.dsx-tools { height: 52%; } .cs-hero .dsx svg.dsx-mini { width: 22px; height: 22px; } }
