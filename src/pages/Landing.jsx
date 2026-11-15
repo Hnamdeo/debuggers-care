@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { db, useDb } from '../lib/store'
 import { PLANS, PLAN_ORDER, MODULES, tenantHost, SALES_PHONE } from '../lib/plans'
+import FeatureTour from '../components/tour'
 import { toast, CompanyLink, SiteFooter, COMPANY_URL, CountUp } from '../components/ui'
 
 const SPECIALITIES = ['Dental clinics', 'General physicians', 'Paediatrics', 'Gynaecology', 'Orthopaedics', 'ENT', 'Eye care', 'Skin & hair', 'Physiotherapy', 'Multi-speciality hospitals']
@@ -99,6 +100,7 @@ export default function Landing() {
             </span>
           </a>
           <div className="lx-links">
+            <button onClick={() => go('tour')}>Product tour</button>
             <button onClick={() => go('features')}>Features</button>
             <button onClick={() => go('how')}>How it works</button>
             <button onClick={() => go('plans')}>Plans</button>
@@ -159,6 +161,17 @@ export default function Landing() {
       <section className="lx-marquee" aria-label="Made for every speciality">
         <div className="lx-marquee-track">
           {[...SPECIALITIES, ...SPECIALITIES].map((s, i) => <span key={i}><HeartPulse size={14} /> {s}</span>)}
+        </div>
+      </section>
+
+      <section className="lx-sec alt" id="tour">
+        <div className="lx-wrap">
+          <div className="lx-head" data-reveal>
+            <span className="lx-kicker">Product tour</span>
+            <h2>See what your clinic gets</h2>
+            <p>Six things doctors and front desks use every day, in a two-minute look.</p>
+          </div>
+          <FeatureTour onTry={() => nav('/t/dental')} />
         </div>
       </section>
 
