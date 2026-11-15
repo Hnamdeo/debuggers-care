@@ -109,7 +109,8 @@ const tidy = (coll, rec) => (NAMED.includes(coll) && rec && typeof rec.name === 
 const shown = new WeakMap()
 const tidyList = (coll, rows) => {
   if (!NAMED.includes(coll)) return rows
-  if (!shown.has(rows)) shown.set(rows, rows.map((r) => tidy(coll, r)))
+  // A patient merged into another (a duplicate registration) is hidden everywhere.
+  if (!shown.has(rows)) shown.set(rows, rows.filter((r) => !r.mergedInto).map((r) => tidy(coll, r)))
   return shown.get(rows)
 }
 

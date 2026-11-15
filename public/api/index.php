@@ -115,6 +115,10 @@ function users(): array {
   $s = $pdo->query("SELECT data FROM records WHERE coll = 'users'");
   return array_map(fn($r) => json_decode($r['data'], true), $s->fetchAll());
 }
+function firstName(string $n): string {
+  $parts = preg_split('/\s+/u', mb_strtolower(trim($n)));
+  return $parts[0] ?? '';
+}
 function publicStaff(): array {
   // What the sign-in screen needs: who can sign in, never their passwords.
   $staff = [];
@@ -299,10 +303,14 @@ switch ($action) {
     $existing = null;
     foreach ($pdo->query("SELECT data FROM records WHERE coll = 'patients'")->fetchAll() as $r) {
       $d = json_decode($r['data'], true);
-      if (($d['phone'] ?? '') === $phone && mb_strtolower(trim((string)($d['name'] ?? ''))) === mb_strtolower($name)) { $existing = $d; break; }
+      // Same mobile and same first name is the same person (families can share one mobile).
+      if (($d['phone'] ?? '') === $phone && empty($d['mergedInto']) && firstName((string)($d['name'] ?? '')) === firstName($name)) { $existing = $d; break; }
     }
     $rev = nextRev();
-    if ($existing) $row = array_merge($existing, array_filter($rec, fn($v) => $v !== ''));
+    if ($existing) {
+      $row = array_merge($existing, array_filter($rec, fn($v) => $v !== ''));
+      if (mb_strlen(trim((string)($existing['name'] ?? ''))) > mb_strlen($name)) $row['name'] = $existing['name'];
+    }
     else $row = ['id' => nextId('patients')] + $rec + ['regDate' => date('Y-m-d')];
     putRec('patients', $row, $rev);
     audit(null, 'register', 'patients', $row['id']);

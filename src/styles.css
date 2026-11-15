@@ -927,3 +927,10 @@ button.slot:hover { transform: translateY(-2px); border-color: var(--brand); box
 
 .pad-doc { display: flex; align-items: center; gap: 10px; }
 .pad-doc .input { width: auto; min-width: 220px; padding: 6px 10px; font-weight: 600; }
+
+/* Registration chat fills exactly the visible screen (keyboard-aware), messages scroll inside */
+.chat-page.chat-fixed { position: fixed; left: 0; right: 0; top: 0; height: 100dvh; min-height: 0; z-index: 20; }
+.chat-fixed .chat-log { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.chat-fixed .chat-log > :first-child { margin-top: auto; }
+.chat-fixed .chat-head { position: static; }
+.chat-fixed .chat-input { position: static; }
