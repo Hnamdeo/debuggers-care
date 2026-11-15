@@ -1,6 +1,7 @@
 // Chat-style self-registration that patients open from the clinic's QR code or a
 // shared link. One question at a time, big tap targets, works on any phone.
 import { useEffect, useRef, useState } from 'react'
+import { samePerson, longerName } from '../lib/patients'
 import { Send, CheckCircle2 } from 'lucide-react'
 import { useTenant, BrandMark } from '../components/ui'
 import { db, server } from '../lib/store'
@@ -29,7 +30,27 @@ export default function SelfRegister() {
   const end = useRef(null)
   const cur = STEPS[step]
 
-  useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [log, typing, done])
+  const page = useRef(null)
+  const logBox = useRef(null)
+  const toEnd = (smooth) => { const b = logBox.current; if (b) b.scrollTo({ top: b.scrollHeight, behavior: smooth ? 'smooth' : 'auto' }) }
+  useEffect(() => { toEnd(true) }, [log, typing, done])
+  // Like a messaging app: the page is exactly the visible screen, so when the phone keyboard opens
+  // the chat shrinks above it and the latest message stays just above the typing box.
+  useEffect(() => {
+    const vv = window.visualViewport
+    const fit = () => {
+      const el = page.current
+      if (!el) return
+      el.style.height = `${vv ? vv.height : window.innerHeight}px`
+      el.style.top = `${vv ? vv.offsetTop : 0}px`
+      toEnd(false)
+    }
+    fit()
+    vv?.addEventListener('resize', fit)
+    vv?.addEventListener('scroll', fit)
+    window.addEventListener('resize', fit)
+    return () => { vv?.removeEventListener('resize', fit); vv?.removeEventListener('scroll', fit); window.removeEventListener('resize', fit) }
+  }, [])
 
   const answer = (value, label) => {
     if (cur.check) {
@@ -69,10 +90,10 @@ export default function SelfRegister() {
         return
       }
     }
-    const existing = db.list(tid, 'patients').find((p) => p.phone === a.phone && p.name.toLowerCase() === rec.name.toLowerCase())
+    const existing = db.list(tid, 'patients').find((p) => samePerson(p, rec))
     const full = { ...rec, blood: '', address: '', emergencyContact: '', consentOn: today(), selfRegistered: true }
     let p
-    if (existing) { db.update(tid, 'patients', existing.id, full); p = { ...existing, ...full } }
+    if (existing) { const keep = { ...full, name: longerName(existing.name, full.name) }; db.update(tid, 'patients', existing.id, keep); p = { ...existing, ...keep } }
     else p = db.add(tid, 'patients', { ...full, regDate: today() })
     if (!db.list(tid, 'visits').some((v) => v.patientId === p.id && v.date === today())) db.add(tid, 'visits', { patientId: p.id, date: today(), time: nowTime(), status: 'waiting', source: 'qr', complaint: rec.visitReason, vitals: {} })
     setTimeout(() => { setTyping(false); setDone({ p, existing: !!existing }) }, 600)
@@ -81,7 +102,7 @@ export default function SelfRegister() {
   const submitText = (e) => { e.preventDefault(); if (cur.skip && !input.trim()) return answer('', 'Skip'); answer(input) }
 
   return (
-    <div className="chat-page">
+    <div className="chat-page chat-fixed" ref={page}>
       <header className="chat-head">
         <BrandMark tenant={tenant} />
         <div style={{ minWidth: 0 }}>
@@ -90,7 +111,7 @@ export default function SelfRegister() {
         </div>
       </header>
       <div className="chat-progress"><i style={{ width: `${((done ? STEPS.length : step) / STEPS.length) * 100}%` }} /></div>
-      <div className="chat-log" aria-live="polite">
+      <div className="chat-log" aria-live="polite" ref={logBox}>
         {log.map((m, i) => <div key={i} className={`bubble ${m.from} ${m.warn ? 'warn' : ''}`}>{m.text}</div>)}
         {typing && <div className="bubble bot typing" aria-label="Typing"><span /><span /><span /></div>}
         {done && (

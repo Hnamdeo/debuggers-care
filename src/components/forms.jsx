@@ -1,5 +1,6 @@
 import { slotsOn } from '../lib/slots'
 import { QrPanel } from './qrpanel'
+import { samePerson } from '../lib/patients'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Modal, Input, Select, Textarea, useTenant, toast } from './ui'
@@ -8,13 +9,16 @@ import { today, fmtTime, money } from '../lib/utils'
 
 
 export function PatientForm({ onClose, onSaved, initial }) {
-  const { tid } = useTenant()
+  const { tid, list } = useTenant()
+  const [dupOk, setDupOk] = useState(false)
   const [f, setF] = useState({ name: '', gender: '', dob: '', phone: '', email: '', blood: '', address: '', allergies: '', conditions: '', emergencyContact: '', ...initial })
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
   const [err, setErr] = useState('')
   const save = () => {
     if (!f.name.trim()) return setErr('Add the patient’s name.')
     if (!/^\d{10}$/.test(f.phone || '') && !(f.noPhone && !f.phone)) return setErr('Add a 10-digit mobile number, or tick “No mobile number”.')
+    const twin = !initial?.id && list('patients').find((p) => samePerson(p, f))
+    if (twin && !dupOk) { setDupOk(true); return setErr(`${twin.name} (${twin.id}) is already registered with this mobile. Open that record instead, or press Register again to add a new patient.`) }
     if (!f.dob && f.ageYears) { f.dob = `${new Date().getFullYear() - +f.ageYears}-01-01`; f.dobApprox = true }
     else if (f.dob && f.dobApprox && initial?.dob !== f.dob) f.dobApprox = false
     let row
@@ -37,6 +41,7 @@ export function PatientForm({ onClose, onSaved, initial }) {
         <Input id="pf-name" label="Full name" value={f.name} onChange={set('name')} placeholder="e.g. Sneha Kulkarni" />
         <div className="stack" style={{ gap: 4 }}>
           <Input id="pf-phone" label="Mobile number" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value.replace(/\D/g, '').slice(-10), noPhone: false })} placeholder="10 digits" inputMode="numeric" />
+          {!initial?.id && /^\d{10}$/.test(f.phone || '') && list('patients').filter((p) => p.phone === f.phone).map((p) => <span key={p.id} className="small" style={{ color: 'var(--warn)' }}>Same mobile: {p.name} ({p.id})</span>)}
           {!f.phone && <label className="small row" style={{ gap: 6, cursor: 'pointer' }}><input type="checkbox" checked={!!f.noPhone} onChange={(e) => setF({ ...f, noPhone: e.target.checked })} /> No mobile number</label>}
         </div>
         <Input id="pf-dob" label="Date of birth (or age below)" type="date" value={f.dobApprox ? '' : f.dob} onChange={set('dob')} max={today()} />

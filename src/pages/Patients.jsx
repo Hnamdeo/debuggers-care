@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QrCode, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse, ScanLine, KeyRound } from 'lucide-react'
-import { useTenant, PageHead, Card, Table, Pill, SearchBox, Avatar, Tabs, Stat } from '../components/ui'
+import { useTenant, PageHead, Card, Table, Pill, SearchBox, Avatar, Tabs, Stat, toast } from '../components/ui'
 import RegisterQR from '../components/RegisterQR'
 import { findOldVideo } from '../lib/healthvideos'
+import { samePerson, mergePatients } from '../lib/patients'
+import { db } from '../lib/store'
 import { PinModal } from '../components/patientlogin'
 import { PatientForm, BookAppointment, NewBill, AdmitForm } from '../components/forms'
 import { PrescriptionDoc, ReportDoc, InvoiceDoc } from '../components/docs'
@@ -64,6 +66,7 @@ export function PatientProfile() {
   const staffView = user.role !== 'patient'
   return (
     <>
+      {staffView && <DuplicateNotice p={p} />}
       <PatientHeader p={p} back={() => nav(`${base}/patients`)}>
         <button className="btn" onClick={() => setModal('edit')}><Pencil /> Edit</button>
         <button className="btn primary" onClick={() => setModal('visit')}><HeartPulse /> Today’s visit & vitals</button>
@@ -202,4 +205,29 @@ export function PatientRecord({ p, canCollect, onBook, onBill }) {
       {doc?.k === 'bill' && <InvoiceDoc bill={list('bills').find((b) => b.id === doc.v.id)} canCollect={canCollect} onClose={() => setDoc(null)} />}
     </>
   )
+}
+
+// Same mobile and same first name as another patient: offer to merge the two records into one.
+function DuplicateNotice({ p }) {
+  const { tid, list, base } = useTenant()
+  const nav = useNavigate()
+  const twins = list('patients').filter((o) => o.id !== p.id && samePerson(o, p))
+  if (!twins.length) return null
+  const ord = (x) => +(x.id.match(/\d+/)?.[0] || 0)
+  return twins.map((o) => {
+    const [keep, dup] = ord(o) < ord(p) ? [o, p] : [p, o]
+    const merge = () => {
+      mergePatients(db, tid, keep, dup)
+      toast(`${dup.id} merged into ${keep.id}. All visits, bills and prescriptions are now under ${keep.id}.`)
+      nav(`${base}/patients/${keep.id}`)
+    }
+    return (
+      <div key={o.id} className="card pad row" style={{ gap: 10, borderColor: 'var(--warn)', alignItems: 'center' }}>
+        <AlertTriangle style={{ color: 'var(--warn)', flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 200 }}><strong>Registered twice?</strong> <span className="small">{o.name} ({o.id}) has the same mobile {o.phone}.</span></div>
+        <button className="btn sm" onClick={() => nav(`${base}/patients/${o.id}`)}>Open {o.id}</button>
+        <button className="btn sm primary" onClick={merge}>Merge into {keep.id}</button>
+      </div>
+    )
+  })
 }
