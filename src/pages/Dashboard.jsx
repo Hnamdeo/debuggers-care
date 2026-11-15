@@ -45,10 +45,16 @@ function Hero({ title, sub, actions }) {
       </section>
       <div className={`qa-row ${actions.filter(Boolean).length === 6 ? 'six' : ''}`}>
         {actions.filter(Boolean).map((a) => (
-          <button key={a.label} className={`qa ${a.main ? 'hot' : ''}`} onClick={a.onClick}>
+          <div key={a.toggle ? 'toggle' : a.label} role="button" tabIndex={0} className={`qa ${a.main ? 'hot' : ''}`} onClick={a.onClick}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); a.onClick() } }}>
             <span className="qa-icon"><a.icon /></span>
             <span className="qa-t"><b>{a.label}</b>{a.hint && <small>{a.hint}</small>}</span>
-          </button>
+            {a.toggle && (
+              <span className="qa-seg" role="radiogroup" aria-label="Period" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                {a.toggle.options.map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={a.toggle.value === v} className={a.toggle.value === v ? 'on' : ''} onClick={() => a.toggle.onChange(v)}>{l}</button>)}
+              </span>
+            )}
+          </div>
         ))}
       </div>
     </>
@@ -179,6 +185,8 @@ function DoctorDash() {
   const labs = list('reports').filter((r) => r.doctorId === me.id)
   const ipd = list('admissions').filter((a) => a.doctorId === me.id && a.status === 'admitted')
   const week = mine.filter((a) => a.date >= addDays(T, -6) && a.date <= T && a.status === 'completed').length
+  const seenToday = todays.filter((a) => a.status === 'completed').length
+  const [seenRange, setSeenRange] = useState('today')
 
   return (
     <>
@@ -188,9 +196,10 @@ function DoctorDash() {
           : { icon: Stethoscope, label: 'No one waiting', hint: 'Queue is clear', onClick: () => nav(`${base}/appointments`), main: true },
         { icon: CalendarDays, label: 'My appointments', hint: `${todays.length} today`, onClick: () => nav(`${base}/appointments`) },
         { icon: FlaskConical, label: 'Lab reports', hint: `${labs.filter((r) => r.status === 'ordered').length} in lab`, onClick: () => nav(`${base}/reports`) },
-        { icon: UserPlus, label: 'Register patient', hint: 'New patient form', onClick: () => nav(`${base}/patients?new=1`) },
-        { icon: QrCode, label: 'Patient QR', hint: 'Print or share', onClick: () => setQr(true) },
-        /dental/i.test(tenant.kind || '') && { icon: Sparkles, label: 'AI Smile preview', hint: 'Show the new smile', onClick: () => nav(`${base}/smile`) },
+        { icon: UserPlus, label: 'Register patient', hint: 'Quick chat registration', onClick: () => nav(`${base}/register`) },
+        { icon: Users, label: 'Seen', hint: seenRange === 'today' ? `${seenToday} today` : `${week} in 7 days`, onClick: () => nav(`${base}/appointments?view=list`),
+          toggle: { value: seenRange, onChange: setSeenRange, options: [['today', 'Today'], ['week', 'Week']] } },
+        { icon: CalendarDays, label: 'My patients today', hint: `${todays.length} booked · ${todays.filter((a) => a.status === 'completed').length} seen`, onClick: () => nav(`${base}/appointments?view=calendar`) },
       ]} />
       <AskBar />
       <div className="grid g4">
