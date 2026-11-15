@@ -1,0 +1,66 @@
+# Every night, sends each clinic's daily database copy from the Hostinger server to
+# Himanshu's own Google Drive folder (via his Apps Script web app, tools/drive-backup.gs).
+# Nothing is kept on GitHub: files only pass through this job.
+#
+# Secrets (Settings > Secrets and variables > Actions), added by Himanshu:
+#   DRIVE_BACKUP_URL   the Apps Script web app URL
+#   DRIVE_BACKUP_KEY   the same secret phrase set as KEY in the Apps Script
+# plus the FTP_* secrets the deploy job already uses.
+name: Nightly backup to Google Drive
+
+on:
+  schedule:
+    - cron: '30 21 * * *' # 3:00 AM India time
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      DRIVE_BACKUP_URL: ${{ secrets.DRIVE_BACKUP_URL }}
+    steps:
+      - name: Check setup
+        run: |
+          if [ -z "$FTP_SERVER" ] || [ -z "$DRIVE_BACKUP_URL" ]; then echo "::error::Add the DRIVE_BACKUP_URL and DRIVE_BACKUP_KEY secrets first"; exit 1; fi
+      - name: Fetch the latest daily copy of each clinic
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR: ${{ vars.CARE_FTP_DIR || 'care/' }}
+        run: |
+          sudo apt-get update -qq || true
+          sudo apt-get install -y -qq lftp sqlite3 > /dev/null
+          mkdir -p backups
+          lftp --env-password -u "$FTP_USERNAME" "$FTP_SERVER" <<LFTP
+          set ftp:ssl-allow yes
+          set ssl:verify-certificate no
+          set ftp:passive-mode yes
+          set net:timeout 30
+          set net:max-retries 8
+          set net:reconnect-interval-base 5
+          mirror --newer-than=now-2days ${FTP_DIR}api/data/backups/ backups/
+          bye
+          LFTP
+      - name: Send to Google Drive
+        env:
+          DRIVE_BACKUP_KEY: ${{ secrets.DRIVE_BACKUP_KEY }}
+        run: |
+          sent=0
+          for slug in $(ls backups/*.sqlite 2>/dev/null | xargs -n1 basename | sed -E 's/-[0-9]{4}-[0-9]{2}-[0-9]{2}\.sqlite$//' | sort -u); do
+            f=$(ls backups/$slug-*.sqlite | sort | tail -1)
+            # Only a whole, readable database is worth keeping.
+            [ "$(sqlite3 "$f" 'PRAGMA integrity_check;')" = "ok" ] || { echo "::error::Damaged copy $f"; exit 1; }
+            jq -n --arg key "$DRIVE_BACKUP_KEY" --arg name "$(basename "$f")" --rawfile data <(base64 -w0 "$f") '{key:$key,name:$name,data:$data}' > body.json
+            res=$(curl -fsSL -X POST -H 'Content-Type: application/json' --data-binary @body.json "$DRIVE_BACKUP_URL")
+            rm -f body.json
+            echo "$(basename "$f"): $res"
+            echo "$res" | grep -q '"ok":true' || { echo "::error::Drive did not accept $(basename "$f")"; exit 1; }
+            sent=$((sent+1))
+          done
+          rm -rf backups
+          [ "$sent" -gt 0 ] || { echo "::error::No backups found on the server yet"; exit 1; }
+          echo "Sent $sent clinic backups to Google Drive."
