@@ -162,8 +162,7 @@ export function CalendarView({ date, setDate, onBook, onMove, onRemind }) {
             <button className="gc-icon" onClick={() => go(-1)} aria-label="Previous"><ChevronLeft /></button>
             <button className="gc-icon" onClick={() => go(1)} aria-label="Next"><ChevronRight /></button>
           </span>
-          <h2 className="gc-title">{title}</h2>
-          <div className="gc-seg" role="tablist" aria-label="Calendar view">
+          <div className="gc-seg" role="tablist" aria-label="Calendar view" title={title}>
             {['day', 'week', 'month'].map((m) => <button key={m} role="tab" aria-selected={mode === m} className={mode === m ? 'on' : ''} onClick={() => pick(m)}>{m[0].toUpperCase() + m.slice(1)}</button>)}
           </div>
         </div>

@@ -153,7 +153,7 @@ export function Assistant() {
     const p = a && patient(a.patientId)
     if (!p) return
     setPending({ kind: 'rx-meds', d: { p, meds: [] } })
-    setMsgs((x) => [...x, { from: 'bot', text: `Writing for ${p.name}${p.dob ? ` (${age(p.dob)} y)` : ''}. Type the diagnosis and medicines, for example “dx dental caries 36; amoxicillin 500 tds 5 days, ketorolac sos 3 days; next 1 week”. I’ll suggest the medicines you use most, and fill the pad for you.` }])
+    setMsgs((x) => x.some((m) => m.rxFor === rxAppt) ? x : [...x, { from: 'bot', rxFor: rxAppt, text: `Writing for ${p.name}${p.dob ? ` (${age(p.dob)} y)` : ''}. Type the diagnosis and medicines, for example “dx dental caries 36; amoxicillin 500 tds 5 days, ketorolac sos 3 days; next 1 week”. I’ll suggest the medicines you use most, and fill the pad for you.` }])
   }, [shown, rxAppt]) // eslint-disable-line react-hooks/exhaustive-deps
   // The first chips start a guided flow; the rest just ask the question.
   const cmdChips = (all) => (all ? COMMANDS : COMMANDS.slice(0, 6)).map(([l, ex]) => ({ label: l, act: l.startsWith('Book') ? () => startBook({}) : l.startsWith('Register') ? () => startRegister({}) : l.startsWith('Write') ? () => startRx({ meds: [] }) : l.startsWith('Find') ? () => { setPending({ kind: 'find' }); reply({ text: 'Type the patient’s name, mobile or ID.' }) } : () => understand(ex) }))
