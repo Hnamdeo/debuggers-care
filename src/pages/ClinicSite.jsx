@@ -4,6 +4,7 @@ import {
   Phone, MapPin, Navigation, Star, Clock, LogIn, Stethoscope, Sparkles, Crown, Smile, GraduationCap, BadgeCheck, MessageCircle, ShieldCheck, HeartHandshake, Heart,
 } from 'lucide-react'
 import { useTenant, BrandMark, SiteFooter } from '../components/ui'
+import { DentalScreen } from '../components/dentalscreen'
 
 // A simple tooth outline (lucide has none). Drawn in currentColor like the other icons.
 function Tooth({ implant }) {
@@ -114,6 +115,8 @@ export default function ClinicSite({ site }) {
             </div>
           </div>
 
+          <div className="cs-hero-side">
+          <DentalScreen />
           <aside className="cs-doc">
             {docs.map((x) => (
               <div key={x.name} className="cs-doc-one">
@@ -134,6 +137,7 @@ export default function ClinicSite({ site }) {
             {site.fee ? <div className="cs-doc-fee small"><HeartHandshake /> Consultation fee about ₹{site.fee}</div>
               : <div className="cs-doc-fee small"><HeartHandshake /> Call or WhatsApp to book your visit</div>}
           </aside>
+          </div>
         </div>
       </section>
 
