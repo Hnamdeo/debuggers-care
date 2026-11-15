@@ -1515,3 +1515,41 @@ td { padding: 12px 14px; }
 .slot.cont { border-style: dashed; background: repeating-linear-gradient(135deg, color-mix(in srgb, #8b5cf6 7%, var(--surface)) 0 8px, var(--surface) 8px 16px); }
 .slot.cont .slot-sub { color: #7c3aed; font-weight: 600; }
 .slot.cont .cont-hint { color: var(--muted); font-weight: 500; font-size: 11px; }
+
+/* AI inspection v2: holographic tooth */
+.ts-holo { width: 100%; height: auto; display: block; overflow: visible; }
+.ts-grid line { stroke: rgb(34 211 238 / 14%); stroke-width: 1; }
+.ts-chip rect { fill: #0b2440; stroke: #22d3ee; stroke-width: 1.5; filter: drop-shadow(0 0 8px #22d3ee); }
+.ts-chip text { fill: #e0f2fe; font: 800 17px var(--font-body); letter-spacing: .04em; }
+.ts-chip line { stroke: #38bdf8; stroke-width: 1.5; }
+.ts-traces path { fill: none; stroke: #38bdf8; stroke-width: 1.3; opacity: .75; stroke-dasharray: 5 7; animation: ts-flow 1.2s linear infinite; }
+.ts-box { fill: rgb(56 189 248 / 6%); stroke: rgb(125 211 252 / 45%); stroke-width: 1.2; }
+.ts-corner { fill: none; stroke: #67e8f9; stroke-width: 2.2; filter: drop-shadow(0 0 4px #22d3ee); }
+.ts-gum { fill: rgb(244 114 182 / 16%); }
+.ts-enamel { fill: none; stroke-width: 4; }
+.ts-pulp { animation: ts-pulse 2.2s ease-in-out infinite; transform-origin: 180px 120px; }
+.ts-dej { fill: none; stroke: rgb(254 243 199 / 50%); stroke-width: 1; stroke-dasharray: 3 4; }
+.ts-decay { fill: #ef4444; filter: drop-shadow(0 0 6px #ef4444); animation: ts-blink 1.4s ease-in-out infinite; }
+.ts-scanline { animation: ts-scan 3.4s ease-in-out infinite; }
+.ts-scanline line { stroke: #67e8f9; stroke-width: 1.6; filter: drop-shadow(0 0 5px #22d3ee); }
+.ts-laser { stroke: #67e8f9; stroke-width: 1.6; stroke-linecap: round; filter: drop-shadow(0 0 4px #22d3ee); stroke-dasharray: 100; animation: ts-laser 3.4s ease-in-out infinite; }
+.ts-spark { fill: #fff; filter: drop-shadow(0 0 6px #f97316); animation: ts-spark 3.4s ease-in-out infinite; }
+.ts-call path { fill: none; stroke: rgb(186 230 253 / 70%); stroke-width: 1; }
+.ts-call text { fill: #e0f2fe; font: 700 11px var(--font-body); }
+.ts-call text.sub { fill: #94a3b8; font-weight: 500; font-size: 10px; }
+.ts-call { opacity: 0; animation: ts-call 6.8s ease infinite; }
+.ts-call.c1 { animation-delay: .6s; } .ts-call.c2 { animation-delay: 1.4s; } .ts-call.c3 { animation-delay: 2.2s; } .ts-call.c4 { display: none; }
+.ts-ring { fill: none; stroke-width: 1.6; } .ts-ring.bad { stroke: #f87171; animation: ts-ring2 1.6s ease-out infinite; transform-origin: 146px 62px; }
+.ts-dot { fill: #a5f3fc; animation: ts-twinkle 3s ease-in-out infinite; }
+@keyframes ts-flow { to { stroke-dashoffset: -24; } }
+@keyframes ts-pulse { 50% { opacity: .75; transform: scale(.985); } }
+@keyframes ts-blink { 50% { opacity: .45; } }
+@keyframes ts-scan { 0% { transform: translateY(24px); } 50% { transform: translateY(236px); } 100% { transform: translateY(24px); } }
+@keyframes ts-laser { 0%, 15% { stroke-dashoffset: 100; opacity: 0; } 30%, 70% { stroke-dashoffset: 0; opacity: 1; } 85%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes ts-spark { 0%, 25% { opacity: 0; r: 1; } 35%, 65% { opacity: 1; r: 4; } 80%, 100% { opacity: 0; } }
+@keyframes ts-call { 0% { opacity: 0; } 8%, 80% { opacity: 1; } 95%, 100% { opacity: 0; } }
+@keyframes ts-ring2 { from { transform: scale(.5); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+@keyframes ts-twinkle { 50% { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { .ts-traces path, .ts-pulp, .ts-decay, .ts-scanline, .ts-laser, .ts-spark, .ts-ring, .ts-dot { animation: none !important; } .ts-call { opacity: 1; animation: none; } .ts-scanline { display: none; } }
+.ts-scanband { fill: rgb(34 211 238 / 16%); }
+.lx-hero-scan .ts-body { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } @media (max-width: 480px) { .lx-hero-scan .ts-body { grid-template-columns: minmax(0, 1fr); } }

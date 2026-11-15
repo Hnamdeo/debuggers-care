@@ -1,29 +1,21 @@
-// Animated "AI inspection" of a dental arch: a scan beam sweeps the teeth, each tooth lights up as it
-// is checked, and findings appear. A visual for the product page and the dental dashboard.
+// Animated "AI inspection" of a tooth: a see-through glowing molar (enamel, dentin, pulp, roots) in a
+// holographic box, an AI chip sending a laser probe to it, a scan line and findings with callouts.
+// A visual for the product page and the dental dashboard.
 import { useEffect, useState } from 'react'
 import { ScanLine } from 'lucide-react'
 
-const N = 14
-const TEETH = Array.from({ length: N }, (_, i) => {
-  const t = (i - (N - 1) / 2) / ((N - 1) / 2)
-  const x = 160 + t * 128
-  const y = 34 + t * t * 112
-  const w = 15 + Math.abs(t) * 11
-  const h = 20 + Math.abs(t) * 4
-  const rot = (Math.atan((2 * 112 * t) / 128) * 180) / Math.PI
-  return { x, y, w, h, rot }
-})
+const TOOTH = 'M128 74 C126 46 150 36 162 50 C172 38 190 38 200 50 C212 36 236 46 232 74 C234 96 226 112 222 128 C218 162 214 196 205 216 C199 226 189 221 189 206 C188 182 185 162 180 152 C175 162 172 182 171 206 C171 221 161 226 155 216 C146 196 142 162 138 128 C134 112 126 96 128 74 Z'
+const PULP = 'M158 82 C164 72 196 72 202 82 C207 96 200 112 194 120 C192 150 197 182 197 204 L193 204 C190 180 186 156 182 142 L178 142 C174 156 170 180 167 204 L163 204 C163 182 168 150 166 120 C160 112 153 96 158 82 Z'
 const FINDINGS = [
-  { tooth: 2, tone: 'bad', label: 'Early decay', conf: 87 },
-  { tooth: 9, tone: 'warn', label: 'Plaque build-up', conf: 74 },
+  { tone: 'bad', label: 'Early decay on the crown', conf: 87 },
+  { tone: 'warn', label: 'Decay is near the pulp', conf: 72 },
 ]
-const PHASES = ['Mapping 28 teeth…', 'Checking enamel…', 'Looking for decay…', 'Checking gums…', 'Report ready']
-const DUR = 3.6
+const PHASES = ['Reading the X-ray…', 'Checking enamel…', 'Measuring decay depth…', 'Tracing root canals…', 'Report ready']
 
 export function ToothScan({ compact = false, className = '' }) {
   const [phase, setPhase] = useState(0)
   useEffect(() => {
-    const id = setInterval(() => setPhase((p) => (p + 1) % PHASES.length), (DUR * 1000 * 1.25) / PHASES.length * 2)
+    const id = setInterval(() => setPhase((p) => (p + 1) % PHASES.length), 1700)
     return () => clearInterval(id)
   }, [])
   const done = phase === PHASES.length - 1
@@ -35,33 +27,71 @@ export function ToothScan({ compact = false, className = '' }) {
         <span className={`ts-live ${done ? 'ok' : ''}`}><i /> {done ? 'Done' : 'Scanning'}</span>
       </div>
       <div className="ts-body">
-        <svg className="ts-arch" viewBox="0 0 320 175" role="img" aria-label="AI scanning a set of teeth">
+        <svg className="ts-holo" viewBox="0 0 360 250" role="img" aria-label="AI scanning a tooth">
           <defs>
-            <linearGradient id="ts-beam" x1="0" x2="1">
-              <stop offset="0" stopColor="#38bdf8" stopOpacity="0" />
-              <stop offset=".5" stopColor="#38bdf8" stopOpacity=".55" />
-              <stop offset="1" stopColor="#38bdf8" stopOpacity="0" />
+            <linearGradient id="tsEnamel" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fef3c7" /><stop offset=".45" stopColor="#fbbf24" /><stop offset="1" stopColor="#f97316" />
             </linearGradient>
+            <linearGradient id="tsDentin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fde68a" stopOpacity=".55" /><stop offset="1" stopColor="#fb923c" stopOpacity=".18" />
+            </linearGradient>
+            <radialGradient id="tsPulp" cx=".5" cy=".25" r=".8">
+              <stop offset="0" stopColor="#fb7185" /><stop offset="1" stopColor="#e11d48" stopOpacity=".7" />
+            </radialGradient>
+            <linearGradient id="tsScan" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#22d3ee" stopOpacity="0" /><stop offset=".5" stopColor="#22d3ee" stopOpacity=".5" /><stop offset="1" stopColor="#22d3ee" stopOpacity="0" />
+            </linearGradient>
+            <filter id="tsGlow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="4" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+            <clipPath id="tsBox"><rect x="96" y="24" width="168" height="214" rx="10" /></clipPath>
           </defs>
-          <path className="ts-gum" d={`M ${TEETH[0].x - 14} ${TEETH[0].y + 18} Q 160 -70 ${TEETH[N - 1].x + 14} ${TEETH[N - 1].y + 18}`} />
-          {TEETH.map((t, i) => (
-            <g key={i} transform={`translate(${t.x} ${t.y}) rotate(${t.rot})`}>
-              <rect className="ts-tooth" x={-t.w / 2} y={-t.h / 2} width={t.w} height={t.h} rx={t.w / 2.6} style={{ animationDelay: `${(t.x / 320) * DUR}s` }} />
-            </g>
-          ))}
-          {FINDINGS.map((f) => {
-            const t = TEETH[f.tooth]
-            return (
-              <g key={f.tooth} className={`ts-find ${f.tone}`} transform={`translate(${t.x} ${t.y})`}>
-                <circle r="15" className="ts-ring" />
-                <circle r="4" />
-              </g>
-            )
-          })}
-          <g className="ts-beam-g">
-            <rect x="-26" y="0" width="52" height="175" fill="url(#ts-beam)" />
-            <line x1="0" x2="0" y1="0" y2="175" className="ts-beam-line" />
+
+          {/* floor grid */}
+          <g className="ts-grid">
+            {Array.from({ length: 9 }, (_, i) => <line key={`h${i}`} x1="0" x2="360" y1={170 + i * 10} y2={170 + i * 10} />)}
+            {Array.from({ length: 13 }, (_, i) => <line key={`v${i}`} x1={180 + (i - 6) * 18} x2={180 + (i - 6) * 46} y1="170" y2="250" />)}
           </g>
+
+          {/* AI chip with circuit traces */}
+          <g className="ts-chip" transform="translate(18 26)">
+            <rect width="54" height="42" rx="7" />
+            <text x="27" y="27" textAnchor="middle">AI</text>
+            {[8, 18, 28, 38, 48].map((x) => <line key={`t${x}`} x1={x} x2={x} y1="-6" y2="0" />)}
+            {[8, 18, 28, 38, 48].map((x) => <line key={`b${x}`} x1={x} x2={x} y1="42" y2="48" />)}
+          </g>
+          <g className="ts-traces">
+            <path d="M72 40 H96 L110 54 H150" />
+            <path d="M72 52 H88 L104 70 H128" />
+            <path d="M45 74 V110 L70 135 H104" />
+            <path d="M30 74 V150 L50 170 H90" />
+          </g>
+
+          {/* holographic box */}
+          <rect className="ts-box" x="96" y="24" width="168" height="214" rx="10" />
+          <path className="ts-corner" d="M96 40 V24 H112 M248 24 H264 V40 M264 222 V238 H248 M112 238 H96 V222" />
+
+          {/* the tooth */}
+          <g clipPath="url(#tsBox)">
+            <path d={TOOTH} fill="url(#tsDentin)" />
+            <path d={TOOTH} className="ts-enamel" stroke="url(#tsEnamel)" filter="url(#tsGlow)" />
+            <path d={PULP} fill="url(#tsPulp)" className="ts-pulp" filter="url(#tsGlow)" />
+            <path d="M136 92 C150 84 210 84 224 92" className="ts-dej" />
+            <circle cx="146" cy="62" r="6" className="ts-decay" />
+            <g className="ts-scanline"><rect x="96" y="-10" width="168" height="20" className="ts-scanband" /><line x1="96" x2="264" y1="0" y2="0" /></g>
+          </g>
+
+          {/* laser probe from the chip */}
+          <line className="ts-laser" x1="72" y1="34" x2="146" y2="62" />
+          <circle className="ts-spark" cx="146" cy="62" r="3" />
+
+          {/* callouts */}
+          <g className="ts-call c1"><circle cx="146" cy="62" r="13" className="ts-ring bad" /><path d="M234 58 H300" /><text x="302" y="55">Decay</text><text x="302" y="67" className="sub">0.8 mm</text></g>
+          <g className="ts-call c2"><path d="M188 98 L236 112 H300" /><text x="302" y="109">Pulp</text><text x="302" y="121" className="sub">close</text></g>
+          <g className="ts-call c3"><path d="M200 196 L236 184 H300" /><text x="302" y="181">Roots</text><text x="302" y="193" className="sub">2 canals</text></g>
+          <g className="ts-call c4"><path d="M128 76 L104 76" /></g>
+
+          {[[300, 30], [330, 150], [84, 200], [250, 14], [24, 220]].map(([x, y], i) => <circle key={i} className="ts-dot" cx={x} cy={y} r="1.6" style={{ animationDelay: `${i * 0.6}s` }} />)}
         </svg>
         <div className="ts-side">
           <div className="ts-phase">{PHASES[phase]}</div>
@@ -70,7 +100,7 @@ export function ToothScan({ compact = false, className = '' }) {
             {FINDINGS.map((f) => (
               <li key={f.label} className={f.tone}><b>{f.label}</b><span>{f.conf}% match</span></li>
             ))}
-            <li className="ok"><b>26 teeth healthy</b><span>Gums look fine</span></li>
+            <li className="ok"><b>Roots and bone healthy</b><span>Suggest: filling or RCT review</span></li>
           </ul>
         </div>
       </div>
