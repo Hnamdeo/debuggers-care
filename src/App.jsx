@@ -136,13 +136,15 @@ function Shell() {
   const nav = useNavigate()
   const loc = useLocation()
   const role = user.role
-  const mods = ROLE_MODULES[role]
+  // In a clinic's own live space there is no admin login: the doctor gets everything the admin had.
+  const boss = role === 'admin' || (tenant.live && role === 'doctor')
+  const mods = tenant.live && role === 'doctor' ? [...new Set([...ROLE_MODULES.doctor, ...ROLE_MODULES.admin])] : ROLE_MODULES[role]
   const isPatient = role === 'patient'
   // In a clinic's own live space the doctor also owns settings and backups.
   const canSettings = role === 'admin' || (tenant.live && role === 'doctor')
   const home = isPatient ? 'me' : role === 'pharmacist' ? 'pharmacy' : 'dashboard'
 
-  const guard = (mod, el) => (ROLE_MODULES[role].includes(mod) ? (hasModule(tenant, mod) ? el : <Locked mod={mod} />) : <Navigate to={`${base}/${home}`} replace />)
+  const guard = (mod, el) => (mods.includes(mod) ? (hasModule(tenant, mod) ? el : <Locked mod={mod} />) : <Navigate to={`${base}/${home}`} replace />)
 
   return (
     <>
@@ -167,8 +169,8 @@ function Shell() {
             <>
               {mods.map((m, i) => {
                 const locked = !hasModule(tenant, m)
-                if (locked && role !== 'admin') return null
-                const sep = role === 'admin' && (m === 'ipd' ? 'Hospital' : m === 'pharmacy' ? 'Operations' : i === 0 ? 'Clinic' : null)
+                if (locked && !boss) return null
+                const sep = boss && (m === 'ipd' ? 'Hospital' : m === 'pharmacy' ? 'Operations' : i === 0 ? 'Clinic' : null)
                 return (
                   <div key={m}>
                     {sep && <div className="nav-sep">{sep}</div>}
