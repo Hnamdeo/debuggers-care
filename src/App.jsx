@@ -3,11 +3,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
-  Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart,
+  Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles,
 } from 'lucide-react'
 import { db, auth, useDb, server } from './lib/store'
 import { hasModule, ROLE_MODULES, ROLE_LABEL, PLANS, planFor, MODULES } from './lib/plans'
-import { TenantCtx, Toaster, Avatar, useTenant, BrandMark, tenantStyle, SiteFooter } from './components/ui'
+import { TenantCtx, Toaster, Celebration, Avatar, useTenant, BrandMark, tenantStyle, SiteFooter } from './components/ui'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -28,6 +28,8 @@ import Locked from './pages/Locked'
 import Education from './pages/Education'
 import SelfRegister from './pages/SelfRegister'
 import ClinicSite from './pages/ClinicSite'
+import Smile from './pages/Smile'
+import { NotesFab } from './components/notes'
 import { SITES } from './lib/sites'
 
 const ICONS = { dashboard: LayoutDashboard, patients: Users, appointments: CalendarDays, prescriptions: PillIcon, reports: FlaskConical, education: MonitorPlay, ipd: BedDouble, emergency: Siren, pharmacy: Store, billing: Receipt, staff: IdCard, payroll: Wallet }
@@ -43,6 +45,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster />
+      <Celebration />
     </Router>
   )
 }
@@ -142,6 +145,8 @@ function Shell() {
   const isPatient = role === 'patient'
   // In a clinic's own live space the doctor also owns settings and backups.
   const canSettings = role === 'admin' || (tenant.live && role === 'doctor')
+  // The AI Smile preview is for dental clinics, for whoever treats patients.
+  const smile = /dental/i.test(tenant.kind || '') && (role === 'doctor' || role === 'admin')
   const home = isPatient ? 'me' : role === 'pharmacist' ? 'pharmacy' : 'dashboard'
 
   const guard = (mod, el) => (mods.includes(mod) ? (hasModule(tenant, mod) ? el : <Locked mod={mod} />) : <Navigate to={`${base}/${home}`} replace />)
@@ -178,6 +183,7 @@ function Shell() {
                   </div>
                 )
               })}
+              {smile && <NavItem to={`${base}/smile`} icon={Sparkles} label="AI Smile preview" fresh />}
               {canSettings && <NavItem to={`${base}/settings`} icon={SettingsIcon} label="Plan & settings" />}
             </>
           )}
@@ -209,6 +215,7 @@ function Shell() {
               <Route path="consult/:id" element={guard('appointments', <Consult />)} />
               <Route path="prescriptions" element={guard('prescriptions', <Prescriptions />)} />
               <Route path="reports" element={guard('reports', <Reports />)} />
+              <Route path="smile" element={smile ? <Smile /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="education" element={guard('education', <Education />)} />
               <Route path="ipd" element={guard('ipd', <IPD />)} />
               <Route path="emergency" element={guard('emergency', <Emergency />)} />
@@ -225,6 +232,7 @@ function Shell() {
             </Routes>
             <SiteFooter className="app-footer" />
           </main>
+          {!isPatient && <NotesFab />}
         </div>
       </div>
     </>
@@ -232,10 +240,10 @@ function Shell() {
 }
 
 
-function NavItem({ to, icon: Icon, label, locked }) {
+function NavItem({ to, icon: Icon, label, locked, fresh }) {
   return (
     <NavLink to={to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''} ${locked ? 'locked' : ''}`} title={locked ? `Available on the ${PLANS[planFor(to.split('/').pop())]?.name} plan` : undefined}>
-      <Icon /> {label} {locked && <Lock className="lock" />}
+      <Icon /> {label} {locked && <Lock className="lock" />}{fresh && <span className="nav-new">AI</span>}
     </NavLink>
   )
 }

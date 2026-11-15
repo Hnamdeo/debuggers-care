@@ -29,7 +29,7 @@ date_default_timezone_set('Asia/Kolkata');
 
 const DATA_DIR = __DIR__ . '/data';
 const SESSION_DAYS = 30;
-const PREFIX = ['patients' => 'P', 'appointments' => 'A', 'prescriptions' => 'RX', 'reports' => 'LAB', 'bills' => 'INV', 'medicines' => 'M', 'sales' => 'SL', 'beds' => 'BED', 'admissions' => 'IPD', 'emergencies' => 'ER', 'payroll' => 'PAY', 'staff' => 'S', 'users' => 'U', 'videos' => 'V', 'shares' => 'SH', 'visits' => 'VS', 'images' => 'IMG'];
+const PREFIX = ['notes' => 'NT', 'patients' => 'P', 'appointments' => 'A', 'prescriptions' => 'RX', 'reports' => 'LAB', 'bills' => 'INV', 'medicines' => 'M', 'sales' => 'SL', 'beds' => 'BED', 'admissions' => 'IPD', 'emergencies' => 'ER', 'payroll' => 'PAY', 'staff' => 'S', 'users' => 'U', 'videos' => 'V', 'shares' => 'SH', 'visits' => 'VS', 'images' => 'IMG'];
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');

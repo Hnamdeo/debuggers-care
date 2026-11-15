@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Trash2, CheckCircle2, HeartPulse } from 'lucide-react'
+import { Plus, Trash2, CheckCircle2, HeartPulse, Minus, Zap, History, Save, Sparkles } from 'lucide-react'
 import { VisitForm, vitalsText } from '../components/visits'
 import { useTenant, Card, Input, Select, Textarea, toast, Pill } from '../components/ui'
 import { PatientHeader } from './Patients'
@@ -15,6 +15,21 @@ import { PrescriptionDoc } from '../components/docs'
 import { groupByLanguage } from '../lib/healthvideos'
 import { FileText } from 'lucide-react'
 
+// One-tap timings, written the way doctors write them (1-0-1) with the words patients read.
+const QUICK_FREQ = [['1-0-0', 'Once a day'], ['1-0-1', 'Twice a day'], ['1-1-1', 'Three times a day'], ['0-0-1', 'At night'], ['SOS', 'When needed for pain']]
+const ADVICE = {
+  dental: ['Take medicines after food', 'Avoid hard and sticky food', 'Warm salt water rinse 3 times a day', 'Do not spit or rinse for 24 hours', 'Soft, cold diet today', 'Brush twice a day with a soft brush'],
+  general: ['Take medicines after food', 'Drink plenty of water', 'Rest for 2 days', 'Come back if fever or pain increases', 'Avoid oily and spicy food'],
+}
+// Starting one-tap sets for a dental clinic; the doctor edits them, saves their own and removes any.
+const DENTAL_SETS = [
+  [['Amoxicillin 500 mg', '1 cap', 'Three times a day', 5], ['Ketorolac 10 mg', '1 tab', 'When needed for pain', 3]],
+  [['Metronidazole 400 mg', '1 tab', 'Three times a day', 5], ['Ibuprofen 400 mg', '1 tab', 'Twice a day after food', 3]],
+  [['Chlorhexidine mouthwash', '10 ml', 'Twice a day', 14]],
+  [['Sensitivity toothpaste', 'Apply', 'Twice a day', 30]],
+]
+const BLANK = () => ({ name: '', dose: '1 tab', freq: 'Twice a day', days: 5 })
+const setLabel = (set) => set.map((x) => x[0].replace(/\s+\d.*$/, '')).join(' + ')
 const FREQ = ['Once a day', 'Twice a day', 'Three times a day', 'At night', 'Before breakfast', 'Twice a day after food', 'When needed for pain', 'Once a week']
 
 export default function Consult() {
@@ -30,7 +45,7 @@ export default function Consult() {
   const meds = list('medicines')
   const [dx, setDx] = useState('')
   const [notes, setNotes] = useState('')
-  const [lines, setLines] = useState([{ name: '', dose: '1 tab', freq: 'Twice a day', days: 5 }])
+  const [lines, setLines] = useState([BLANK()])
   const [tests, setTests] = useState([])
   const [procs, setProcs] = useState([])
   const [err, setErr] = useState('')
@@ -51,6 +66,33 @@ export default function Consult() {
   const history = list('prescriptions').filter((r) => r.patientId === p.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3)
   const reports = list('reports').filter((r) => r.patientId === p.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3)
   const upd = (i, k, v) => setLines(lines.map((l, j) => (j === i ? { ...l, [k]: v } : l)))
+  const dental = /dental/i.test(tenant.kind || '')
+  const sets = tenant.rxSets || (dental ? DENTAL_SETS : [])
+  const filled = lines.filter((l) => l.name.trim())
+  // Add medicines to the pad, filling the empty row first and skipping any already written.
+  const addMeds = (items) => {
+    const have = new Set(filled.map((l) => l.name.trim().toLowerCase()))
+    const fresh = items.filter((m) => !have.has(m.name.toLowerCase()))
+    if (!fresh.length) return toast('Already on the prescription')
+    setLines([...filled, ...fresh])
+  }
+  const applySet = (set) => addMeds(set.map(([name, dose, freq, days]) => ({ name, dose, freq, days })))
+  const last = history[0]
+  const quickMeds = [...new Set([...sets.flat().map((x) => x[0]), ...meds.map((m) => m.name)])].filter((n) => !filled.some((l) => l.name === n)).slice(0, 8)
+  const doseFor = (name) => sets.flat().find((x) => x[0] === name)?.[1] || (/mouthwash|syrup/i.test(name) ? '10 ml' : /paste|gel/i.test(name) ? 'Apply' : /cap/i.test(meds.find((m) => m.name === name)?.form || '') ? '1 cap' : '1 tab')
+  const saveSet = () => {
+    if (!filled.length) return
+    const set = filled.map((l) => [l.name.trim(), l.dose, l.freq, +l.days])
+    db.updateTenant(tid, { rxSets: [...sets, set] })
+    toast(`Saved “${setLabel(set)}” as a quick set`)
+  }
+  const addAdvice = (a) => setNotes((n) => (n.includes(a) ? n : n.trim() ? `${n.trim()}. ${a}` : a))
+  const enterNext = (i) => (e) => {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    if (i === lines.length - 1 && lines[i].name.trim()) setLines([...lines, BLANK()])
+    setTimeout(() => document.getElementById(`cs-m${i + 1}`)?.focus(), 30)
+  }
   const toggle = (arr, set, v) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
   const allergic = p.allergies && lines.some((l) => l.name && p.allergies.toLowerCase().includes('penicillin') && /amoxi|penicillin/i.test(l.name))
 
@@ -102,6 +144,7 @@ export default function Consult() {
             <div style={{ minWidth: 0 }}><strong>Today’s vitals</strong>{visit?.complaint && <span className="muted"> · {visit.complaint}</span>}<div className="small">{(visit && vitalsText(visit.vitals)) || 'Not taken yet'}</div></div>
             <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => setVitals(true)}>{visit && vitalsText(visit.vitals) ? 'Edit' : 'Add'}</button>
           </div>
+          {dental && <button className="btn sm smile-link" onClick={() => nav(`${base}/smile`)}><Sparkles /> AI Smile preview</button>}
         </div>
       </PatientHeader>
       {vitals && <VisitForm patientId={p.id} onClose={() => setVitals(false)} />}
@@ -138,19 +181,68 @@ export default function Consult() {
               </div>
               <Input id="cs-dx" label="Diagnosis" list="dx-list" value={dx} onChange={(e) => setDx(e.target.value)} placeholder="Start typing" />
               <datalist id="dx-list">{tenant.diagnoses.map((d) => <option key={d} value={d} />)}</datalist>
-              <div className="field"><span><span className="pad-rx-mark">℞</span> Medicines</span></div>
-              {lines.map((l, i) => (
-                <div key={i} className="rx-line">
-                  <Input id={`cs-m${i}`} list="med-list" value={l.name} onChange={(e) => upd(i, 'name', e.target.value)} placeholder="Medicine" aria-label="Medicine" />
-                  <Input id={`cs-d${i}`} value={l.dose} onChange={(e) => upd(i, 'dose', e.target.value)} aria-label="Dose" />
-                  <select className="input" value={l.freq} onChange={(e) => upd(i, 'freq', e.target.value)} aria-label="When">{FREQ.map((f) => <option key={f}>{f}</option>)}</select>
-                  <Input id={`cs-n${i}`} type="number" min="1" value={l.days} onChange={(e) => upd(i, 'days', e.target.value)} aria-label="Days" />
-                  <button className="btn ghost sm" onClick={() => setLines(lines.filter((_, j) => j !== i))} aria-label="Remove"><Trash2 /></button>
+              {tenant.diagnoses?.length > 0 && (
+                <div className="quick-chips" aria-label="Common diagnoses">
+                  {tenant.diagnoses.slice(0, 8).map((d) => <button key={d} type="button" className={`qchip ${dx === d ? 'on' : ''}`} onClick={() => setDx(dx === d ? '' : d)}>{d}</button>)}
                 </div>
-              ))}
+              )}
+              <div className="rx-head">
+                <span className="field"><span><span className="pad-rx-mark">℞</span> Medicines</span></span>
+                <span className="row" style={{ gap: 6 }}>
+                  {last?.items?.length > 0 && <button type="button" className="btn sm" onClick={() => addMeds(last.items.map((x) => ({ name: x.name, dose: x.dose, freq: x.freq, days: x.days })))} title={`From ${fmtDate(last.date)}`}><History /> Repeat last</button>}
+                  {filled.length > 0 && <button type="button" className="btn sm ghost" onClick={saveSet} title="Save these medicines as a one-tap set"><Save /> Save as set</button>}
+                </span>
+              </div>
+              {sets.length > 0 && (
+                <div className="quick-chips sets" aria-label="Quick sets">
+                  <span className="qlabel"><Zap /> Quick sets</span>
+                  {sets.map((set, k) => (
+                    <span key={k} className="qchip set">
+                      <button type="button" onClick={() => applySet(set)} title={set.map((x) => `${x[0]} · ${x[2]} · ${x[3]} days`).join('\n')}>{setLabel(set)}</button>
+                      <button type="button" className="qx" aria-label={`Remove set ${setLabel(set)}`} title="Remove this set" onClick={() => { db.updateTenant(tid, { rxSets: sets.filter((_, j) => j !== k) }); toast('Quick set removed') }}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="rx-cards">
+                {lines.map((l, i) => (
+                  <div key={i} className="rx-card">
+                    <span className="rx-n">{i + 1}</span>
+                    <div className="rx-main">
+                      <div className="rx-top">
+                        <input id={`cs-m${i}`} className="input rx-name" list="med-list" value={l.name} onChange={(e) => upd(i, 'name', e.target.value)} onKeyDown={enterNext(i)} placeholder="Type a medicine, press Enter for the next" aria-label="Medicine" />
+                        <input id={`cs-d${i}`} className="input rx-dose" value={l.dose} onChange={(e) => upd(i, 'dose', e.target.value)} aria-label="Dose" />
+                      </div>
+                      <div className="rx-bottom">
+                        <span className="seg" role="radiogroup" aria-label="When">
+                          {QUICK_FREQ.map(([code, f]) => <button key={code} type="button" role="radio" aria-checked={l.freq === f} className={l.freq === f ? 'on' : ''} title={f} onClick={() => upd(i, 'freq', f)}>{code}</button>)}
+                          <select value={QUICK_FREQ.some((q) => q[1] === l.freq) ? '' : l.freq} onChange={(e) => e.target.value && upd(i, 'freq', e.target.value)} aria-label="Other timing" className={QUICK_FREQ.some((q) => q[1] === l.freq) ? '' : 'on'}>
+                            <option value="">More…</option>
+                            {FREQ.filter((f) => !QUICK_FREQ.some((q) => q[1] === f)).map((f) => <option key={f} value={f}>{f}</option>)}
+                          </select>
+                        </span>
+                        <span className="stepper" aria-label="Days">
+                          <button type="button" onClick={() => upd(i, 'days', Math.max(1, +l.days - 1))} aria-label="One day less"><Minus /></button>
+                          <input id={`cs-n${i}`} type="number" min="1" value={l.days} onChange={(e) => upd(i, 'days', e.target.value)} aria-label="Days" />
+                          <span className="small muted">days</span>
+                          <button type="button" onClick={() => upd(i, 'days', +l.days + 1)} aria-label="One day more"><Plus /></button>
+                        </span>
+                        <span className="small muted rx-say">{l.freq}</span>
+                      </div>
+                    </div>
+                    <button className="btn ghost sm rx-del" onClick={() => setLines(lines.length > 1 ? lines.filter((_, j) => j !== i) : [BLANK()])} aria-label="Remove"><Trash2 /></button>
+                  </div>
+                ))}
+              </div>
               <datalist id="med-list">{meds.map((m) => <option key={m.id} value={m.name}>{m.stock} in stock</option>)}</datalist>
-              <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setLines([...lines, { name: '', dose: '1 tab', freq: 'Twice a day', days: 5 }])}><Plus /> Add medicine</button>
+              <div className="quick-chips" aria-label="Add a medicine">
+                <button type="button" className="qchip add" onClick={() => { setLines([...lines, BLANK()]); setTimeout(() => document.getElementById(`cs-m${lines.length}`)?.focus(), 30) }}><Plus /> Add medicine</button>
+                {quickMeds.map((n) => <button key={n} type="button" className="qchip" onClick={() => addMeds([{ ...BLANK(), name: n, dose: doseFor(n) }])}>+ {n}</button>)}
+              </div>
               <Textarea id="cs-notes" label="Advice for the patient" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Avoid hard food on the left side" />
+              <div className="quick-chips" aria-label="Common advice">
+                {ADVICE[dental ? 'dental' : 'general'].map((a) => <button key={a} type="button" className={`qchip ${notes.includes(a) ? 'on' : ''}`} onClick={() => addAdvice(a)}>{a}</button>)}
+              </div>
               <Textarea id="cs-plan" label="Treatment plan (what happens next)" rows={3} value={plan ?? p.plan ?? ''} onChange={(e) => setPlan(e.target.value)} placeholder={'e.g. 1. RCT 36, second sitting\n2. Crown on 36'} />
               <div className="grid g2">
                 <Input id="cs-next" label="Next visit (books it)" type="date" min={today()} value={nextDate} onChange={(e) => setNextDate(e.target.value)} />
@@ -189,8 +281,8 @@ export default function Consult() {
             </Card>
           </div>
           {err && <div style={{ color: 'var(--bad)' }}>{err}</div>}
-          <div className="row">
-            <button className="btn primary" onClick={finish}><CheckCircle2 /> Complete visit and send bill</button>
+          <div className="row consult-actions">
+            <button className="btn primary lg" onClick={finish}><CheckCircle2 /> Complete visit and send bill</button>
             <span className="muted small">Bill: consultation {money(doc.fee)}{procs.length + tests.length ? ` + ${procs.length + tests.length} items` : ''}</span>
           </div>
         </div>
