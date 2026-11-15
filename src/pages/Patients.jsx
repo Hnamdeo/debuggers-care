@@ -110,6 +110,7 @@ export function PatientHeader({ p, children, back }) {
               {p.allergies && <span className="pill bad"><AlertTriangle size={11} /> Allergy: {p.allergies}</span>}
               {p.conditions && <span className="pill warn">{p.conditions}</span>}
               <span className="pill plain">{p.phone}</span>
+              {p.abha && <span className="pill abha" title="Ayushman Bharat Health Account">ABHA {p.abha}</span>}
             </div>
           </div>
         </div>

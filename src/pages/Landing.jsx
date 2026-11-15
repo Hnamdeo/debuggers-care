@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   HeartPulse, ArrowRight, Check, RotateCcw, Building2, Stethoscope, QrCode, MonitorPlay, BedDouble, CalendarCheck,
-  FileHeart, Receipt, Pill, Palette, Wallet, Smartphone, ShieldCheck, Sparkles, Zap, Users, Activity, Clock,
+  FileHeart, Receipt, Pill, Palette, Wallet, Smartphone, ShieldCheck, Sparkles, Zap, Users, Activity, Clock, MessageCircle, Mic, Globe, MapPin, Megaphone, Share2,
 } from 'lucide-react'
 import { db, useDb } from '../lib/store'
-import { PLANS, PLAN_ORDER, MODULES, tenantHost, SALES_PHONE } from '../lib/plans'
+import { PLANS, PLAN_ORDER, MODULES, tenantHost, SALES_PHONE, salesWhatsApp } from '../lib/plans'
 import FeatureTour from '../components/tour'
 import { toast, CompanyLink, SiteFooter, COMPANY_URL, CountUp } from '../components/ui'
 
@@ -22,6 +22,16 @@ const FEATURES = [
   { icon: Palette, title: 'Your logo, your colours', text: 'Each clinic looks like its own brand, at its own web address.', big: true },
   { icon: Wallet, title: 'Staff & payroll', text: 'Attendance and salaries for the whole team.' },
   { icon: ShieldCheck, title: 'Private & backed up', text: 'Each clinic’s records are kept separate. Download a backup any time.' },
+]
+
+// Done-for-you services sold alongside the software.
+const SERVICES = [
+  { icon: Globe, title: 'Clinic website', points: ['Your own modern, mobile-first website', 'Doctors, treatments, timings and map', 'Book on WhatsApp and online appointments'] },
+  { icon: MapPin, title: 'Google Business Profile', points: ['Rank higher on Google Maps nearby', 'Weekly Google posts and photos', 'Review replies and monthly ranking report'] },
+  { icon: Megaphone, title: 'Google Ads for clinics', points: ['Campaign setup with a landing page', 'Keywords for your treatments and area', 'Call and WhatsApp lead tracking'] },
+  { icon: Share2, title: 'Social media posts', points: ['Festival and health-tip posts in your brand', 'Instagram, Facebook and WhatsApp status', 'Treatment explainer reels'] },
+  { icon: MessageCircle, title: 'WhatsApp Business setup', points: ['Verified clinic number with your logo', 'Automatic appointment reminders', 'Broadcasts for camps and offers'] },
+  { icon: MonitorPlay, title: 'Patient education videos', points: ['Hindi and English treatment explainers', 'Your clinic’s own playlist', 'Shared after every visit'] },
 ]
 
 const STEPS = [
@@ -104,6 +114,7 @@ export default function Landing() {
             <button onClick={() => go('features')}>Features</button>
             <button onClick={() => go('how')}>How it works</button>
             <button onClick={() => go('plans')}>Plans</button>
+            <button onClick={() => go('services')}>Services</button>
           </div>
           <button className="lx-btn sm" onClick={() => go('demo')}>Live demo <ArrowRight /></button>
         </div>
@@ -125,6 +136,8 @@ export default function Landing() {
               <li><Smartphone size={15} /> Phone, tablet or computer</li>
               <li><Zap size={15} /> No installation</li>
               <li><ShieldCheck size={15} /> Your own private space</li>
+              <li><MessageCircle size={15} /> WhatsApp reminders</li>
+              <li><Mic size={15} /> Voice prescription</li>
             </ul>
           </div>
 
@@ -153,6 +166,7 @@ export default function Landing() {
             </div>
             <div className="lx-float f1"><QrCode size={16} /> Patient registered by QR</div>
             <div className="lx-float f2"><MonitorPlay size={16} /> RCT video sent on WhatsApp</div>
+            <div className="lx-float f4"><Mic size={16} /> “Amoxicillin 500, 1-1-1, 5 days” → Rx ready</div>
             <div className="lx-float f3"><BedDouble size={16} /> ICU-04 · SpO₂ 89%</div>
           </div>
         </div>
@@ -257,6 +271,26 @@ export default function Landing() {
             ))}
           </div>
           <p className="lx-note">Monthly subscription. To buy, call or WhatsApp <a href={`tel:+91${SALES_PHONE}`}>{SALES_PHONE}</a>.</p>
+        </div>
+      </section>
+
+      <section className="lx-sec" id="services">
+        <div className="lx-wrap">
+          <div className="lx-head" data-reveal>
+            <span className="lx-kicker">Growth services</span>
+            <h2>More patients, not just better software</h2>
+            <p>Our team builds and runs your clinic’s online presence, so new patients find you and book.</p>
+          </div>
+          <div className="lx-svcs">
+            {SERVICES.map((x, i) => (
+              <div key={x.title} className="lx-svc" data-reveal style={{ transitionDelay: `${(i % 3) * 0.06}s` }}>
+                <span className="lx-ic"><x.icon /></span>
+                <h3>{x.title}</h3>
+                <ul>{x.points.map((p) => <li key={p}><Check size={14} /> {p}</li>)}</ul>
+                <a className="lx-svc-link" href={salesWhatsApp(`Hi Debuggers Space, I'm interested in ${x.title} for my clinic.`)} target="_blank" rel="noopener noreferrer">Ask for a callback <ArrowRight /></a>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

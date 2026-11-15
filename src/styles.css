@@ -1352,3 +1352,44 @@ td { padding: 12px 14px; }
 .ins-body .small { color: var(--muted); overflow-wrap: anywhere; }
 .ins-body .btn { align-self: flex-start; margin-top: 4px; }
 .voice .seg { align-self: flex-start; }
+/* ---- Practice analytics ---- */
+.an-bars { display: flex; align-items: flex-end; gap: 3px; height: 190px; padding-top: 10px; }
+.an-bar { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 3px; outline: none; }
+.an-fill { width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--brand); opacity: 0.85; transition: opacity .15s; }
+.an-bar:hover .an-fill, .an-bar:focus .an-fill { opacity: 1; box-shadow: 0 0 0 2px var(--surface); }
+.an-tip { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap; background: var(--fg); color: var(--bg); font-size: 12px; padding: 6px 9px; border-radius: 8px; display: none; flex-direction: column; z-index: 3; pointer-events: none; }
+.an-bar:hover .an-tip, .an-bar:focus .an-tip { display: flex; }
+.an-bar:first-child .an-tip { left: 0; transform: none; }
+.an-bar:last-child .an-tip { left: auto; right: 0; transform: none; }
+.an-axis { display: flex; justify-content: space-between; margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
+.an-docs { display: flex; flex-direction: column; gap: 10px; }
+.an-doc { display: grid; grid-template-columns: auto minmax(0, 1fr) repeat(3, 90px); gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); }
+.an-dn { display: flex; flex-direction: column; align-items: flex-end; }
+.an-dn b { font: 800 1.05rem var(--font-head); }
+@media (max-width: 620px) { .an-doc { grid-template-columns: auto minmax(0, 1fr) repeat(3, auto); gap: 8px; } }
+.an-h { display: flex; flex-direction: column; gap: 10px; }
+.an-hrow { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.5fr) auto; gap: 10px; align-items: center; }
+.an-hl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.an-ht { height: 10px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.an-ht i { display: block; height: 100%; border-radius: 99px; background: var(--brand); }
+.an-hv { font-weight: 700; min-width: 54px; text-align: right; }
+@media print { .rail, .topbar, .notes-fab, .demo-band, .seg, .app-footer { display: none !important; } .shell { display: block; } }
+.pill.abha { background: linear-gradient(90deg, #fff7ed, #ecfdf5); color: #9a3412; border: 1px solid #fed7aa; }
+:root[data-theme="dark"] .pill.abha { background: #3a2410; color: #fdba74; border-color: #7c2d12; }
+.lx-float.f4 { top: 26%; left: -34px; animation-delay: -3s; } .lx-float.f4 svg { color: #7c3aed; }
+@media (max-width: 960px) { .lx-float.f4 { display: none; } }
+
+/* Four plans and the growth services section */
+.lx-plans { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .lx-plans { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .lx-plans { grid-template-columns: minmax(0, 1fr); } }
+.lx-svcs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; }
+.lx-svc { display: flex; flex-direction: column; gap: 12px; padding: 26px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.lx-svc h3 { margin: 0; font-size: 18px; }
+.lx-svc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.lx-svc li { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--muted); }
+.lx-svc li svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--brand); }
+.lx-svc > a { margin-top: auto; align-self: flex-start; }
+.lx-svc-link { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 999px; font-weight: 600; font-size: 13.5px; color: var(--brand); background: color-mix(in srgb, var(--brand) 9%, transparent); text-decoration: none; }
+.lx-svc-link:hover { background: color-mix(in srgb, var(--brand) 16%, transparent); }
+.lx-svc-link svg { width: 15px; height: 15px; }

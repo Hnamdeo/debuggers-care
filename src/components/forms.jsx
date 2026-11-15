@@ -18,6 +18,7 @@ export function PatientForm({ onClose, onSaved, initial }) {
   const save = () => {
     if (!f.name.trim()) return setErr('Add the patient’s name.')
     if (!/^\d{10}$/.test(f.phone || '') && !(f.noPhone && !f.phone)) return setErr('Add a 10-digit mobile number, or tick “No mobile number”.')
+    if (f.abha && !/^\d{2}-?\d{4}-?\d{4}-?\d{4}$/.test(f.abha.trim()) && !/^[\w.]+@(abdm|sbx)$/i.test(f.abha.trim())) return setErr('ABHA should be a 14-digit number (91-1234-5678-9012) or an ABHA address like name@abdm.')
     const twin = !initial?.id && list('patients').find((p) => samePerson(p, f))
     if (twin && !dupOk) { setDupOk(true); return setErr(`${twin.name} (${twin.id}) is already registered with this mobile. Open that record instead, or press Register again to add a new patient.`) }
     if (!f.dob && f.ageYears) { f.dob = `${new Date().getFullYear() - +f.ageYears}-01-01`; f.dobApprox = true }
@@ -50,6 +51,7 @@ export function PatientForm({ onClose, onSaved, initial }) {
         <Select id="pf-gender" label="Sex" value={f.gender} onChange={set('gender')} options={[{ value: '', label: 'Not recorded' }, { value: 'F', label: 'Female' }, { value: 'M', label: 'Male' }, { value: 'O', label: 'Other' }]} />
         <Select id="pf-blood" label="Blood group" value={f.blood} onChange={set('blood')} options={[{ value: '', label: 'Not known' }, ...['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']]} />
         <Input id="pf-opd" label="OPD / register no. (optional)" value={f.opdNo || ''} onChange={set('opdNo')} placeholder="From the paper register" />
+        <Input id="pf-abha" label="ABHA number or address (optional)" value={f.abha || ''} onChange={set('abha')} placeholder="e.g. 91-1234-5678-9012 or name@abdm" />
         <Input id="pf-email" label="Email (optional)" value={f.email} onChange={set('email')} />
         <Input id="pf-allergies" label="Allergies" value={f.allergies} onChange={set('allergies')} placeholder="None known" />
         <Input id="pf-cond" label="Existing conditions" value={f.conditions} onChange={set('conditions')} placeholder="e.g. Diabetes" />
