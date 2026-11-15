@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Plus, Trash2, CheckCircle2, HeartPulse, Minus, Zap, History, Save, Sparkles } from 'lucide-react'
 import { VisitForm, vitalsText } from '../components/visits'
@@ -8,7 +8,7 @@ import { VideoPlayer } from '../components/videos'
 import { MonitorPlay, PlayCircle } from 'lucide-react'
 import { db } from '../lib/store'
 import { LAB_CATALOG } from '../lib/seed'
-import { fmtDate, fmtTime, money, today, age, addDays } from '../lib/utils'
+import { fmtDate, fmtTime, money, today, age, addDays, nowTime } from '../lib/utils'
 import { slotsOn } from '../lib/slots'
 import { HISTORY, historyFor, usePad } from '../components/rxpad'
 import { PrescriptionDoc } from '../components/docs'
@@ -62,6 +62,12 @@ export default function Consult() {
   const [preview, setPreview] = useState(false)
   const [voice, setVoice] = useState(false)
   const pad = usePad()
+  // Mark when the consultation started, for the patient's visit timeline.
+  useEffect(() => {
+    if (!appt || !p || appt.status === 'completed') return
+    const v = list('visits').find((x) => x.appointmentId === appt.id) || list('visits').find((x) => x.patientId === p.id && x.date === appt.date && x.status !== 'done')
+    if (v && !v.consultAt) db.update(tid, 'visits', v.id, { consultAt: new Date().toISOString(), status: 'with-doctor', chairAt: v.chairAt || new Date().toISOString() })
+  }, [appt?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!appt || !p) return <div className="empty">Appointment not found.</div>
   const visit = list('visits').find((v) => v.appointmentId === appt.id) || list('visits').find((v) => v.patientId === p.id && v.date === appt.date && v.status !== 'done')
 
@@ -116,7 +122,7 @@ export default function Consult() {
       return { medicineId: m?.id, name: l.name, dose: l.dose, freq: l.freq, days: +l.days, qty: m && ['Tablet', 'Capsule'].includes(m.form) ? Math.ceil(per * l.days) : 1 }
     })
     if (doc.id !== appt.doctorId) db.update(tid, 'appointments', appt.id, { doctorId: doc.id })
-    const rx = db.add(tid, 'prescriptions', { patientId: p.id, doctorId: doc.id, appointmentId: appt.id, date: today(), diagnosis: dx, notes, items, dispensed: false, ...extra(), ...(nextDate ? { nextVisit: nextDate } : {}) })
+    const rx = db.add(tid, 'prescriptions', { patientId: p.id, doctorId: doc.id, appointmentId: appt.id, date: today(), time: nowTime(), diagnosis: dx, notes, items, dispensed: false, ...extra(), ...(nextDate ? { nextVisit: nextDate } : {}) })
     tests.forEach((t) => db.add(tid, 'reports', { patientId: p.id, doctorId: doc.id, date: today(), test: t, category: LAB_CATALOG[t].category, price: LAB_CATALOG[t].price, status: 'ordered', results: [], findings: '', completedDate: '' }))
     const bill = db.add(tid, 'bills', {
       patientId: p.id, date: today(), source: 'OPD', ref: appt.id, discount: 0, paid: 0, mode: 'UPI',
@@ -130,7 +136,7 @@ export default function Consult() {
     if (JSON.stringify(hist) !== JSON.stringify(p.history) || histNote.trim() !== (p.historyNote || '')) db.update(tid, 'patients', p.id, { history: hist, historyNote: histNote.trim() })
     if (plan !== null && plan.trim() !== (p.plan || '')) db.update(tid, 'patients', p.id, { plan: plan.trim(), planOn: today(), planBy: doc.id })
     if (nextDate) db.add(tid, 'appointments', { patientId: p.id, doctorId: doc.id, date: nextDate, time: nextT, reason: (plan ?? p.plan ?? '').split('\n')[0].replace(/^\d+\.\s*/, '').slice(0, 60) || 'Follow-up', status: 'scheduled', type: 'OPD' })
-    if (visit) db.update(tid, 'visits', visit.id, { status: 'done', appointmentId: appt.id, prescriptionId: rx.id, doctorId: doc.id })
+    if (visit) db.update(tid, 'visits', visit.id, { status: 'done', appointmentId: appt.id, prescriptionId: rx.id, doctorId: doc.id, doneAt: new Date().toISOString() })
     else db.add(tid, 'visits', { patientId: p.id, date: today(), time: appt.time, status: 'done', source: 'appointment', complaint: appt.reason, doctorId: doc.id, appointmentId: appt.id, prescriptionId: rx.id, vitals: {} })
     toast(`Visit completed. Prescription ${rx.id} and bill ${bill.id} sent to the front desk.${nextDate ? ` Next visit booked for ${fmtDate(nextDate)} at ${fmtTime(nextT)}.` : ''}`)
     nav(`${base}/patients/${p.id}`)

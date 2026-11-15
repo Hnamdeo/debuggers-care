@@ -8,6 +8,7 @@ import { vitalsText } from './visits'
 import { ImageGrid, ImageUpload } from './imaging'
 import { NotifyButtons } from './reminders'
 import { BookAppointment } from './forms'
+import { VisitJourney, AiSummary } from './journey'
 
 // The first screen of a patient: everything the doctor or front desk asks about, in plain words.
 export function PatientSummary({ p, staffView, onOpenDoc, onBook, onBill }) {
@@ -28,8 +29,16 @@ export function PatientSummary({ p, staffView, onOpenDoc, onBook, onBill }) {
   const missed = mine('appointments').filter((a) => a.status === 'no-show').length
   const treatments = [...new Set(bills.flatMap((b) => b.items.map((i) => i.desc)).filter((d) => !/^Consultation/.test(d)))]
 
+  const lastDay = [...visits.map((v) => v.date), ...mine('prescriptions').map((r) => r.date)].filter((d) => d <= T).sort().pop()
+
   return (
     <div className="stack">
+      {staffView && lastDay && (
+        <Card title={lastDay === T ? 'Today’s visit' : `Last visit · ${fmtDate(lastDay)}`}>
+          <VisitJourney p={p} date={lastDay} />
+          <AiSummary p={p} date={lastDay} />
+        </Card>
+      )}
       <div className="grid g3">
         <Card pad className="sum-card">
           <span className="sum-label"><CalendarClock /> Next appointment</span>

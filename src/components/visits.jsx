@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { HeartPulse, Stethoscope, UserPlus } from 'lucide-react'
 import { Modal, Input, Select, Textarea, Card, Table, Pill, useTenant, toast } from './ui'
 import { db } from '../lib/store'
+import { VisitJourney, AiSummary } from './journey'
 import { today, nowTime, fmtDate, fmtTime, money, billTotal } from '../lib/utils'
 
 // One visit = one patient on one day: the front desk adds vitals, the doctor sees them in the consultation.
@@ -76,7 +77,7 @@ export function sendToDoctor(tid, list, visit, doctorId) {
     const a = db.add(tid, 'appointments', { patientId: visit.patientId, doctorId, date: today(), time: visit.time || nowTime(), reason: visit.complaint || 'Consultation', status: 'checked-in', type: 'OPD', walkIn: true })
     apptId = a.id
   }
-  db.update(tid, 'visits', visit.id, { status: 'with-doctor', appointmentId: apptId, doctorId })
+  db.update(tid, 'visits', visit.id, { status: 'with-doctor', appointmentId: apptId, doctorId, chairAt: visit.chairAt || new Date().toISOString() })
   return apptId
 }
 
@@ -106,7 +107,7 @@ export function TodayVisits() {
           { label: 'Time', render: (v) => <span className="tabular">{fmtTime(v.time)}</span> },
           { label: 'Patient', render: (v) => { const p = patient(v.patientId); return <><div className="cell-main">{p?.name || v.patientId}{p?.regDate === T && <span className="pill info" style={{ marginLeft: 6 }}>New</span>}</div><div className="cell-sub">{p?.phone}{v.complaint ? ` · ${v.complaint}` : ''}</div></> } },
           { label: 'Vitals', render: (v) => <span className="small">{vitalsText(v.vitals) || <span className="muted">Not taken yet</span>}</span> },
-          { label: 'Status', render: (v) => <Pill tone={VISIT_TONE[v.status]}>{VISIT_TEXT[v.status] || v.status}</Pill> },
+          { label: 'Journey', render: (v) => { const p = patient(v.patientId); return p ? <VisitJourney p={p} date={v.date} compact /> : <Pill tone={VISIT_TONE[v.status]}>{VISIT_TEXT[v.status] || v.status}</Pill> } },
           { label: '', render: (v) => (
             <div className="row" style={{ gap: 6, flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
               <button className="btn sm" onClick={(e) => { e.stopPropagation(); setEdit(v.patientId) }}><HeartPulse /> Vitals</button>
@@ -141,6 +142,8 @@ export function VisitDays({ p }) {
         const docId = x.rxs[0]?.doctorId || x.appts[0]?.doctorId || v?.doctorId
         return (
           <Card key={d} title={fmtDate(d)} actions={v ? <Pill tone={VISIT_TONE[v.status]}>{VISIT_TEXT[v.status]}</Pill> : x.appts[0] && <Pill status={x.appts[0].status} />}>
+            <VisitJourney p={p} date={d} />
+            <AiSummary p={p} date={d} />
             <dl className="kv">
               {docId && <><dt>Doctor</dt><dd>{staff(docId)?.name}</dd></>}
               {(v?.complaint || x.appts[0]?.reason) && <><dt>Complaint</dt><dd>{v?.complaint || x.appts[0].reason}</dd></>}
