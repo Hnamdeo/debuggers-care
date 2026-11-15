@@ -2,7 +2,8 @@
 // shared link. One question at a time, big tap targets, works on any phone.
 import { useEffect, useRef, useState } from 'react'
 import { samePerson, longerName } from '../lib/patients'
-import { Send, CheckCircle2 } from 'lucide-react'
+import { Send, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useTenant, BrandMark } from '../components/ui'
 import { db, server } from '../lib/store'
 import { today, nowTime } from '../lib/utils'
@@ -19,7 +20,8 @@ const STEPS = [
 ]
 
 export default function SelfRegister() {
-  const { tenant, tid } = useTenant()
+  const { tenant, tid, user, base } = useTenant()
+  const nav = useNavigate()
   const [answers, setAnswers] = useState({})
   const [step, setStep] = useState(0)
   const [log, setLog] = useState([{ from: 'bot', text: STEPS[0].ask(tenant, {}) }])
@@ -105,10 +107,11 @@ export default function SelfRegister() {
     <div className="chat-page chat-fixed" ref={page}>
       <header className="chat-head">
         <BrandMark tenant={tenant} />
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <strong>{tenant.name}</strong>
           <div className="small muted">Patient registration · step {Math.min(step + 1, STEPS.length)} of {STEPS.length}</div>
         </div>
+        {user && <button className="btn sm chat-back" onClick={() => nav(`${base}/dashboard`)}><ArrowLeft /> Dashboard</button>}
       </header>
       <div className="chat-progress"><i style={{ width: `${((done ? STEPS.length : step) / STEPS.length) * 100}%` }} /></div>
       <div className="chat-log" aria-live="polite" ref={logBox}>

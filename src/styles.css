@@ -2143,3 +2143,8 @@ body:has(.chat-page) { background: #070b17; }
 .stat-ic svg { width: 14px; height: 14px; }
 .stat .v { font-size: 1.3rem; line-height: 1.15; }
 .stat .sub { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qa { position: relative; }
+.qa-seg { margin-left: auto; flex: none; display: inline-flex; padding: 2px; border-radius: 99px; background: var(--surface-2, #f1f5f9); border: 1px solid var(--line); }
+.qa-seg button { border: 0; background: none; padding: 3px 7px; border-radius: 99px; font: 600 11px var(--font-body); color: var(--muted); cursor: pointer; }
+.qa-seg button.on { background: linear-gradient(120deg, #4f46e5, #0891b2); color: #fff; }
+.chat-page .chat-back { background: rgb(255 255 255 / 6%); color: #c7d2fe; border: 1px solid rgb(129 140 248 / 35%); flex: none; }

@@ -18,7 +18,7 @@ export default function Appointments() {
   const [date, setDate] = useState(today())
   const isDoc = user.role === 'doctor'
   const [doc, setDoc] = useState(isDoc ? me.id : 'all')
-  const [view, setView] = useState(() => { try { return localStorage.getItem('ap-view2') || 'calendar' } catch { return 'slots' } })
+  const [view, setView] = useState(() => { const v = new URLSearchParams(window.location.hash.split('?')[1] || '').get('view'); if (v) return v; try { return localStorage.getItem('ap-view2') || 'calendar' } catch { return 'slots' } })
   const [book, setBook] = useState(null)
   const [move, setMove] = useState(null)
   const [remind, setRemind] = useState(null)
