@@ -10,12 +10,25 @@ const FINDINGS = [
   { tone: 'bad', label: 'Early decay on the crown', conf: 87 },
   { tone: 'warn', label: 'Decay is near the pulp', conf: 72 },
 ]
-const PHASES = ['Reading the X-ray…', 'Checking enamel…', 'Measuring decay depth…', 'Tracing root canals…', 'Report ready']
+// Each step: the live chip word and the line under it. The AI reads the clinic's own records,
+// looks at the X-ray, then collects and arranges everything for the doctor.
+const PHASES = [
+  ['Reading', 'Reading today’s appointments…'],
+  ['Reading', 'Reading prescriptions…'],
+  ['Reading', 'Checking older visits and X-rays…'],
+  ['Analysing', 'Analysing the X-ray…'],
+  ['Creating insights', 'Creating insights…'],
+  ['Collecting data', 'Collecting data from the clinic database…'],
+  ['Arranging', 'Arranging everything neatly…'],
+  ['Done', 'Report ready'],
+]
+// Records the scan pulls in, ticked off as it reaches each step.
+const SOURCES = [['Appointments', 0], ['Prescriptions', 1], ['Older records', 2], ['Database', 5], ['Arranged', 6]]
 
 export function ToothScan({ compact = false, className = '' }) {
   const [phase, setPhase] = useState(0)
   useEffect(() => {
-    const id = setInterval(() => setPhase((p) => (p + 1) % PHASES.length), 1700)
+    const id = setInterval(() => setPhase((p) => (p + 1) % PHASES.length), 1500)
     return () => clearInterval(id)
   }, [])
   const done = phase === PHASES.length - 1
@@ -24,7 +37,7 @@ export function ToothScan({ compact = false, className = '' }) {
     <div className={`ts ${compact ? 'ts-compact' : ''} ${className}`}>
       <div className="ts-head">
         <span className="ts-title"><ScanLine size={15} /> AI inspection</span>
-        <span className={`ts-live ${done ? 'ok' : ''}`}><i /> {done ? 'Done' : 'Scanning'}</span>
+        <span className={`ts-live ${done ? 'ok' : ''}`}><i /> {PHASES[phase][0]}</span>
       </div>
       <div className="ts-body">
         <svg className="ts-holo" viewBox="0 0 360 250" role="img" aria-label="AI scanning a tooth">
@@ -94,7 +107,7 @@ export function ToothScan({ compact = false, className = '' }) {
           {[[300, 30], [330, 150], [84, 200], [250, 14], [24, 220]].map(([x, y], i) => <circle key={i} className="ts-dot" cx={x} cy={y} r="1.6" style={{ animationDelay: `${i * 0.6}s` }} />)}
         </svg>
         <div className="ts-side">
-          <div className="ts-phase">{PHASES[phase]}</div>
+          <div className="ts-phase">{PHASES[phase][1]}</div>
           <div className="ts-bar"><i style={{ width: `${pct}%` }} /></div>
           <ul className="ts-results">
             {FINDINGS.map((f) => (
@@ -102,6 +115,9 @@ export function ToothScan({ compact = false, className = '' }) {
             ))}
             <li className="ok"><b>Roots and bone healthy</b><span>Suggest: filling or RCT review</span></li>
           </ul>
+          <div className="ts-src" aria-label="Records the AI read">
+            {SOURCES.map(([label, at]) => <span key={label} className={phase > at || done ? 'on' : phase === at ? 'now' : ''}>{phase > at || done ? '✓' : '•'} {label}</span>)}
+          </div>
         </div>
       </div>
     </div>

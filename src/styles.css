@@ -2090,3 +2090,10 @@ body:has(.demo-band) .ai-rail { top: 40px; }
 .ai-rail .ai-orb { background: conic-gradient(from 200deg, #22d3ee, #6366f1, #a855f7, #22d3ee); color: #fff; box-shadow: 0 0 18px rgb(99 102 241 / 70%); }
 .ai-rail-t { writing-mode: vertical-rl; font: 700 11px var(--font-head); letter-spacing: .18em; text-transform: uppercase; }
 body.ai-railed .notes-fab { right: 82px; }
+.ts-src { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+.ts-src span { font-size: 10.5px; font-weight: 600; padding: 3px 7px; border-radius: 99px; color: #64748b; background: rgb(255 255 255 / 4%); border: 1px solid rgb(148 163 184 / 18%); transition: all .3s; }
+.ts-src span.now { color: #7dd3fc; border-color: rgb(56 189 248 / 55%); box-shadow: 0 0 10px rgb(56 189 248 / 35%); }
+.ts-src span.on { color: #6ee7b7; border-color: rgb(52 211 153 / 40%); background: rgb(52 211 153 / 8%); }
+/* Doctor dashboard: 6 quick actions, 3 per row */
+.qa-row.six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 620px) { .qa-row.six { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
