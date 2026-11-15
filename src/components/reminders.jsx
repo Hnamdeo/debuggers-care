@@ -94,7 +94,7 @@ export function ReminderCard({ doctorId }) {
           <div key={a.id} className="vid-row">
             <div style={{ flex: 1, minWidth: 140 }}>
               <div style={{ fontWeight: 600 }}>{p?.name || a.patientId}</div>
-              <div className="small muted">{a.date === T ? 'Today' : 'Tomorrow'} {fmtTime(a.time)}{many ? ` · ${staff(a.doctorId)?.name}` : ''}{okPhone(p) ? '' : ' · no mobile number'}</div>
+              <div className="small muted">{a.date === T ? 'Today' : 'Tomorrow'} {fmtTime(a.time)}{many ? ` · ${staff(a.doctorId)?.name}` : ''}{okPhone(p) ? '' : ' · no mobile number'}{a.remindedVia === 'auto' ? ' · sent automatically' : a.autoError ? ' · automatic WhatsApp failed, send by hand' : ''}</div>
             </div>
             <NotifyButtons a={a} />
           </div>
