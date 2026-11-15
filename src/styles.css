@@ -1916,3 +1916,15 @@ td { padding: 12px 14px; }
 .ai-row-pick > div { flex: 1; min-width: 0; display: grid; gap: 1px; font-size: 13px; }
 .ai-row-pick span { color: var(--muted); font-size: 11.5px; }
 .ai-row-pick .ai-chip { padding: 5px 10px; font-size: 12px; }
+
+/* Super AI add-on on the landing page */
+.lx-superai { margin-top: 24px; padding: 22px; border-radius: 18px; background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(14,165,233,.08)); border: 1px solid rgba(99,102,241,.25); display: grid; gap: 14px; }
+.lx-superai-head { display: flex; gap: 14px; align-items: flex-start; }
+.lx-superai-head h3 { margin: 0 0 4px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.lx-superai-head p { margin: 0; }
+.lx-superai-body { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; }
+.lx-superai-body ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.lx-superai-body li { display: flex; gap: 8px; align-items: flex-start; }
+.lx-superai-tiers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.lx-superai-tier { background: var(--surface, #fff); border-radius: 14px; padding: 14px; display: grid; gap: 6px; border: 1px solid rgba(0,0,0,.06); }
+@media (max-width: 900px) { .lx-superai-body, .lx-superai-tiers { grid-template-columns: minmax(0, 1fr); } }

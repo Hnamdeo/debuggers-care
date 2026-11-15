@@ -51,6 +51,26 @@ export const PLANS = {
 
 export const PLAN_ORDER = ['clinic', 'plus', 'hospital']
 
+// Super AI: paid monthly add-on on top of any plan (real AI model, run through our server).
+// Cost to us is about ₹0.5–1 per AI action, so each tier has a monthly action allowance.
+export const SUPER_AI = {
+  name: 'Super AI',
+  status: 'Launching soon',
+  free: 'Every plan already includes the AI assistant: book, register and write prescriptions by chat.',
+  features: [
+    'Write the full prescription from voice or typing, in English or Hindi',
+    'Medicine, dose and duration suggestions for the diagnosis',
+    'Allergy, age and drug interaction warnings',
+    'Visit notes and patient summary in one tap',
+    'X-ray and report explained in simple words for the patient',
+  ],
+  safety: 'AI only suggests. The doctor checks and approves every prescription.',
+  tiers: [
+    { id: 'clinic', name: 'Super AI Clinic', price: 2999, for: 'Clinic and Clinic Plus', doctors: 'Up to 3 doctors', actions: 2000 },
+    { id: 'hospital', name: 'Super AI Hospital', price: 9999, for: 'Hospital plan', doctors: 'Up to 15 doctors', actions: 8000 },
+  ],
+}
+
 export const hasModule = (tenant, mod) => PLANS[tenant.plan].modules.includes(mod)
 
 export const planFor = (mod) => PLAN_ORDER.find((p) => PLANS[p].modules.includes(mod))

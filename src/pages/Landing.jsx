@@ -5,7 +5,7 @@ import {
   FileHeart, Receipt, Pill, Palette, Wallet, Smartphone, ShieldCheck, Sparkles, Zap, Users, Activity, Clock, MessageCircle, Mic, Globe, MapPin, Megaphone, Share2, Gift, Search, BarChart3, Calculator, ClipboardList, History, FileText,
 } from 'lucide-react'
 import { db, useDb } from '../lib/store'
-import { PLANS, PLAN_ORDER, MODULES, tenantHost, SALES_PHONE, salesWhatsApp } from '../lib/plans'
+import { PLANS, PLAN_ORDER, SUPER_AI, MODULES, tenantHost, SALES_PHONE, salesWhatsApp } from '../lib/plans'
 import FeatureTour from '../components/tour'
 import { ToothScan } from '../components/toothscan'
 import { toast, CompanyLink, SiteFooter, COMPANY_URL, CountUp } from '../components/ui'
@@ -302,6 +302,29 @@ export default function Landing() {
                 </ul>
               </div>
             ))}
+          </div>
+          <div className="lx-superai" data-reveal>
+            <div className="lx-superai-head">
+              <span className="lx-ic"><Sparkles /></span>
+              <div>
+                <h3>{SUPER_AI.name} add-on <span className="offer-tag">{SUPER_AI.status}</span></h3>
+                <p>{SUPER_AI.free} Super AI adds full AI support for prescriptions.</p>
+              </div>
+            </div>
+            <div className="lx-superai-body">
+              <ul>{SUPER_AI.features.map((f) => <li key={f}><Check size={14} /> {f}</li>)}</ul>
+              <div className="lx-superai-tiers">
+                {SUPER_AI.tiers.map((t) => (
+                  <div key={t.id} className="lx-superai-tier">
+                    <strong>{t.name}</strong>
+                    <div className="lx-price"><b>₹{t.price.toLocaleString('en-IN')}</b><span>/ month</span></div>
+                    <small>{t.for} · {t.doctors} · {t.actions.toLocaleString('en-IN')} AI actions a month</small>
+                    <a className="lx-svc-link" href={salesWhatsApp(`Hi Debuggers Space, I'd like early access to ${t.name}.`)} target="_blank" rel="noopener noreferrer">Book early access <ArrowRight /></a>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="small muted">{SUPER_AI.safety} GST extra.</p>
           </div>
           <p className="lx-note">Monthly subscription. To buy, call or WhatsApp <a href={`tel:+91${SALES_PHONE}`}>{SALES_PHONE}</a>.</p>
         </div>
