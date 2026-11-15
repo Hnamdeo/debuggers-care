@@ -4,22 +4,19 @@ import { useTenant, PageHead, Modal, Input, SearchBox, toast } from '../componen
 import { VideoPlayer, youtubeId } from '../components/videos'
 import { db } from '../lib/store'
 import { today } from '../lib/utils'
-import { HEALTH_CHANNEL } from '../lib/healthvideos'
+import { HEALTH_CHANNEL, groupByLanguage } from '../lib/healthvideos'
 
 export default function Education() {
   const { list } = useTenant()
   const [q, setQ] = useState('')
   const [spec, setSpec] = useState('All')
-  const [lang, setLang] = useState('All')
   const [play, setPlay] = useState(null)
   const [adding, setAdding] = useState(false)
   const videos = list('videos')
   const specs = ['All', ...new Set(videos.map((v) => v.speciality))]
-  const langs = [...new Set(videos.map((v) => v.lang).filter(Boolean))]
   const shares = list('shares')
   const rows = videos
     .filter((v) => spec === 'All' || v.speciality === spec)
-    .filter((v) => lang === 'All' || v.lang === lang)
     .filter((v) => !q || `${v.title} ${v.procedure}`.toLowerCase().includes(q.toLowerCase()))
 
   return (
@@ -30,25 +27,34 @@ export default function Education() {
       </PageHead>
       <div className="row" style={{ gap: 6 }}>
         {specs.map((s) => <button key={s} className={`btn sm ${spec === s ? 'primary' : ''}`} onClick={() => setSpec(s)}>{s}</button>)}
-        {langs.length > 1 && <span className="row" style={{ gap: 6, marginLeft: 'auto' }}>{['All', ...langs].map((l) => <button key={l} className={`btn sm ${lang === l ? 'primary' : ''}`} onClick={() => setLang(l)}>{l === 'Hindi' ? 'हिंदी' : l}</button>)}</span>}
       </div>
       <div className="video-grid">
-        {rows.map((v) => {
+        {groupByLanguage(rows).map((g) => {
+          const v = g.main
           const id = youtubeId(v.url)
-          const n = shares.filter((s) => s.videoId === v.id).length
+          const n = shares.filter((s) => g.items.some((x) => x.id === s.videoId)).length
           return (
-            <button key={v.id} className="video-card" onClick={() => setPlay(v)}>
+            <div key={v.id} className="video-card" role="button" tabIndex={0} onClick={() => setPlay(v)} onKeyDown={(e) => e.key === 'Enter' && setPlay(v)}>
               <div className="thumb" style={id ? { backgroundImage: `url(https://i.ytimg.com/vi/${id}/mqdefault.jpg)` } : undefined}>
                 <PlayCircle size={34} />
                 <span className="dur">{v.minutes} min</span>
               </div>
               <div className="stack" style={{ gap: 2, padding: '10px 12px' }}>
-                <strong style={{ lineHeight: 1.3 }}>{v.title}</strong>
-                <span className="small muted">{[v.speciality, v.topic || v.procedure, v.lang].filter(Boolean).join(' · ')}</span>
+                <strong style={{ lineHeight: 1.3 }}>{v.procedure && v.builtIn ? v.procedure : v.title}</strong>
+                <span className="small muted">{[v.speciality, v.topic || (v.builtIn ? '' : v.procedure)].filter(Boolean).join(' · ')}</span>
                 {v.builtIn && <span className="small" style={{ color: 'var(--brand)' }}>Debuggers Space Health</span>}
                 <span className="small faint">{n ? `Shared with ${n} ${n === 1 ? 'patient' : 'patients'}` : 'Not shared yet'}</span>
+                {g.items.length > 1 && (
+                  <div className="row lang-btns" style={{ gap: 6, marginTop: 6 }}>
+                    {g.items.map((x) => (
+                      <button key={x.id} className="btn sm primary" onClick={(e) => { e.stopPropagation(); setPlay(x) }}>
+                        <PlayCircle size={14} /> {x.lang === 'Hindi' ? 'हिंदी' : x.lang || 'Play'}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </button>
+            </div>
           )
         })}
       </div>

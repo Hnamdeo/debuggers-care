@@ -36,3 +36,18 @@ export function withHealthVideos(tenant, own) {
     ...own.filter((v) => !(isSearch(v.url) && covered.has(`${v.procedure}`.toLowerCase()))),
   ]
 }
+
+// One card per treatment: the Hindi and English versions of our videos share a card and a thumbnail.
+const LANG_ORDER = { English: 0, Hindi: 1 }
+export function groupByLanguage(rows) {
+  const groups = new Map()
+  for (const v of rows) {
+    const key = v.builtIn && v.procedure ? `${v.speciality}|${v.procedure}` : v.id
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(v)
+  }
+  return [...groups.values()].map((items) => {
+    items.sort((a, b) => (LANG_ORDER[a.lang] ?? 9) - (LANG_ORDER[b.lang] ?? 9))
+    return { main: items[0], items }
+  })
+}
