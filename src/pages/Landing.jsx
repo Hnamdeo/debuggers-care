@@ -7,6 +7,7 @@ import {
 import { db, useDb } from '../lib/store'
 import { PLANS, PLAN_ORDER, MODULES, tenantHost, SALES_PHONE, salesWhatsApp } from '../lib/plans'
 import FeatureTour from '../components/tour'
+import { ToothScan } from '../components/toothscan'
 import { toast, CompanyLink, SiteFooter, COMPANY_URL, CountUp } from '../components/ui'
 
 const SPECIALITIES = ['Dental clinics', 'General physicians', 'Paediatrics', 'Gynaecology', 'Orthopaedics', 'ENT', 'Eye care', 'Skin & hair', 'Physiotherapy', 'Multi-speciality hospitals']
@@ -151,6 +152,7 @@ export default function Landing() {
               <li><MessageCircle size={15} /> WhatsApp reminders</li>
               <li><Mic size={15} /> Voice prescription</li>
             </ul>
+            <ToothScan className="lx-hero-scan" />
           </div>
 
           <div className="lx-mock-stage" onMouseMove={tilt} onMouseLeave={() => { tiltRef.current?.style.setProperty('--rx', '0deg'); tiltRef.current?.style.setProperty('--ry', '0deg') }}>

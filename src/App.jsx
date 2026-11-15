@@ -1,5 +1,6 @@
 import { withHealthVideos } from './lib/healthvideos'
 import { useEffect, useMemo, useState } from 'react'
+import { RouteScan } from './components/toothscan'
 import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
@@ -208,6 +209,7 @@ function Shell() {
             <strong style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tenant.short}</strong>
           </div>
           <main className="main" key={loc.pathname}>
+            <RouteScan path={loc.pathname} />
             <Routes>
               <Route index element={<GoHome to={`${base}/${home}`} />} />
               <Route path="dashboard" element={guard('dashboard', <Dashboard />)} />
