@@ -120,7 +120,7 @@ export function Assistant() {
     const left = appts.filter((a) => a.status === 'scheduled' && a.time >= nowTime())
     const waiting = list('visits').filter((v) => v.date === T && v.status === 'waiting').length
     const next = left.sort((a, b) => a.time.localeCompare(b.time))[0]
-    return `${greetWord()}, ${callName(me, user.role)}! 👋 Today you have ${appts.length} appointment${appts.length === 1 ? '' : 's'}${waiting ? `, ${waiting} patient${waiting > 1 ? 's' : ''} waiting` : ''}${next ? `. Next is ${patient(next.patientId)?.name} at ${fmtTime(next.time)}` : ''}. Tell me what to do, in your own words.`
+    return `${greetWord()}, ${callName(me, user.role)}! 👋 Today you have ${appts.length} appointment${appts.length === 1 ? '' : 's'}${waiting ? `, ${waiting} patient${waiting > 1 ? 's' : ''} waiting` : ''}${next ? `. Next is ${patient(next.patientId)?.name} at ${fmtTime(next.time)}` : ''}. What can I do for you?`
   }
   useEffect(() => {
     const on = (e) => { setOpen(true); if (e.detail) setTimeout(() => send(e.detail), 250) }
@@ -497,7 +497,7 @@ export function Assistant() {
         <div className={`ai-panel ${side ? 'side' : ''} ${docked ? 'docked' : side ? 'over' : ''}`} role={docked ? 'complementary' : 'dialog'} aria-label="AI assistant">
           <header className="ai-head">
             <span className="ai-orb"><Sparkles size={18} /></span>
-            <div><b>AI assistant</b><small>{side ? <><i className="ai-live" /> {rxAppt ? 'Prescription co-pilot · learns from your Rx' : 'Ready · learns from your clinic'}</> : 'Books, registers, writes Rx · Ctrl+K'}</small></div>
+            <div><b>I am your AI agent</b><small><i className="ai-live" /> {rxAppt ? 'Tell me the medicines, I’ll write the prescription' : 'Online · give me any task'}</small></div>
             {side && <button className={`gc-icon sm ai-pin ${docked ? 'on' : ''}`} onClick={() => { if (docked) { setMode('hidden'); setOpen(true) } else { setMode('pinned'); setOpen(false) } }} aria-pressed={docked} aria-label={docked ? 'Unpin' : 'Pin open'} title={docked ? 'Unpin: closes when you change page' : 'Pin: keep open on every page'}><Pin /></button>}
             <button className="gc-icon sm" onClick={() => { if (side) setMode('hidden'); setOpen(false) }} aria-label="Hide" title={side ? 'Hide to the side rail' : 'Close'}>{side ? <PanelRightClose /> : <X />}</button>
           </header>
