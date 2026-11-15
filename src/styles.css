@@ -1610,3 +1610,29 @@ td { padding: 12px 14px; }
 @media (max-width: 480px) { .cs-hero .dsx svg.dsx-tools { height: 52%; } .cs-hero .dsx svg.dsx-mini { width: 22px; height: 22px; } }
 .cs-hero-copy .dsx { width: 100%; max-width: 560px; height: 280px; margin-top: 6px; }
 @media (max-width: 480px) { .cs-hero-copy .dsx { height: 210px; } }
+/* Clinic hero scene v2: compact glass look that matches the clinic colours */
+.cs-hero-copy .dsx { max-width: 430px; height: 230px; margin-top: 4px; }
+.cs-hero-in { align-items: start; padding-top: clamp(28px, 4vw, 52px); }
+.cs-hero .cs-doc { margin-top: clamp(0px, 6vw, 70px); }
+.dsx-screen { background: linear-gradient(160deg, rgb(255 255 255 / 20%), rgb(255 255 255 / 6%)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 14px 16px 0 -4px rgb(255 255 255 / 14%), 0 30px 60px -26px rgb(0 0 0 / 55%), inset 0 0 0 1px rgb(255 255 255 / 35%); }
+.dsx-sheen { background: radial-gradient(55% 50% at 50% 45%, rgb(165 243 252 / 35%), transparent 70%); }
+.dsx-outline { stroke: #e0fbff; filter: drop-shadow(0 0 6px #67e8f9); }
+.dsx-mesh path, .dsx-mesh line { stroke: rgb(207 250 254 / 70%); }
+.dsx-card.chart { background: linear-gradient(135deg, rgb(255 255 255 / 22%), rgb(255 255 255 / 8%)); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.dsx-card.rec { background: linear-gradient(135deg, rgb(255 255 255 / 24%), rgb(255 255 255 / 10%)); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.dsx-wave { stroke: #a5f3fc; }
+.dsx-tools .handle, .dsx-tools .probe { stroke: rgb(255 255 255 / 75%); }
+@media (max-width: 900px) { .cs-hero .cs-doc { margin-top: 0; } }
+@media (max-width: 480px) { .cs-hero-copy .dsx { height: 190px; } }
+/* Hero layout with the tooth scene on the left */
+.cs-hero-in { grid-template-areas: "copy doc" "art doc"; }
+.cs-hero-copy { grid-area: copy; } .cs-hero .cs-doc { grid-area: doc; } .cs-hero-art { grid-area: art; min-width: 0; }
+.cs-hero-art .dsx { height: 230px; max-width: 430px; }
+@media (min-width: 1180px) {
+  .cs-hero-in { grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(300px, 360px); grid-template-areas: "art copy doc"; align-items: center; gap: 36px; }
+  .cs-hero-art .dsx { height: 340px; max-width: none; }
+  .cs-hero .cs-doc { margin-top: 0; }
+  .cs-hero h1 { font-size: clamp(2.2rem, 3.6vw, 3.2rem); }
+}
+@media (max-width: 900px) { .cs-hero-in { grid-template-areas: "copy" "art" "doc"; } }
+@media (max-width: 480px) { .cs-hero-art .dsx { height: 190px; } }
