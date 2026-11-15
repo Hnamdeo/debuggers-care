@@ -61,6 +61,65 @@ function Hero({ title, sub, actions }) {
   )
 }
 
+// Doctor's "My practice" card: patients seen per day for the last 7 or 30 days, a few plain
+// numbers, and the diagnoses written most often in that period.
+function DoctorTrends({ appts, rxs, patients }) {
+  const [range, setRange] = useState('week')
+  const T = today()
+  const n = range === 'week' ? 7 : 30
+  const from = addDays(T, -(n - 1))
+  const days = Array.from({ length: n }, (_, i) => addDays(from, i))
+  const inRange = appts.filter((a) => a.date >= from && a.date <= T)
+  const seen = inRange.filter((a) => a.status === 'completed')
+  const perDay = days.map((d) => seen.filter((a) => a.date === d).length)
+  const max = Math.max(...perDay, 1)
+  const total = seen.length
+  const newPts = patients.filter((p) => p.regDate >= from && p.regDate <= T).length
+  const noShow = inRange.filter((a) => a.status === 'no-show').length
+  const busiest = perDay.indexOf(Math.max(...perDay))
+  const dayName = (d, o) => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', o)
+  const dx = {}
+  rxs.filter((r) => r.date >= from && r.date <= T && r.diagnosis).forEach((r) => { const k = r.diagnosis.trim(); dx[k] = (dx[k] || 0) + 1 })
+  const top = Object.entries(dx).sort((x, y) => y[1] - x[1]).slice(0, 5)
+  const topMax = top[0]?.[1] || 1
+  return (
+    <section className="card trends">
+      <div className="tr-head">
+        <div><h3>My practice</h3><span className="small muted">{range === 'week' ? 'Last 7 days' : 'Last 30 days'} · {fmtDate(from)} to {fmtDate(T)}</span></div>
+        <span className="seg" role="radiogroup" aria-label="Period">
+          {[['week', 'Week'], ['month', 'Month']].map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={range === v} className={range === v ? 'on' : ''} onClick={() => setRange(v)}>{l}</button>)}
+        </span>
+      </div>
+      <div className="tr-kpis">
+        <div><span>Patients seen</span><b>{total}</b></div>
+        <div><span>Average a day</span><b>{(total / n).toFixed(1)}</b></div>
+        <div><span>New patients</span><b>{newPts}</b></div>
+        <div><span>Didn’t come</span><b>{noShow}</b></div>
+      </div>
+      <div className="tr-body">
+        <div className="tr-chart">
+          <div className="tr-cap">Patients seen each day{total > 0 && <> · busiest {dayName(days[busiest], { weekday: 'short', day: 'numeric', month: 'short' })} ({perDay[busiest]})</>}</div>
+          <div className={`tr-bars ${range}`} role="img" aria-label={`Patients seen each day: ${days.map((d, i) => `${dayName(d, { day: 'numeric', month: 'short' })} ${perDay[i]}`).join(', ')}`}>
+            {days.map((d, i) => (
+              <div key={d} className={`tr-bar ${d === T ? 'today' : ''}`} title={`${dayName(d, { weekday: 'short', day: 'numeric', month: 'short' })}: ${perDay[i]} seen`}>
+                <em>{perDay[i]}</em>
+                <i style={{ height: `${(perDay[i] / max) * 100}%` }} />
+                <span>{range === 'week' ? dayName(d, { weekday: 'short' }) : (i % 5 === 0 || i === n - 1) ? dayName(d, { day: 'numeric' }) : ''}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="tr-dx">
+          <div className="tr-cap">Most common diagnoses</div>
+          {top.length ? top.map(([k, v]) => (
+            <div key={k} className="tr-dx-row"><span title={k}>{k}</span><i><s style={{ width: `${(v / topMax) * 100}%` }} /></i><b>{v}</b></div>
+          )) : <p className="small muted">No prescriptions in this period yet.</p>}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function RevenueBars({ bills }) {
   const T = today()
   const days = Array.from({ length: 7 }, (_, i) => addDays(T, i - 6))
@@ -202,12 +261,7 @@ function DoctorDash() {
         { icon: CalendarDays, label: 'My patients today', hint: `${todays.length} booked · ${todays.filter((a) => a.status === 'completed').length} seen`, onClick: () => nav(`${base}/appointments?view=calendar`) },
       ]} />
       <AskBar />
-      <div className="grid g4">
-        <Stat label="My patients today" value={todays.length} sub={`${todays.filter((a) => a.status === 'completed').length} seen`} icon={CalendarDays} />
-        <Stat label="Seen this week" value={week} sub="Completed consultations" icon={Users} />
-        <Stat label="Reports to review" value={labs.filter((r) => r.status === 'completed' && r.date >= addDays(T, -3)).length} sub={`${labs.filter((r) => r.status === 'ordered').length} still in lab`} icon={FlaskConical} />
-        {can('ipd') ? <Stat label="My admitted patients" value={ipd.length} sub="IPD and ICU" icon={BedDouble} /> : <Stat label="Upcoming bookings" value={mine.filter((a) => a.date > T && a.status === 'scheduled').length} sub="Next 7 days" icon={CalendarDays} />}
-      </div>
+      <DoctorTrends appts={mine} rxs={list('prescriptions').filter((r) => shared || r.doctorId === me.id)} patients={list('patients')} />
       <DentalScanCard tenant={tenant} onSmile={() => nav(`${base}/smile`)} onXray={() => nav(`${base}/patients`)} />
       <InsightsCard doctorId={shared ? undefined : me.id} />
       <NotesCard />

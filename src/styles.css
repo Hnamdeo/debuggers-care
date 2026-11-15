@@ -2148,3 +2148,29 @@ body:has(.chat-page) { background: #070b17; }
 .qa-seg button { border: 0; background: none; padding: 3px 7px; border-radius: 99px; font: 600 11px var(--font-body); color: var(--muted); cursor: pointer; }
 .qa-seg button.on { background: linear-gradient(120deg, #4f46e5, #0891b2); color: #fff; }
 .chat-page .chat-back { background: rgb(255 255 255 / 6%); color: #c7d2fe; border: 1px solid rgb(129 140 248 / 35%); flex: none; }
+/* Doctor "My practice" trends card */
+.trends { padding: 16px 18px; display: grid; gap: 14px; }
+.tr-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.tr-head h3 { font: 800 16px var(--font-head); }
+.tr-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.tr-kpis div { display: grid; gap: 1px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2, #f6f8fb); border: 1px solid var(--line); min-width: 0; }
+.tr-kpis span { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-kpis b { font: 800 1.25rem var(--font-head); font-variant-numeric: tabular-nums; }
+.tr-body { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; }
+.tr-cap { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+.tr-bars { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; align-items: end; height: 150px; border-bottom: 1px solid var(--line); }
+.tr-bars.month { gap: 2px; }
+.tr-bar { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; cursor: default; }
+.tr-bar i { display: block; width: 100%; max-width: 30px; min-height: 2px; border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--brand) 70%, var(--surface)); transition: background .15s; }
+.tr-bar.today i, .tr-bar:hover i { background: var(--brand); }
+.tr-bar span { position: absolute; top: 100%; margin-top: 4px; font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.tr-bar em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--fg); font-variant-numeric: tabular-nums; margin-bottom: 3px; opacity: 0; transition: opacity .15s; }
+.tr-bars.week em, .tr-bar:hover em { opacity: 1; }
+.tr-chart { padding-bottom: 18px; min-width: 0; }
+.tr-dx { min-width: 0; display: grid; align-content: start; gap: 8px; }
+.tr-dx-row { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) 24px; gap: 8px; align-items: center; font-size: 12.5px; }
+.tr-dx-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-dx-row i { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.tr-dx-row s { display: block; height: 100%; border-radius: 4px; background: var(--brand); }
+.tr-dx-row b { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) { .tr-body { grid-template-columns: minmax(0, 1fr); } .tr-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
