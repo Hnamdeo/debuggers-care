@@ -82,12 +82,12 @@ export function ReminderCard({ doctorId }) {
     .filter((a) => a.status === 'scheduled' && (!doctorId || a.doctorId === doctorId))
     .filter((a) => a.date === TM || (a.date === T && a.time > nowHM))
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
-  if (!due.length) return null
   const left = due.filter((a) => !a.remindedAt).length
   const many = doctors().length > 1 && !doctorId
   return (
-    <Card title={<h2><BellRing size={17} style={{ verticalAlign: '-3px' }} /> Appointment reminders</h2>} actions={<span className="small muted">{left ? `${left} to send` : 'All sent'}</span>}>
-      <div className="small muted" style={{ marginBottom: 8 }}>Tap WhatsApp, or SMS for patients without WhatsApp. The message opens ready in Hindi and English; press Send there.</div>
+    <Card title={<h2><BellRing size={17} style={{ verticalAlign: '-3px' }} /> Appointment reminders</h2>} actions={<span className="small muted">{!due.length ? '' : left ? `${left} to send` : 'All sent'}</span>}>
+      {!due.length && <div className="small muted">No appointments booked for the rest of today or tomorrow. When you book one, it shows here with WhatsApp and SMS reminder buttons.</div>}
+      {due.length > 0 && <div className="small muted" style={{ marginBottom: 8 }}>Tap WhatsApp, or SMS for patients without WhatsApp. The message opens ready in Hindi and English; press Send there.</div>}
       {due.map((a) => {
         const p = patient(a.patientId)
         return (
