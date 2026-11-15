@@ -4,8 +4,9 @@ import { RouteScan } from './components/toothscan'
 import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
-  Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles, BarChart3, PiggyBank, Globe,
+  Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles, BarChart3, PiggyBank, Globe, Sun, Moon,
 } from 'lucide-react'
+import { useLook } from './lib/look'
 import { db, auth, useDb, server } from './lib/store'
 import { hasModule, ROLE_MODULES, ROLE_LABEL, PLANS, planFor, MODULES } from './lib/plans'
 import { TenantCtx, Toaster, Celebration, Avatar, useTenant, BrandMark, tenantStyle, SiteFooter } from './components/ui'
@@ -204,6 +205,7 @@ function Shell() {
                 <div className="small muted">{ROLE_LABEL[role]}{me?.dept && role === 'doctor' ? ` · ${me.dept}` : ''}</div>
               </div>
             </div>
+            <LookSwitch />
             <button className="nav-item" onClick={() => { auth.logout(ctx.tid); nav(base) }}><LogOut /> Log out</button>
           </div>
         </aside>
@@ -288,4 +290,17 @@ function GoHome({ to }) {
   const nav = useNavigate()
   useEffect(() => { const t = setTimeout(() => nav(to, { replace: true }), 0); return () => clearTimeout(t) }, [nav, to])
   return <div className="empty" style={{ padding: 40, textAlign: 'center' }}><button className="btn primary" onClick={() => nav(to, { replace: true })}>Open dashboard</button></div>
+}
+
+// Day / Night / Debuggers Space look, saved on this device.
+function LookSwitch() {
+  const [look, setLook] = useLook()
+  const opts = [['ds', Sparkles, 'DS', 'Debuggers Space look'], ['day', Sun, 'Day', 'Day mode'], ['night', Moon, 'Night', 'Night mode']]
+  return (
+    <div className="look-seg" role="radiogroup" aria-label="Screen look">
+      {opts.map(([id, Icon, label, title]) => (
+        <button key={id} role="radio" aria-checked={look === id} className={look === id ? 'on' : ''} title={title} onClick={() => setLook(id)}><Icon /> {label}</button>
+      ))}
+    </div>
+  )
 }
