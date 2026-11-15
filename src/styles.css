@@ -1636,3 +1636,13 @@ td { padding: 12px 14px; }
 }
 @media (max-width: 900px) { .cs-hero-in { grid-template-areas: "copy" "art" "doc"; } }
 @media (max-width: 480px) { .cs-hero-art .dsx { height: 190px; } }
+@media (min-width: 1180px) {
+  .cs-hero .cs-cta { flex-wrap: nowrap; gap: 8px; }
+  .cs-hero .cs-cta .cs-btn { padding-left: 14px; padding-right: 14px; white-space: nowrap; }
+  .cs-wa-long { display: none; }
+}
+@media (min-width: 1180px) {
+  .cs-hero-in { grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(290px, 330px); gap: 30px; }
+  .cs-hero .cs-cta .cs-btn { padding-left: 13px; padding-right: 13px; font-size: 14.5px; }
+  .cs-cc { display: none; }
+}
