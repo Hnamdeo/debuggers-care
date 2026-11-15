@@ -1,0 +1,432 @@
+// The clinic's AI assistant: a chat that does the work. Greets the user, then understands plain requests like
+// "26 nov 10:30 am rahul appointment", "register rahul sharma 9826465730 32 male", "rx rahul: amox 500 tds 5 days",
+// "who is waiting", "today's collection". Asks back when something is missing or there are two Rahuls.
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Sparkles, Send, X, Mic, CalendarPlus, UserPlus, Search, Hourglass, IndianRupee, Clock, FileHeart, CornerDownLeft, Wand2 } from 'lucide-react'
+import { useTenant, toast } from './ui'
+import { db } from '../lib/store'
+import { today, addDays, fmtDate, fmtTime, money, billTotal, nowTime, age } from '../lib/utils'
+import { freeStarts, slotsOn, proceduresFor, hoursOn } from '../lib/slots'
+import { takeDate, takeTime, takePhone, takeId, nameWords, findPatients, parseMeds, matchMed, titleCase } from '../lib/assistant'
+import { samePerson } from '../lib/patients'
+import { reminderText } from './reminders'
+import { whatsappLink } from './videos'
+
+export const openAssistant = (text = '') => window.dispatchEvent(new CustomEvent('ai-open', { detail: text }))
+const greetWord = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening' }
+export const callName = (me, role) => { const n = (me?.name || '').replace(/^Dr\.?\s*/i, '').split(' ')[0]; return role === 'doctor' ? `Dr. ${n}` : n }
+const dayLabel = (d) => (d === today() ? 'today' : d === addDays(today(), 1) ? 'tomorrow' : `${new Date(`${d}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'short' })}, ${fmtDate(d)}`)
+
+const COMMANDS = [
+  ['Book an appointment', 'Book rahul tomorrow 10:30 am', CalendarPlus],
+  ['Register a patient', 'Register Rahul Sharma 9826465730 32 male', UserPlus],
+  ['Write a prescription', 'Rx rahul: amoxicillin 500 tds 5 days, ketorolac sos 3 days; dx dental caries 36', FileHeart],
+  ['Find a patient', 'Find rahul', Search],
+  ['Who is waiting?', 'Who is waiting', Hourglass],
+  ['Today’s appointments', 'Today’s appointments', Clock],
+  ['Free slots tomorrow', 'Free slots tomorrow', Clock],
+  ['Today’s collection', 'Today’s collection', IndianRupee],
+]
+
+export function Assistant() {
+  const ctx = useTenant()
+  const { tid, tenant, list, patient, staff, doctors, user, me, base } = ctx
+  const nav = useNavigate()
+  const [open, setOpen] = useState(false)
+  const [msgs, setMsgs] = useState([])
+  const [input, setInput] = useState('')
+  const [pending, setPending] = useState(null)
+  const [typing, setTyping] = useState(false)
+  const [hi, setHi] = useState(0)
+  const [listening, setListening] = useState(false)
+  const logRef = useRef(null)
+  const inRef = useRef(null)
+  const T = today()
+
+  const meds = useMemo(() => {
+    const sets = (tenant.rxSets || []).flat().map((x) => x[0])
+    const dental = /dental/i.test(tenant.kind || '') ? ['Amoxicillin 500 mg', 'Ketorolac 10 mg', 'Metronidazole 400 mg', 'Ibuprofen 400 mg', 'Chlorhexidine mouthwash', 'Sensitivity toothpaste', 'Paracetamol 650 mg', 'Aceclofenac + Paracetamol', 'Pantoprazole 40 mg'] : ['Paracetamol 650 mg', 'Pantoprazole 40 mg', 'Cetirizine 10 mg', 'Azithromycin 500 mg']
+    return [...new Set([...sets, ...dental, ...list('medicines').map((m) => m.name)])]
+  }, [tenant, list])
+
+  // Greeting with what matters right now.
+  const summary = () => {
+    const appts = list('appointments').filter((a) => a.date === T && a.status !== 'cancelled' && (user.role !== 'doctor' || doctors().length < 2 || a.doctorId === me?.id))
+    const left = appts.filter((a) => a.status === 'scheduled' && a.time >= nowTime())
+    const waiting = list('visits').filter((v) => v.date === T && v.status === 'waiting').length
+    const next = left.sort((a, b) => a.time.localeCompare(b.time))[0]
+    return `${greetWord()}, ${callName(me, user.role)}! 👋 Today you have ${appts.length} appointment${appts.length === 1 ? '' : 's'}${waiting ? `, ${waiting} patient${waiting > 1 ? 's' : ''} waiting` : ''}${next ? `. Next is ${patient(next.patientId)?.name} at ${fmtTime(next.time)}` : ''}. Tell me what to do, in your own words.`
+  }
+  useEffect(() => {
+    const on = (e) => { setOpen(true); if (e.detail) setTimeout(() => send(e.detail), 250) }
+    const key = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setOpen((o) => !o) } }
+    window.addEventListener('ai-open', on)
+    window.addEventListener('keydown', key)
+    return () => { window.removeEventListener('ai-open', on); window.removeEventListener('keydown', key) }
+  })
+  useEffect(() => { if (open && !msgs.length) setMsgs([{ from: 'bot', text: summary(), chips: COMMANDS.slice(0, 6).map(([l, ex]) => ({ label: l, say: ex.startsWith('Book') || ex.startsWith('Register') || ex.startsWith('Rx') || ex.startsWith('Find') ? null : ex, fill: ex })) }]) }, [open])
+  useEffect(() => { if (open) setTimeout(() => inRef.current?.focus(), 80) }, [open])
+  useEffect(() => { const b = logRef.current; if (b) b.scrollTo({ top: b.scrollHeight, behavior: 'smooth' }) }, [msgs, typing])
+
+  const bot = (m) => setMsgs((x) => [...x, { from: 'bot', ...m }])
+  const reply = (m) => { setTyping(true); setTimeout(() => { setTyping(false); bot(m) }, 380) }
+  const pChip = (p) => `${p.name} · ${p.phone || 'no mobile'} · ${p.id}`
+  const docFor = () => (user.role === 'doctor' ? me : doctors().length === 1 ? doctors()[0] : null)
+
+  // ---- Booking ----
+  const askBooking = (d) => {
+    if (!d.p) {
+      if (d.cands?.length > 1) {
+        setPending({ kind: 'pick', d })
+        return reply({ text: `I found ${d.cands.length} patients named “${titleCase(d.words.join(' '))}”. Which one? Tap one, or type more of the name, the mobile or the ID.`, chips: d.cands.slice(0, 8).map((p) => ({ label: pChip(p), act: () => askBooking({ ...d, p, cands: null }) })) })
+      }
+      setPending({ kind: 'who', d })
+      return reply({ text: d.words?.length ? `I couldn’t find “${titleCase(d.words.join(' '))}”. Type the full name, mobile or ID, or register them.` : 'Who is the appointment for? Type the name, mobile or patient ID.', chips: d.words?.length ? [{ label: `Register ${titleCase(d.words.join(' '))}`, act: () => startRegister({ name: titleCase(d.words.join(' ')), then: d }) }] : [] })
+    }
+    if (!d.doc) {
+      const dd = docFor()
+      if (dd) d = { ...d, doc: dd }
+      else { setPending({ kind: 'doc', d }); return reply({ text: `With which doctor?`, chips: doctors().map((x) => ({ label: x.name, act: () => askBooking({ ...d, doc: x }) })) }) }
+    }
+    if (!d.date) {
+      setPending({ kind: 'date', d })
+      return reply({ text: `Which day for ${d.p.name}?`, chips: [0, 1, 2, 3].map((n) => addDays(T, n)).filter((x) => hoursOn(tenant, x).length).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })) })
+    }
+    const mins = d.mins || 15
+    const appts = list('appointments').filter((a) => a.doctorId === d.doc.id && a.date === d.date)
+    const free = freeStarts(tenant, d.date, appts, mins, d.date === T ? nowTime() : '', mins <= 15)
+    if (!hoursOn(tenant, d.date).length) { setPending({ kind: 'date', d }); return reply({ text: `The clinic is closed on ${dayLabel(d.date)}. Pick another day.`, chips: [1, 2, 3, 4].map((n) => addDays(d.date, n)).filter((x) => hoursOn(tenant, x).length).slice(0, 3).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })) }) }
+    if (d.date < T) { setPending({ kind: 'date', d: { ...d, date: null } }); return reply({ text: 'That day has already gone. Which day?', chips: [0, 1, 2].map((n) => addDays(T, n)).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })) }) }
+    if (!free.length) { setPending({ kind: 'date', d }); return reply({ text: `${d.doc.name} is fully booked on ${dayLabel(d.date)}. Try another day.`, chips: [1, 2, 3].map((n) => addDays(d.date, n)).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })) }) }
+    if (!d.time || !free.includes(d.time)) {
+      const near = d.time ? [...free].sort((a, b) => Math.abs(toM(a) - toM(d.time)) - Math.abs(toM(b) - toM(d.time))).slice(0, 6).sort() : free.slice(0, 8)
+      setPending({ kind: 'time', d })
+      const taken = d.time && list('appointments').find((a) => a.doctorId === d.doc.id && a.date === d.date && a.time === d.time && a.status !== 'cancelled')
+      return reply({ text: d.time ? `${fmtTime(d.time)} on ${dayLabel(d.date)} is ${taken ? `taken by ${patient(taken.patientId)?.name}` : slotsOn(tenant, d.date).includes(d.time) ? 'not free' : 'outside clinic hours'}. Nearest free times:` : `What time on ${dayLabel(d.date)}? Free times:`, chips: near.map((t) => ({ label: fmtTime(t), act: () => askBooking({ ...d, time: t }) })) })
+    }
+    setPending({ kind: 'confirm', d })
+    reply({
+      card: { kind: 'confirm', title: 'Book this appointment?', lines: [d.p.name + ` (${d.p.id})`, `${dayLabel(d.date)} at ${fmtTime(d.time)}`, d.doc.name, `${d.proc || 'Consultation'} · ${mins} min`] },
+      chips: [{ label: '✓ Confirm booking', main: true, act: () => book(d) }, { label: 'Change time', act: () => askBooking({ ...d, time: null }) }, { label: 'Cancel', act: () => { setPending(null); bot({ text: 'Okay, not booked.' }) } }],
+    })
+  }
+  const toM = (t) => +t.slice(0, 2) * 60 + +t.slice(3)
+  const book = (d) => {
+    setPending(null)
+    const a = db.add(tid, 'appointments', { patientId: d.p.id, doctorId: d.doc.id, date: d.date, time: d.time, reason: d.reason || d.proc || 'Consultation', status: 'scheduled', type: 'OPD', procedure: d.proc || 'Consultation', mins: d.mins || 15, bookedVia: 'assistant' })
+    toast(`Booked ${d.p.name}, ${dayLabel(d.date)} ${fmtTime(d.time)}`)
+    const p = d.p
+    bot({ text: `Done ✅ ${p.name} is booked for ${dayLabel(d.date)} at ${fmtTime(d.time)} with ${d.doc.name}.`, chips: [
+      ...(p.phone ? [{ label: 'Send confirmation on WhatsApp', href: whatsappLink(p.phone, reminderText(tenant, p, a, d.doc, 'booked')), act: () => db.update(tid, 'appointments', a.id, { remindedAt: new Date().toISOString(), remindedVia: 'whatsapp' }) }] : []),
+      { label: 'Open calendar', act: () => { nav(`${base}/appointments`) } },
+    ] })
+  }
+
+  // ---- Registration ----
+  const startRegister = (f) => {
+    if (!f.name) { setPending({ kind: 'reg-name', f }); return reply({ text: 'Sure. What is the patient’s full name? You can type everything at once, like “Rahul Sharma 9826465730 32 male tooth pain”.' }) }
+    if (!f.phone && !f.noPhone) { setPending({ kind: 'reg-phone', f }); return reply({ text: `Mobile number for ${f.name}?`, chips: [{ label: 'No mobile', act: () => startRegister({ ...f, noPhone: true }) }] }) }
+    const twin = f.phone && list('patients').find((p) => samePerson(p, f))
+    if (twin) { setPending(null); return reply({ text: `${twin.name} is already registered with ${twin.phone} as ${twin.id}.`, chips: [{ label: 'Open record', act: () => nav(`${base}/patients/${twin.id}`) }, { label: 'Book appointment', act: () => askBooking({ p: twin }) }, { label: 'Add to today’s waiting', act: () => addWaiting(twin, f.reason) }] }) }
+    if (!f.gender) { setPending({ kind: 'reg-gender', f }); return reply({ text: `${f.name.split(' ')[0]} is…`, chips: [['M', 'Male'], ['F', 'Female'], ['O', 'Other']].map(([v, l]) => ({ label: l, act: () => startRegister({ ...f, gender: v }) })).concat([{ label: 'Skip', act: () => startRegister({ ...f, gender: '-' }) }]) }) }
+    setPending({ kind: 'reg-confirm', f })
+    reply({ card: { kind: 'confirm', title: 'Register this patient?', lines: [f.name, f.phone || 'No mobile', [f.age ? `${f.age} years` : '', { M: 'Male', F: 'Female', O: 'Other' }[f.gender] || ''].filter(Boolean).join(' · ') || 'Age and sex not given', f.reason ? `Came for: ${f.reason}` : ''].filter(Boolean) },
+      chips: [{ label: '✓ Register', main: true, act: () => register(f) }, { label: 'Cancel', act: () => { setPending(null); bot({ text: 'Okay, not registered.' }) } }] })
+  }
+  const register = (f) => {
+    setPending(null)
+    const dob = f.age ? `${new Date().getFullYear() - +f.age}-01-01` : ''
+    const p = db.add(tid, 'patients', { name: titleCase(f.name.trim()), phone: f.phone || '', noPhone: !f.phone, gender: f.gender === '-' ? '' : f.gender, dob, dobApprox: !!dob, ageYears: f.age || '', email: '', blood: '', address: '', allergies: '', conditions: '', emergencyContact: '', regDate: T, via: 'assistant' })
+    toast(`${p.name} registered as ${p.id}`)
+    if (f.then) return askBooking({ ...f.then, p, cands: null })
+    bot({ text: `Registered ✅ ${p.name} is ${p.id}. What next?`, chips: [{ label: 'Add to today’s waiting', act: () => addWaiting(p, f.reason) }, { label: 'Book appointment', act: () => askBooking({ p }) }, { label: 'Open record', act: () => nav(`${base}/patients/${p.id}`) }] })
+  }
+  const addWaiting = (p, reason) => {
+    if (list('visits').some((v) => v.patientId === p.id && v.date === T)) return bot({ text: `${p.name} is already in today’s visits.` })
+    db.add(tid, 'visits', { patientId: p.id, date: T, time: nowTime(), status: 'waiting', source: 'desk', complaint: reason || '', vitals: {} })
+    bot({ text: `${p.name} added to today’s waiting list. Vitals can be added from the dashboard.`, chips: [{ label: 'Open dashboard', act: () => nav(`${base}/dashboard`) }] })
+  }
+
+  // ---- Prescription: fills the prescription pad; the doctor checks it and completes the visit. ----
+  const startRx = (d) => {
+    if (!d.p) {
+      if (d.cands?.length > 1) { setPending({ kind: 'rx-pick', d }); return reply({ text: 'Which patient is this prescription for?', chips: d.cands.slice(0, 8).map((p) => ({ label: pChip(p), act: () => startRx({ ...d, p, cands: null }) })) }) }
+      setPending({ kind: 'rx-who', d }); return reply({ text: 'For which patient? Type the name, mobile or ID.' })
+    }
+    if (!d.meds.length && !d.dx) { setPending({ kind: 'rx-meds', d }); return reply({ text: `What should I write for ${d.p.name}? For example: “amoxicillin 500 tds 5 days, ketorolac sos 3 days; dx dental caries 36; advice warm salt water rinse; next 1 week”. I’ll suggest medicines as you type.` }) }
+    setPending({ kind: 'rx-confirm', d })
+    reply({ card: { kind: 'rx', title: `Prescription for ${d.p.name}`, lines: [d.dx ? `Diagnosis: ${d.dx}` : 'Diagnosis: (add on the pad)', ...d.meds.map((m, i) => `${i + 1}. ${m.name} · ${m.freq} · ${m.days} days${m.known ? '' : ' (new medicine)'}`), d.advice ? `Advice: ${d.advice}` : '', d.next ? `Next visit: ${dayLabel(d.next)}` : ''].filter(Boolean) },
+      chips: [{ label: '✓ Open on prescription pad', main: true, act: () => openRx(d) }, { label: 'Cancel', act: () => { setPending(null); bot({ text: 'Okay, cleared.' }) } }] })
+  }
+  const openRx = (d) => {
+    setPending(null)
+    let a = list('appointments').filter((x) => x.patientId === d.p.id && x.date === T && ['scheduled', 'checked-in'].includes(x.status))[0]
+    if (!a) {
+      const doc = docFor() || doctors()[0]
+      a = db.add(tid, 'appointments', { patientId: d.p.id, doctorId: doc.id, date: T, time: nowTime(), reason: d.dx || 'Consultation', status: 'checked-in', type: 'OPD', walkIn: true, bookedVia: 'assistant' })
+    }
+    try { sessionStorage.setItem(`ai-rx-${a.id}`, JSON.stringify({ dx: d.dx, meds: d.meds, advice: d.advice, next: d.next })) } catch { /* ignore */ }
+    bot({ text: `Opening the prescription pad for ${d.p.name} with everything filled in. Check it and tap “Complete visit”.` })
+    nav(`${base}/consult/${a.id}`)
+    if (window.innerWidth < 900) setOpen(false)
+  }
+  const parseRx = (raw, d = {}) => {
+    let body = raw.replace(/^\s*(rx|prescription|prescribe|write prescription|likho|dawai)\b\s*(for)?/i, '').trim()
+    const get = (re) => { const m = body.match(re); if (m) body = body.replace(m[0], ' '); return m?.[1]?.trim() }
+    const dx = get(/(?:;|\b)(?:dx|diagnosis)\s*[:-]?\s*([^;\n]+)/i)
+    const advice = get(/(?:;|\b)(?:advice|adv)\s*[:-]?\s*([^;\n]+)/i)
+    const nextTxt = get(/(?:;|\b)(?:next|follow ?up|review)\s*(?:visit)?\s*[:-]?\s*(?:after|in)?\s*([^;\n]+)/i)
+    let next = null
+    if (nextTxt) { const n = nextTxt.match(/(\d+)\s*(day|week|month)/i); next = n ? addDays(T, +n[1] * ({ day: 1, week: 7, month: 30 })[n[2].toLowerCase()]) : takeDate(nextTxt.toLowerCase()).date || (/week/i.test(nextTxt) ? addDays(T, 7) : null) }
+    let who = d.p ? null : body.split(':')[0]
+    let medsPart = body.includes(':') ? body.split(':').slice(1).join(':') : body
+    if (!d.p && !body.includes(':')) {
+      // "rx rahul amox 500 tds 5 days": the words before the first medicine are the name.
+      const ws = body.trim().split(/\s+/)
+      let k = ws.findIndex((w) => w.length > 2 && matchMed(w, meds))
+      if (k < 0) k = ws.length
+      who = ws.slice(0, k).join(' ')
+      medsPart = ws.slice(k).join(' ')
+    }
+    const r = d.p ? { p: d.p } : resolve(who || '')
+    return { ...d, ...r, meds: [...(d.meds || []), ...parseMeds(medsPart.replace(/;/g, ','), meds)], dx: dx || d.dx, advice: advice || d.advice, next: next || d.next }
+  }
+  const resolve = (txt) => {
+    let t = txt.toLowerCase()
+    const i = takeId(t); t = i.text
+    const ph = takePhone(t); t = ph.text
+    const words = nameWords(t)
+    const cands = findPatients(list('patients'), { id: i.id, phone: ph.phone, words })
+    return { p: cands.length === 1 ? cands[0] : null, cands, words }
+  }
+
+  // ---- Everything else ----
+  const showAppts = (date) => {
+    const rows = list('appointments').filter((a) => a.date === date && a.status !== 'cancelled').sort((a, b) => a.time.localeCompare(b.time))
+    reply({ text: rows.length ? `${rows.length} appointment${rows.length > 1 ? 's' : ''} ${dayLabel(date)}:` : `No appointments ${dayLabel(date)}.`, rows: rows.slice(0, 12).map((a) => ({ main: `${fmtTime(a.time)} · ${patient(a.patientId)?.name}`, sub: `${a.procedure && a.procedure !== 'Consultation' ? a.procedure + ' · ' : ''}${staff(a.doctorId)?.name || ''} · ${a.status === 'checked-in' ? 'checked in' : a.status}`, act: () => nav(`${base}/patients/${a.patientId}`) })), chips: [{ label: 'Open calendar', act: () => nav(`${base}/appointments`) }] })
+  }
+  const showPatients = (cands) => {
+    if (!cands.length) return reply({ text: 'No patient matches that. Try the mobile number or patient ID.' })
+    reply({ text: cands.length === 1 ? 'Here it is:' : `${cands.length} patients match:`, rows: cands.slice(0, 8).map((p) => {
+      const last = list('appointments').filter((a) => a.patientId === p.id && a.status === 'completed').sort((a, b) => b.date.localeCompare(a.date))[0]
+      const nxt = list('appointments').filter((a) => a.patientId === p.id && a.status === 'scheduled' && a.date >= T).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0]
+      const due = list('bills').filter((b) => b.patientId === p.id).reduce((s, b) => s + Math.max(0, billTotal(b) - b.paid), 0)
+      return { main: `${p.name} · ${p.id}`, sub: [p.phone, p.dob ? `${age(p.dob)} y` : '', last ? `last visit ${fmtDate(last.date)}` : 'no visits yet', nxt ? `next ${dayLabel(nxt.date)} ${fmtTime(nxt.time)}` : '', due ? `${money(due)} due` : ''].filter(Boolean).join(' · '), act: () => nav(`${base}/patients/${p.id}`) }
+    }), chips: cands.length === 1 ? [{ label: 'Book appointment', act: () => askBooking({ p: cands[0] }) }, { label: 'Write prescription', act: () => startRx({ p: cands[0], meds: [] }) }, { label: 'Add to today’s waiting', act: () => addWaiting(cands[0]) }] : [] })
+  }
+
+  const understand = (raw) => {
+    const low = raw.toLowerCase().trim()
+    // Answers to a question I asked.
+    if (pending) {
+      const { kind, d, f } = pending
+      if (/^(cancel|stop|no|nahi|leave it|chhodo)$/.test(low)) { setPending(null); return reply({ text: 'Okay, cancelled.' }) }
+      if (kind === 'pick' || kind === 'rx-pick') {
+        let t = low; const i = takeId(t); t = i.text; const ph = takePhone(t); t = ph.text
+        const ws = nameWords(t)
+        const hit = d.cands.filter((p) => (i.id && p.id === i.id) || (ph.phone && p.phone?.endsWith(ph.phone)) || (ws.length && ws.every((w) => p.name.toLowerCase().split(/\s+/).some((x) => x.startsWith(w)))) || (/^\d{3,}$/.test(low) && (p.phone || '').includes(low)))
+        if (hit.length === 1) return kind === 'pick' ? askBooking({ ...d, p: hit[0], cands: null }) : startRx({ ...d, p: hit[0], cands: null })
+        if (hit.length > 1) { setPending({ kind, d: { ...d, cands: hit } }); return reply({ text: `Still ${hit.length} matches. Add the mobile or ID.`, chips: hit.map((p) => ({ label: pChip(p), act: () => (kind === 'pick' ? askBooking({ ...d, p, cands: null }) : startRx({ ...d, p, cands: null })) })) }) }
+      }
+      if (kind === 'who' || kind === 'rx-who') { const r = resolve(raw); return kind === 'who' ? askBooking({ ...d, ...r }) : startRx({ ...d, ...r }) }
+      if (kind === 'date' || kind === 'time') {
+        const dt = takeDate(low); const tm = takeTime(dt.text)
+        if (dt.date || tm.time) return askBooking({ ...d, date: dt.date || d.date, time: tm.time || (dt.date ? d.time : null) })
+      }
+      if (kind === 'doc') { const x = doctors().find((x) => x.name.toLowerCase().includes(low.replace(/^dr\.?\s*/, ''))); if (x) return askBooking({ ...d, doc: x }) }
+      if (kind === 'reg-name') return startRegister(parseRegister(`register ${raw}`, f))
+      if (kind === 'reg-phone') { const ph = takePhone(low); if (ph.phone) return startRegister({ ...f, phone: ph.phone }); if (/no|nahi/.test(low)) return startRegister({ ...f, noPhone: true }); return reply({ text: 'Please type a 10-digit mobile number, or tap No mobile.', chips: [{ label: 'No mobile', act: () => startRegister({ ...f, noPhone: true }) }] }) }
+      if (kind === 'reg-gender') { const g = /\b(f|female|woman|lady|mahila)\b/.test(low) ? 'F' : /\b(m|male|man|purush)\b/.test(low) ? 'M' : null; if (g) return startRegister({ ...f, gender: g }) }
+      if (kind === 'rx-meds' || kind === 'rx-confirm') { if (!/^(yes|ok|open|haan|ha)$/.test(low)) return startRx(parseRx(raw, { ...d })) ; return openRx(d) }
+      if (kind === 'confirm' && /^(yes|ok|confirm|haan|ha|done|book)$/.test(low)) return book(d)
+      if (kind === 'reg-confirm' && /^(yes|ok|confirm|haan|ha|register)$/.test(low)) return register(f)
+      setPending(null)
+    }
+    if (/^(hi|hello|hey|namaste|namaskar|good (morning|afternoon|evening)|hii+)\b/.test(low)) return reply({ text: summary() })
+    if (/\b(help|what can you do|commands?)\b/.test(low)) return reply({ text: 'I can do the front-desk and doctor work from chat. Try one of these:', chips: COMMANDS.map(([l, ex]) => ({ label: l, fill: ex })) })
+    if (/^(rx|prescription|prescribe|write prescription|likho)\b/.test(low)) return startRx(parseRx(raw))
+    if (/^(register|new patient|add patient|registration|naya patient)\b/.test(low)) return startRegister(parseRegister(raw))
+    if (/\b(who('?s| is)? waiting|waiting list|in queue|queue)\b/.test(low)) {
+      const v = list('visits').filter((x) => x.date === T && ['waiting', 'with-doctor'].includes(x.status))
+      return reply({ text: v.length ? `${v.length} in the clinic now:` : 'Nobody is waiting right now.', rows: v.map((x) => ({ main: patient(x.patientId)?.name, sub: `${x.status === 'with-doctor' ? 'With doctor' : 'Waiting'} since ${fmtTime(x.time)}${x.complaint ? ` · ${x.complaint}` : ''}`, act: () => nav(`${base}/patients/${x.patientId}`) })) })
+    }
+    if (/\b(collection|collected|income|earning|revenue|kamai|business)\b/.test(low)) {
+      const month = /month|mahina/.test(low)
+      const b = list('bills').filter((x) => (month ? x.date.startsWith(T.slice(0, 7)) : x.date === T))
+      const got = b.reduce((s, x) => s + Math.min(x.paid, billTotal(x)), 0)
+      const due = b.reduce((s, x) => s + Math.max(0, billTotal(x) - x.paid), 0)
+      return reply({ text: `${month ? 'This month' : 'Today'}: ${money(got)} collected from ${b.length} bill${b.length === 1 ? '' : 's'}${due ? `, ${money(due)} still to collect` : ''}.`, chips: [{ label: month ? 'Today’s collection' : 'This month’s collection', say: month ? 'today collection' : 'this month collection' }, { label: 'Open expenses', act: () => nav(`${base}/expenses`) }] })
+    }
+    if (/\b(due|pending payment|baki|baaki|unpaid)\b/.test(low)) {
+      const rows = list('bills').filter((b) => billTotal(b) - b.paid > 0)
+      return reply({ text: rows.length ? `${rows.length} bills have money due, ${money(rows.reduce((s, b) => s + billTotal(b) - b.paid, 0))} in all:` : 'No money is due. 👍', rows: rows.slice(0, 10).map((b) => ({ main: `${patient(b.patientId)?.name} · ${money(billTotal(b) - b.paid)}`, sub: `${b.id} · ${fmtDate(b.date)}`, act: () => nav(`${base}/patients/${b.patientId}`) })) })
+    }
+    if (/\b(free|available|khali)\b.*\b(slots?|time|times)\b|\bfree slots?\b/.test(low)) {
+      const date = takeDate(low).date || T
+      const d = docFor() || doctors()[0]
+      const free = freeStarts(tenant, date, list('appointments').filter((a) => a.doctorId === d.id && a.date === date), 15, date === T ? nowTime() : '', true)
+      return reply({ text: free.length ? `${free.length} free slots ${dayLabel(date)} with ${d.name}. Tap one to book:` : `No free slots ${dayLabel(date)}.`, chips: free.slice(0, 12).map((t) => ({ label: fmtTime(t), act: () => askBooking({ date, time: t, doc: d }) })) })
+    }
+    if (/^(open|go to|show)\s+(calendar|appointments|expenses|settings|patients|dashboard|billing|analytics|prescriptions)\b/.test(low)) {
+      const page = low.match(/(calendar|appointments|expenses|settings|patients|dashboard|billing|analytics|prescriptions)/)[1]
+      nav(`${base}/${page === 'calendar' ? 'appointments' : page}`)
+      return reply({ text: `Opened ${page}.` })
+    }
+    if (/\b(cancel)\b/.test(low)) {
+      const r = resolve(low.replace(/\bcancel\b/, ''))
+      const a = r.p && list('appointments').filter((x) => x.patientId === r.p.id && x.status === 'scheduled' && x.date >= T).sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time))[0]
+      if (!a) return reply({ text: r.p ? `${r.p.name} has no upcoming appointment.` : 'Whose appointment should I cancel? Type the name.' })
+      return reply({ text: `Cancel ${r.p.name}’s appointment ${dayLabel(a.date)} at ${fmtTime(a.time)}?`, chips: [{ label: 'Yes, cancel it', main: true, act: () => { db.update(tid, 'appointments', a.id, { status: 'cancelled' }); bot({ text: 'Cancelled.' }) } }, { label: 'No', act: () => bot({ text: 'Okay, kept.' }) }] })
+    }
+    if (/\bcheck ?in\b|\barrived\b|\baa gay/.test(low)) {
+      const r = resolve(low.replace(/\bcheck ?in\b|\barrived\b/, ''))
+      const a = r.p && list('appointments').find((x) => x.patientId === r.p.id && x.date === T && x.status === 'scheduled')
+      if (!r.p) return reply({ text: 'Who arrived? Type the name or mobile.' })
+      if (a) db.update(tid, 'appointments', a.id, { status: 'checked-in' })
+      addWaiting(r.p)
+      return
+    }
+    // Booking: "26 nov 10:30 am rahul appointment", "book rahul tomorrow 5 pm", "rahul kal 11 baje".
+    let t = low
+    const i = takeId(t); t = i.text
+    const ph = takePhone(t); t = ph.text
+    const dt = takeDate(t); t = dt.text
+    const tm = takeTime(t); t = tm.text
+    const proc = proceduresFor(tenant).find(([n]) => new RegExp(`\\b${n.split(/[ /&]/)[0].toLowerCase()}\\b`).test(t))
+    if (proc) t = t.replace(new RegExp(proc[0].split(/[ /&]/)[0], 'i'), ' ')
+    const docM = t.match(/\b(?:with\s+)?dr\.?\s+([a-z]+)/)
+    const doc = docM && doctors().find((x) => x.name.toLowerCase().includes(docM[1]))
+    if (docM) t = t.replace(docM[0], ' ')
+    const isList = /\b(appointments|schedule|list)\b/.test(low) && !nameWords(t).length && !i.id && !ph.phone
+    if (isList) return showAppts(dt.date || T)
+    const wantsBook = /\b(book|appointment|appt|apointment|appoinment|schedule|slot)\b/.test(low) || ((dt.date || tm.time) && (nameWords(t).length || i.id || ph.phone))
+    const words = nameWords(t)
+    const cands = findPatients(list('patients'), { id: i.id, phone: ph.phone, words })
+    if (wantsBook) return askBooking({ p: cands.length === 1 ? cands[0] : null, cands, words, date: dt.date, time: tm.time, doc, proc: proc?.[0], mins: proc?.[1] })
+    if (/^(find|search|show|open|lookup|dhundo)\b/.test(low) || i.id || ph.phone || cands.length) return showPatients(cands)
+    reply({ text: 'I didn’t get that yet. Here are things I can do:', chips: COMMANDS.map(([l, ex]) => ({ label: l, fill: ex })) })
+  }
+
+  const parseRegister = (raw, base0 = {}) => {
+    let t = raw.replace(/^\s*(register|new patient|add patient|registration|naya patient)\s*(patient)?\s*:?/i, ' ')
+    const ph = takePhone(t); t = ph.text
+    const g = t.match(/\b(male|female|man|woman|boy|girl|m|f|purush|mahila)\b/i)
+    if (g) t = t.replace(g[0], ' ')
+    const ag = t.match(/\b(\d{1,3})\s*(?:y|yr|yrs|years?|saal)?\b/i)
+    if (ag && +ag[1] <= 110) t = t.replace(ag[0], ' ')
+    const rs = t.match(/\b(?:for|with|reason|came for|complaint)\s+(.+)$/i)
+    if (rs) t = t.replace(rs[0], ' ')
+    const name = titleCase(t.replace(/[^a-zA-Zऀ-ॿ\s.]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase())
+    const gen = g ? (/^(f|female|woman|girl|mahila)$/i.test(g[1]) ? 'F' : 'M') : base0.gender
+    return { ...base0, name: name || base0.name, phone: ph.phone || base0.phone, gender: gen, age: ag && +ag[1] <= 110 ? ag[1] : base0.age, reason: rs?.[1] || base0.reason }
+  }
+
+  const send = (text) => {
+    const v = (text ?? input).trim()
+    if (!v) return
+    setMsgs((x) => [...x, { from: 'me', text: v }])
+    setInput('')
+    setHi(0)
+    try { understand(v) } catch (e) { reply({ text: `Sorry, something went wrong: ${e.message}` }) }
+  }
+
+  // Type-ahead: commands at the start, patient names while typing a name, medicines inside a prescription.
+  const sugg = useMemo(() => {
+    const v = input
+    if (!v.trim()) return []
+    const low = v.toLowerCase()
+    const last = low.split(/[\s,:;]+/).pop()
+    const rxMode = /^(rx|prescription|prescribe)\b/.test(low) || ['rx-meds'].includes(pending?.kind)
+    if (rxMode && (low.includes(':') || pending?.kind === 'rx-meds' || low.split(/\s+/).length > 2) && last.length >= 2) {
+      return meds.filter((m) => m.toLowerCase().startsWith(last) || m.toLowerCase().includes(` ${last}`)).slice(0, 6).map((m) => ({ label: m, sub: 'medicine', apply: v.slice(0, v.length - last.length) + m + ' ' }))
+    }
+    if (low.split(/\s+/).length <= 2 && !/\d/.test(low)) {
+      const cmd = COMMANDS.filter(([, ex]) => ex.toLowerCase().startsWith(low)).map(([l, ex]) => ({ label: ex, sub: l, apply: ex }))
+      if (cmd.length) return cmd.slice(0, 4)
+    }
+    if (last.length >= 2 && /^[a-z]+$/.test(last) && !/^(am|pm|at|on|for|tomorrow|today|book|appointment)$/.test(last)) {
+      return list('patients').filter((p) => p.name.toLowerCase().split(/\s+/).some((w) => w.startsWith(last))).slice(0, 5).map((p) => ({ label: p.name, sub: `${p.phone || 'no mobile'} · ${p.id}`, apply: v.slice(0, v.length - last.length) + `${p.name} ${p.id} ` }))
+    }
+    return []
+  }, [input, meds, list, pending])
+
+  const mic = () => {
+    const Rec = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!Rec) return toast('Voice typing works in Chrome. Please type instead.')
+    const r = new Rec(); r.lang = 'en-IN'; r.interimResults = false
+    r.onresult = (e) => { const said = e.results[0][0].transcript; setInput(said); setTimeout(() => send(said), 100) }
+    r.onend = () => setListening(false)
+    setListening(true); r.start()
+  }
+
+  const keyDown = (e) => {
+    if (sugg.length && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); setHi((h) => (h + (e.key === 'ArrowDown' ? 1 : -1) + sugg.length) % sugg.length); return }
+    if (sugg.length && e.key === 'Tab') { e.preventDefault(); setInput(sugg[hi]?.apply || input); setHi(0) }
+  }
+
+  if (user.role === 'patient') return null
+  return (
+    <>
+      {!open && <button className="ai-fab" onClick={() => setOpen(true)} title="AI assistant (Ctrl+K)" aria-label="Open AI assistant"><Sparkles /><span>Ask AI</span></button>}
+      {open && (
+        <div className="ai-panel" role="dialog" aria-label="AI assistant">
+          <header className="ai-head">
+            <span className="ai-orb"><Sparkles size={18} /></span>
+            <div><b>AI assistant</b><small>Books, registers, writes Rx · Ctrl+K</small></div>
+            <button className="gc-icon sm" onClick={() => setOpen(false)} aria-label="Close"><X /></button>
+          </header>
+          <div className="ai-log" ref={logRef} aria-live="polite">
+            {msgs.map((m, i) => (
+              <div key={i} className={`ai-msg ${m.from}`}>
+                {m.text && <div className="ai-bubble">{m.text}</div>}
+                {m.card && (
+                  <div className={`ai-card ${m.card.kind}`}>
+                    <b><Wand2 size={14} /> {m.card.title}</b>
+                    {m.card.lines.map((l, j) => <span key={j}>{l}</span>)}
+                  </div>
+                )}
+                {m.rows?.length > 0 && <div className="ai-rows">{m.rows.map((r, j) => <button key={j} onClick={r.act}><b>{r.main}</b><span>{r.sub}</span></button>)}</div>}
+                {m.chips?.length > 0 && i === msgs.length - 1 && (
+                  <div className="ai-chips">
+                    {m.chips.map((c, j) => c.href
+                      ? <a key={j} className="ai-chip" href={c.href} target="_blank" rel="noopener noreferrer" onClick={c.act}>{c.label}</a>
+                      : <button key={j} className={`ai-chip ${c.main ? 'main' : ''}`} onClick={() => { if (c.fill) { setInput(c.fill); inRef.current?.focus(); return } if (c.say) return send(c.say); setMsgs((x) => [...x, { from: 'me', text: c.label.replace(/^✓ /, '') }]); c.act() }}>{c.label}</button>)}
+                  </div>
+                )}
+              </div>
+            ))}
+            {typing && <div className="ai-msg bot"><div className="ai-bubble typing"><i /><i /><i /></div></div>}
+          </div>
+          <div className="ai-foot">
+            {sugg.length > 0 && (
+              <div className="ai-sugg" role="listbox">
+                {sugg.map((s, j) => <button key={j} role="option" aria-selected={j === hi} className={j === hi ? 'on' : ''} onMouseDown={(e) => { e.preventDefault(); setInput(s.apply); setHi(0); inRef.current?.focus() }}><b>{s.label}</b><span>{s.sub}</span>{j === hi && <kbd>Tab</kbd>}</button>)}
+              </div>
+            )}
+            <form className="ai-form" onSubmit={(e) => { e.preventDefault(); send() }}>
+              <input ref={inRef} value={input} onChange={(e) => { setInput(e.target.value); setHi(0) }} onKeyDown={keyDown} placeholder={pending ? 'Type your answer…' : 'e.g. 26 nov 10:30 am rahul appointment'} aria-label="Message the assistant" autoComplete="off" />
+              <button type="button" className={`ai-mic ${listening ? 'on' : ''}`} onClick={mic} aria-label="Speak"><Mic size={18} /></button>
+              <button type="submit" className="ai-send" aria-label="Send" disabled={!input.trim()}><Send size={17} /></button>
+            </form>
+            <div className="ai-hint"><CornerDownLeft size={11} /> Enter to send · Tab to accept a suggestion</div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// Dashboard bar: greet the user and let them type a request straight away.
+export function AskBar() {
+  const { me, user } = useTenant()
+  const [v, setV] = useState('')
+  const ex = ['26 nov 10:30 am rahul appointment', 'register Priya Verma 9876543210 28 female', 'who is waiting', 'today collection', 'free slots tomorrow']
+  return (
+    <form className="ask-bar" onSubmit={(e) => { e.preventDefault(); openAssistant(v); setV('') }}>
+      <span className="ai-orb"><Sparkles size={18} /></span>
+      <input value={v} onChange={(e) => setV(e.target.value)} placeholder={`Hi ${callName(me, user.role)}, what should I do? Try “${ex[new Date().getMinutes() % ex.length]}”`} aria-label="Ask the AI assistant" />
+      <button className="btn primary" type="submit"><Send /> Ask AI</button>
+    </form>
+  )
+}

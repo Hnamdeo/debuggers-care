@@ -15,12 +15,14 @@ import { VisitForm, VisitDays } from '../components/visits'
 import { PatientSummary } from '../components/summary'
 import { ImagesTab, ImageUpload } from '../components/imaging'
 import { DentalChart } from '../components/dentalchart'
+import { registerLink } from '../components/qrpanel'
+import { MessagesSquare } from 'lucide-react'
 import { EstimatesTab } from '../components/estimates'
 import { ConsentTab } from '../components/consent'
 import { fmtDate, fmtTime, age, money, billTotal, billStatus } from '../lib/utils'
 
 export default function Patients() {
-  const { list, base } = useTenant()
+  const { list, base, tenant } = useTenant()
   const nav = useNavigate()
   const [params, setParams] = useSearchParams()
   const [q, setQ] = useState('')
@@ -37,6 +39,7 @@ export default function Patients() {
     <>
       <PageHead title="Patients" sub={`${list('patients').length} registered`}>
         <SearchBox value={q} onChange={setQ} placeholder="Name, mobile or UHID" />
+        <a className="btn" href={registerLink(tenant.slug)} target="_blank" rel="noopener noreferrer" title="Opens the chat registration form. Fill it with the patient, or give the tablet to them."><MessagesSquare /> Register by chat</a>
         <button className="btn" onClick={() => setQr(true)}><QrCode /> QR / link for patients</button>
         <button className="btn" onClick={() => setImp(true)}><FileUp /> Import list</button>
         <button className="btn primary" onClick={() => setParams({ new: '1' })}><UserPlus /> Register patient</button>
