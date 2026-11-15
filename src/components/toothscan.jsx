@@ -7,8 +7,9 @@ import { ScanLine } from 'lucide-react'
 const TOOTH = 'M128 74 C126 46 150 36 162 50 C172 38 190 38 200 50 C212 36 236 46 232 74 C234 96 226 112 222 128 C218 162 214 196 205 216 C199 226 189 221 189 206 C188 182 185 162 180 152 C175 162 172 182 171 206 C171 221 161 226 155 216 C146 196 142 162 138 128 C134 112 126 96 128 74 Z'
 const PULP = 'M158 82 C164 72 196 72 202 82 C207 96 200 112 194 120 C192 150 197 182 197 204 L193 204 C190 180 186 156 182 142 L178 142 C174 156 170 180 167 204 L163 204 C163 182 168 150 166 120 C160 112 153 96 158 82 Z'
 const FINDINGS = [
-  { tone: 'bad', label: 'Early decay on the crown', conf: 87 },
-  { tone: 'warn', label: 'Decay is near the pulp', conf: 72 },
+  { tone: 'bad', label: 'Early crown decay', conf: 87 },
+  { tone: 'warn', label: 'Decay near pulp', conf: 72 },
+  { tone: 'ok', label: 'Roots healthy', conf: 94 },
 ]
 const PHASES = ['Reading the X-ray…', 'Checking enamel…', 'Measuring decay depth…', 'Tracing root canals…', 'Report ready']
 
@@ -20,6 +21,9 @@ export function ToothScan({ compact = false, className = '' }) {
   }, [])
   const done = phase === PHASES.length - 1
   const pct = Math.round(((phase + 1) / PHASES.length) * 100)
+  // The match % on the tooth counts up as the scan goes on.
+  const grow = Math.min(1, (phase + 1) / (PHASES.length - 1))
+  const conf = (n) => `${Math.round(n * grow)}%`
   return (
     <div className={`ts ${compact ? 'ts-compact' : ''} ${className}`}>
       <div className="ts-head">
@@ -86,9 +90,9 @@ export function ToothScan({ compact = false, className = '' }) {
           <circle className="ts-spark" cx="146" cy="62" r="3" />
 
           {/* callouts */}
-          <g className="ts-call c1"><circle cx="146" cy="62" r="13" className="ts-ring bad" /><path d="M234 58 H300" /><text x="302" y="55">Decay</text><text x="302" y="67" className="sub">0.8 mm</text></g>
-          <g className="ts-call c2"><path d="M188 98 L236 112 H300" /><text x="302" y="109">Pulp</text><text x="302" y="121" className="sub">close</text></g>
-          <g className="ts-call c3"><path d="M200 196 L236 184 H300" /><text x="302" y="181">Roots</text><text x="302" y="193" className="sub">2 canals</text></g>
+          <g className="ts-call c1"><circle cx="146" cy="62" r="13" className="ts-ring bad" /><path d="M234 58 H300" /><text x="302" y="52">Decay</text><text x="302" y="74" className="pct bad">{conf(87)}</text></g>
+          <g className="ts-call c2"><path d="M188 98 L236 112 H300" /><text x="302" y="106">Pulp</text><text x="302" y="128" className="pct warn">{conf(72)}</text></g>
+          <g className="ts-call c3"><path d="M200 196 L236 184 H300" /><text x="302" y="178">Roots</text><text x="302" y="200" className="pct ok">{conf(94)}</text></g>
           <g className="ts-call c4"><path d="M128 76 L104 76" /></g>
 
           {[[300, 30], [330, 150], [84, 200], [250, 14], [24, 220]].map(([x, y], i) => <circle key={i} className="ts-dot" cx={x} cy={y} r="1.6" style={{ animationDelay: `${i * 0.6}s` }} />)}
@@ -97,10 +101,7 @@ export function ToothScan({ compact = false, className = '' }) {
           <div className="ts-phase">{PHASES[phase]}</div>
           <div className="ts-bar"><i style={{ width: `${pct}%` }} /></div>
           <ul className="ts-results">
-            {FINDINGS.map((f) => (
-              <li key={f.label} className={f.tone}><b>{f.label}</b><span>{f.conf}% match</span></li>
-            ))}
-            <li className="ok"><b>Roots and bone healthy</b><span>Suggest: filling or RCT review</span></li>
+            {FINDINGS.map((f) => <li key={f.label} className={f.tone}><b>{f.label}</b></li>)}
           </ul>
         </div>
       </div>
