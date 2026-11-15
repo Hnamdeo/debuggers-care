@@ -3,7 +3,7 @@
 // "who is waiting", "today's collection". Asks back when something is missing or there are two Rahuls.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Sparkles, Send, X, Mic, CalendarPlus, UserPlus, Search, Hourglass, IndianRupee, Clock, FileHeart, CornerDownLeft, Wand2 } from 'lucide-react'
+import { Pin, PanelRightClose, Sparkles, Send, X, Mic, CalendarPlus, UserPlus, Search, Hourglass, IndianRupee, Clock, FileHeart, CornerDownLeft, Wand2 } from 'lucide-react'
 import { useTenant, toast } from './ui'
 import { db } from '../lib/store'
 import { today, addDays, fmtDate, fmtTime, money, billTotal, nowTime, age } from '../lib/utils'
@@ -60,15 +60,24 @@ export function Assistant() {
   const nav = useNavigate()
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState([])
-  // On the prescription pad (wide screens) the assistant sits docked on the right, always open.
+  // Wide screens: the assistant lives on the right of every page. Pinned = always open
+  // beside the page; hidden = a thin glowing rail that opens it on top until you move on.
   const loc = useLocation()
   const rxAppt = (loc.pathname.match(/\/consult\/([^/]+)/) || [])[1]
   const [wide, setWide] = useState(() => window.innerWidth >= 1100)
   useEffect(() => { const r = () => setWide(window.innerWidth >= 1100); window.addEventListener('resize', r); return () => window.removeEventListener('resize', r) }, [])
-  const [undock, setUndock] = useState(false)
-  useEffect(() => setUndock(false), [rxAppt])
-  const docked = !!rxAppt && wide && !undock && user.role !== 'patient'
-  useEffect(() => { document.body.classList.toggle('ai-docked', docked); return () => document.body.classList.remove('ai-docked') }, [docked])
+  const [mode, setModeRaw] = useState(() => { try { return localStorage.getItem('ai-mode') || 'pinned' } catch { return 'pinned' } })
+  const setMode = (m) => { setModeRaw(m); try { localStorage.setItem('ai-mode', m) } catch { /* ignore */ } }
+  const side = wide && user.role !== 'patient'
+  const docked = side && mode === 'pinned'
+  const shown = docked || open
+  useEffect(() => {
+    const b = document.body.classList
+    b.toggle('ai-docked', docked); b.toggle('ai-railed', side && !docked)
+    return () => { b.remove('ai-docked'); b.remove('ai-railed') }
+  }, [docked, side])
+  // An unpinned panel steps aside when you go to another page.
+  useEffect(() => { if (side && mode === 'hidden') setOpen(false) }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   const [input, setInput] = useState('')
   const [pending, setPending] = useState(null)
   const [typing, setTyping] = useState(false)
@@ -115,22 +124,22 @@ export function Assistant() {
   }
   useEffect(() => {
     const on = (e) => { setOpen(true); if (e.detail) setTimeout(() => send(e.detail), 250) }
-    const key = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setOpen((o) => !o) } }
+    const key = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); if (docked) { setMode('hidden'); setOpen(false) } else setOpen((o) => !o) } }
     window.addEventListener('ai-open', on)
     window.addEventListener('keydown', key)
     return () => { window.removeEventListener('ai-open', on); window.removeEventListener('keydown', key) }
   })
   useEffect(() => {
-    if (!docked) return
+    if (!shown || !rxAppt) return
     const a = list('appointments').find((x) => x.id === rxAppt)
     const p = a && patient(a.patientId)
     if (!p) return
     setPending({ kind: 'rx-meds', d: { p, meds: [] } })
     setMsgs((x) => [...x, { from: 'bot', text: `Writing for ${p.name}${p.dob ? ` (${age(p.dob)} y)` : ''}. Type the diagnosis and medicines, for example “dx dental caries 36; amoxicillin 500 tds 5 days, ketorolac sos 3 days; next 1 week”. I’ll suggest the medicines you use most, and fill the pad for you.` }])
-  }, [docked, rxAppt]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [shown, rxAppt]) // eslint-disable-line react-hooks/exhaustive-deps
   // The first chips start a guided flow; the rest just ask the question.
   const cmdChips = (all) => (all ? COMMANDS : COMMANDS.slice(0, 6)).map(([l, ex]) => ({ label: l, act: l.startsWith('Book') ? () => startBook({}) : l.startsWith('Register') ? () => startRegister({}) : l.startsWith('Write') ? () => startRx({ meds: [] }) : l.startsWith('Find') ? () => { setPending({ kind: 'find' }); reply({ text: 'Type the patient’s name, mobile or ID.' }) } : () => understand(ex) }))
-  useEffect(() => { if (open && !msgs.length) setMsgs([{ from: 'bot', text: summary(), chips: cmdChips() }]) }, [open])
+  useEffect(() => { if (shown && !msgs.length && !rxAppt) setMsgs([{ from: 'bot', text: summary(), chips: cmdChips() }]) }, [shown])
   useEffect(() => { if (open) setTimeout(() => inRef.current?.focus(), 80) }, [open])
   useEffect(() => { const b = logRef.current; if (b) b.scrollTo({ top: b.scrollHeight, behavior: 'smooth' }) }, [msgs, typing])
 
@@ -262,6 +271,7 @@ export function Assistant() {
     bot({ text: here ? `Filled in on the pad for ${d.p.name}. Check it and tap “Complete visit”.` : `Opening the prescription pad for ${d.p.name} with everything filled in. Check it and tap “Complete visit”.` })
     nav(`${base}/consult/${a.id}`)
     if (window.innerWidth < 900) setOpen(false)
+    else if (side && mode === 'hidden') setTimeout(() => setOpen(true), 50)
   }
   const parseRx = (raw, d = {}) => {
     let body = raw.replace(/^\s*(rx|prescription|prescribe|write prescription|likho|dawai)\b\s*(for)?/i, '').trim()
@@ -477,13 +487,19 @@ export function Assistant() {
   if (user.role === 'patient') return null
   return (
     <>
-      {!open && !docked && <button className="ai-fab" onClick={() => setOpen(true)} title="AI assistant (Ctrl+K)" aria-label="Open AI assistant"><Sparkles /><span>Ask AI</span></button>}
-      {(open || docked) && (
-        <div className={`ai-panel ${docked ? 'docked' : ''}`} role={docked ? 'complementary' : 'dialog'} aria-label="AI assistant">
+      {!side && !open && <button className="ai-fab" onClick={() => setOpen(true)} title="AI assistant (Ctrl+K)" aria-label="Open AI assistant"><Sparkles /><span>Ask AI</span></button>}
+      {side && !shown && (
+        <button className="ai-rail" onClick={() => setOpen(true)} title="Open the AI assistant (Ctrl+K)" aria-label="Open the AI assistant">
+          <span className="ai-orb"><Sparkles size={18} /></span><span className="ai-rail-t">Ask AI · Ctrl+K</span>
+        </button>
+      )}
+      {shown && (
+        <div className={`ai-panel ${side ? 'side' : ''} ${docked ? 'docked' : side ? 'over' : ''}`} role={docked ? 'complementary' : 'dialog'} aria-label="AI assistant">
           <header className="ai-head">
             <span className="ai-orb"><Sparkles size={18} /></span>
-            <div><b>AI assistant</b><small>{docked ? <><i className="ai-live" /> Prescription co-pilot · learns from your Rx</> : 'Books, registers, writes Rx · Ctrl+K'}</small></div>
-            <button className="gc-icon sm" onClick={() => (docked ? setUndock(true) : setOpen(false))} aria-label="Close"><X /></button>
+            <div><b>AI assistant</b><small>{side ? <><i className="ai-live" /> {rxAppt ? 'Prescription co-pilot · learns from your Rx' : 'Ready · learns from your clinic'}</> : 'Books, registers, writes Rx · Ctrl+K'}</small></div>
+            {side && <button className={`gc-icon sm ai-pin ${docked ? 'on' : ''}`} onClick={() => { if (docked) { setMode('hidden'); setOpen(true) } else { setMode('pinned'); setOpen(false) } }} aria-pressed={docked} aria-label={docked ? 'Unpin' : 'Pin open'} title={docked ? 'Unpin: closes when you change page' : 'Pin: keep open on every page'}><Pin /></button>}
+            <button className="gc-icon sm" onClick={() => { if (side) setMode('hidden'); setOpen(false) }} aria-label="Hide" title={side ? 'Hide to the side rail' : 'Close'}>{side ? <PanelRightClose /> : <X />}</button>
           </header>
           <div className="ai-log" ref={logRef} aria-live="polite">
             {msgs.map((m, i) => (
