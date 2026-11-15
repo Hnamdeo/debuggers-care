@@ -110,8 +110,8 @@ export default function ClinicSite({ site }) {
               <span>· {site.reviews ? `${site.reviews} ${src} reviews` : `rated on ${src}`}</span>
             </div>
             <div className="cs-cta">
-              <a className="cs-btn primary" href={tel}><Phone /> Call {site.phone}</a>
-              <a className="cs-btn wa" href={wa} target="_blank" rel="noopener noreferrer"><MessageCircle /> Book on WhatsApp</a>
+              <a className="cs-btn primary" href={tel}><Phone /> Call <span className="cs-cc">+91 </span>{site.phone.replace(/^\+91\s*/, '')}</a>
+              <a className="cs-btn wa" href={wa} target="_blank" rel="noopener noreferrer"><MessageCircle /> <span className="cs-wa-long">Book on </span>WhatsApp</a>
               <a className="cs-btn ghost" href={maps} target="_blank" rel="noopener noreferrer"><Navigation /> Directions</a>
             </div>
           </div>
