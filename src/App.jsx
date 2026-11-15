@@ -4,7 +4,7 @@ import { RouteScan } from './components/toothscan'
 import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
-  Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles, BarChart3,
+  Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles, BarChart3, PiggyBank,
 } from 'lucide-react'
 import { db, auth, useDb, server } from './lib/store'
 import { hasModule, ROLE_MODULES, ROLE_LABEL, PLANS, planFor, MODULES } from './lib/plans'
@@ -31,6 +31,7 @@ import SelfRegister from './pages/SelfRegister'
 import ClinicSite from './pages/ClinicSite'
 import Smile from './pages/Smile'
 import Analytics from './pages/Analytics'
+import Expenses from './pages/Expenses'
 import { NotesFab } from './components/notes'
 import { SITES } from './lib/sites'
 
@@ -186,6 +187,7 @@ function Shell() {
                 )
               })}
               {(boss || role === 'doctor') && <NavItem to={`${base}/analytics`} icon={BarChart3} label="Practice analytics" />}
+              {(boss || role === 'doctor') && <NavItem to={`${base}/expenses`} icon={PiggyBank} label="Expenses" />}
               {smile && <NavItem to={`${base}/smile`} icon={Sparkles} label="AI Smile preview" fresh />}
               {canSettings && <NavItem to={`${base}/settings`} icon={SettingsIcon} label="Plan & settings" />}
             </>
@@ -220,6 +222,7 @@ function Shell() {
               <Route path="prescriptions" element={guard('prescriptions', <Prescriptions />)} />
               <Route path="reports" element={guard('reports', <Reports />)} />
               <Route path="analytics" element={boss || role === 'doctor' ? <Analytics /> : <Navigate to={`${base}/${home}`} replace />} />
+              <Route path="expenses" element={boss || role === 'doctor' ? <Expenses /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="smile" element={smile ? <Smile /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="education" element={guard('education', <Education />)} />
               <Route path="ipd" element={guard('ipd', <IPD />)} />

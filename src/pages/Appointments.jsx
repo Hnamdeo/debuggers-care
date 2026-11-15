@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { BellRing, CalendarPlus, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react'
+import { BellRing, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react'
+import { CalendarView } from '../components/calendar'
 import { useTenant, PageHead, Card, Table, Pill, Select, toast } from '../components/ui'
 import { BookAppointment } from '../components/forms'
 import { db } from '../lib/store'
@@ -16,11 +17,11 @@ export default function Appointments() {
   const [date, setDate] = useState(today())
   const isDoc = user.role === 'doctor'
   const [doc, setDoc] = useState(isDoc ? me.id : 'all')
-  const [view, setView] = useState(() => { try { return localStorage.getItem('ap-view') || 'slots' } catch { return 'slots' } })
+  const [view, setView] = useState(() => { try { return localStorage.getItem('ap-view2') || 'calendar' } catch { return 'slots' } })
   const [book, setBook] = useState(null)
   const [move, setMove] = useState(null)
   const [remind, setRemind] = useState(null)
-  const pickView = (v) => { setView(v); try { localStorage.setItem('ap-view', v) } catch { /* private mode */ } }
+  const pickView = (v) => { setView(v); try { localStorage.setItem('ap-view2', v) } catch { /* private mode */ } }
   const rows = list('appointments')
     .filter((a) => a.date === date && (doc === 'all' || a.doctorId === doc))
     .sort((a, b) => a.time.localeCompare(b.time))
@@ -36,6 +37,12 @@ export default function Appointments() {
         {date >= today() && <button className="btn" onClick={() => setRemind({ title: `Send reminders · ${fmtDate(date)}`, ids: null })}><BellRing /> Remind all patients{(() => { const n = rows.filter((a) => a.status === 'scheduled' && !a.remindedAt).length; return n ? ` (${n})` : '' })()}</button>}
         <button className="btn primary" onClick={() => setParams({ new: '1' })}><CalendarPlus /> Book appointment</button>
       </PageHead>
+      <div className="row" style={{ gap: 6 }}>
+        <button className={`btn sm ${view === 'calendar' ? 'primary' : ''}`} onClick={() => pickView('calendar')}><CalendarDays /> Calendar</button>
+        <button className={`btn sm ${view === 'slots' ? 'primary' : ''}`} onClick={() => pickView('slots')}><LayoutGrid /> Time slots</button>
+        <button className={`btn sm ${view === 'list' ? 'primary' : ''}`} onClick={() => pickView('list')}><List /> List</button>
+      </div>
+      {view !== 'calendar' && (
       <div className="row between">
         <div className="row">
           <button className="btn sm" onClick={() => setDate(addDays(date, -1))} aria-label="Previous day"><ChevronLeft /></button>
@@ -48,11 +55,10 @@ export default function Appointments() {
           {(!isDoc || doctors().length > 1) && <Select id="ap-doc" value={doc} onChange={(e) => setDoc(e.target.value)} options={[{ value: 'all', label: 'All doctors' }, ...doctors().map((d) => ({ value: d.id, label: d.name }))]} style={{ width: 200 }} />}
         </div>
       </div>
-      <div className="row" style={{ gap: 6 }}>
-        <button className={`btn sm ${view === 'slots' ? 'primary' : ''}`} onClick={() => pickView('slots')}><LayoutGrid /> Time slots</button>
-        <button className={`btn sm ${view === 'list' ? 'primary' : ''}`} onClick={() => pickView('list')}><List /> List</button>
-      </div>
-      {view === 'slots' ? (
+      )}
+      {view === 'calendar' ? (
+        <CalendarView date={date} setDate={setDate} onBook={(d, time, doctorId) => setBook({ date: d, time, doctorId })} onMove={setMove} onRemind={(a) => setRemind({ title: 'Send reminder', ids: [a.id], date: a.date })} />
+      ) : view === 'slots' ? (
         (doc === 'all' ? doctors().map((d) => d.id) : [doc]).map((id) => <SlotBoard key={id} date={date} doctorId={id} onBook={(time, doctorId) => setBook({ time, doctorId })} onRemind={(a) => setRemind({ title: 'Send reminder', ids: [a.id] })} />)
       ) : (
       <Card>
@@ -84,8 +90,8 @@ export default function Appointments() {
       </Card>
       )}
       {params.get('new') === '1' && <BookAppointment doctorId={isDoc ? me.id : undefined} onClose={(a) => { setParams({}); if (a) setDate(a.date) }} />}
-      {book && <BookAppointment date={date} time={book.time} doctorId={book.doctorId} onClose={() => setBook(null)} />}
-      {remind && <RemindModal title={remind.title} appts={remind.ids ? rows.filter((a) => remind.ids.includes(a.id)) : rows.filter((a) => a.status === 'scheduled')} onClose={() => setRemind(null)} />}
+      {book && <BookAppointment date={book.date || date} time={book.time} doctorId={book.doctorId} onClose={() => setBook(null)} />}
+      {remind && <RemindModal title={remind.title} appts={remind.ids ? list('appointments').filter((a) => remind.ids.includes(a.id)) : rows.filter((a) => a.status === 'scheduled')} onClose={() => setRemind(null)} />}
       {move && <BookAppointment move={move} onClose={(a) => { setMove(null); if (a) setDate(a.date) }} />}
     </>
   )

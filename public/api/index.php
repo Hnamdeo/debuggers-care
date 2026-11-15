@@ -29,7 +29,7 @@ date_default_timezone_set('Asia/Kolkata');
 
 const DATA_DIR = __DIR__ . '/data';
 const SESSION_DAYS = 30;
-const PREFIX = ['notes' => 'NT', 'patients' => 'P', 'appointments' => 'A', 'prescriptions' => 'RX', 'reports' => 'LAB', 'bills' => 'INV', 'medicines' => 'M', 'sales' => 'SL', 'beds' => 'BED', 'admissions' => 'IPD', 'emergencies' => 'ER', 'payroll' => 'PAY', 'staff' => 'S', 'users' => 'U', 'videos' => 'V', 'shares' => 'SH', 'visits' => 'VS', 'images' => 'IMG'];
+const PREFIX = ['notes' => 'NT', 'patients' => 'P', 'appointments' => 'A', 'prescriptions' => 'RX', 'reports' => 'LAB', 'bills' => 'INV', 'medicines' => 'M', 'sales' => 'SL', 'beds' => 'BED', 'admissions' => 'IPD', 'emergencies' => 'ER', 'payroll' => 'PAY', 'staff' => 'S', 'users' => 'U', 'videos' => 'V', 'shares' => 'SH', 'visits' => 'VS', 'images' => 'IMG', 'estimates' => 'EST', 'consents' => 'CN', 'expenses' => 'EXP'];
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -159,7 +159,7 @@ function staffOnly(): array {
   return $u;
 }
 // What a signed-in patient may see: their own records, the doctors' public details and the videos.
-const PATIENT_COLLS = ['appointments', 'prescriptions', 'reports', 'bills', 'visits', 'images', 'admissions', 'shares'];
+const PATIENT_COLLS = ['appointments', 'prescriptions', 'reports', 'bills', 'visits', 'images', 'admissions', 'shares', 'estimates', 'consents'];
 function patientView(string $coll, array $row, string $pid): ?array {
   if ($coll === 'patients') return ($row['id'] ?? '') === $pid ? $row : null;
   if (in_array($coll, PATIENT_COLLS, true)) return ($row['patientId'] ?? '') === $pid ? $row : null;
