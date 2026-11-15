@@ -20,6 +20,14 @@ export const SALES_PHONE = '9075013110'
 export const salesWhatsApp = (text) => `https://wa.me/91${SALES_PHONE}?text=${encodeURIComponent(text)}`
 
 export const PLANS = {
+  starter: {
+    id: 'starter',
+    name: 'Starter',
+    price: 499,
+    blurb: 'For a single doctor going digital: patients, appointments and prescriptions.',
+    maxDoctors: 1,
+    modules: ['dashboard', 'patients', 'appointments', 'prescriptions', 'education'],
+  },
   clinic: {
     id: 'clinic',
     name: 'Clinic',
@@ -48,7 +56,7 @@ export const PLANS = {
   },
 }
 
-export const PLAN_ORDER = ['clinic', 'plus', 'hospital']
+export const PLAN_ORDER = ['starter', 'clinic', 'plus', 'hospital']
 
 export const hasModule = (tenant, mod) => PLANS[tenant.plan].modules.includes(mod)
 

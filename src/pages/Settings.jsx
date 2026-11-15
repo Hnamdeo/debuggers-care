@@ -30,7 +30,7 @@ export default function Settings() {
                     {P.modules.includes(m) ? <Check size={13} color="var(--ok)" /> : <Lock size={12} />} {MODULES[m].label}
                   </span>
                 ))}
-                <span className="small muted">{P.maxDoctors === Infinity ? 'Unlimited doctors' : `Up to ${P.maxDoctors} doctors`}</span>
+                <span className="small muted">{P.maxDoctors === Infinity ? 'Unlimited doctors' : P.maxDoctors === 1 ? 'One doctor' : `Up to ${P.maxDoctors} doctors`}</span>
               </div>
               {tenant.live ? (
                 <div className="buy-box">
