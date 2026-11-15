@@ -5,7 +5,7 @@ import {
   FileHeart, Receipt, Pill, Palette, Wallet, Smartphone, ShieldCheck, Sparkles, Zap, Users, Activity, Clock, MessageCircle, Mic, Globe, MapPin, Megaphone, Share2, Gift, Search, BarChart3, Calculator, ClipboardList, History, FileText,
 } from 'lucide-react'
 import { db, useDb } from '../lib/store'
-import { PLANS, PLAN_ORDER, SUPER_AI, MODULES, tenantHost, SALES_PHONE, salesWhatsApp } from '../lib/plans'
+import { PLANS, PLAN_ORDER, SUPER_AI, WEBSITE_TERMS, MODULES, tenantHost, SALES_PHONE, salesWhatsApp } from '../lib/plans'
 import FeatureTour from '../components/tour'
 import { ToothScan } from '../components/toothscan'
 import { toast, CompanyLink, SiteFooter, COMPANY_URL, CountUp } from '../components/ui'
@@ -27,7 +27,7 @@ const FEATURES = [
 
 // Done-for-you services sold alongside the software.
 const SERVICES = [
-  { icon: Globe, title: 'Clinic website', points: ['Free with the Clinic early bird plan', 'Doctors, treatments, timings and map', 'Book on WhatsApp and online appointments'] },
+  { icon: Globe, title: 'Clinic website', points: ['Free with every plan (domain and hosting paid by the clinic)', 'Doctors, treatments, timings and map', 'Book on WhatsApp and online appointments'] },
   { icon: Search, title: 'Google SEO', points: ['Show up when patients search “dentist near me”', 'Treatment pages written for your area', 'Monthly keyword and traffic report'] },
   { icon: MapPin, title: 'Google Business Profile', points: ['Rank higher on Google Maps nearby', 'Weekly Google posts and photos', 'Review replies and monthly ranking report'] },
   { icon: Megaphone, title: 'Google Ads for clinics', points: ['Campaign setup with a landing page', 'Keywords for your treatments and area', 'Call and WhatsApp lead tracking'] },
@@ -296,7 +296,7 @@ export default function Landing() {
                 {PLANS[p].offer && <span className="offer-tag">{PLANS[p].offerLabel}</span>}
                 <div className="lx-price"><b>{PLANS[p].offer && <span className="was">₹{PLANS[p].price.toLocaleString('en-IN')}</span>}₹{(PLANS[p].offer || PLANS[p].price).toLocaleString('en-IN')}</b><span>/ month</span></div>
                 <p>{PLANS[p].blurb}</p>
-                {PLANS[p].bonus && <div className="lx-bonus"><Gift size={16} /> <span><b>Free</b> {PLANS[p].bonus.replace(/^Free /, '')}</span></div>}
+                {PLANS[p].bonus && <div className="lx-bonus"><Gift size={16} /> <span><b>Free</b> {PLANS[p].bonus.replace(/^Free /, '')}<sup>*</sup></span></div>}
                 <ul>
                   {PLANS[p].modules.filter((m) => m !== 'dashboard').map((m) => <li key={m}><Check size={14} /> {MODULES[m].label}</li>)}
                   <li className="lx-ai-li"><Sparkles size={14} /> AI assistant with smart suggestions (free)</li>
@@ -332,6 +332,7 @@ export default function Landing() {
             </div>
             <p className="small muted">{SUPER_AI.safety} GST extra.</p>
           </div>
+          <p className="lx-terms"><b>T&amp;C*</b> {WEBSITE_TERMS}</p>
           <p className="lx-note">Monthly subscription. To buy, call or WhatsApp <a href={`tel:+91${SALES_PHONE}`}>{SALES_PHONE}</a>.</p>
         </div>
       </section>

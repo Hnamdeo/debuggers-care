@@ -64,7 +64,7 @@ export function useOpenNow(hours) {
 const initials = (n) => n.replace(/^Dr\.?\s*/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
 
 export default function ClinicSite({ site }) {
-  const { tenant, base } = useTenant()
+  const { tenant, base, user } = useTenant()
   const nav = useNavigate()
   const status = useOpenNow(site.hours)
   const tel = `tel:${site.phone.replace(/\s/g, '')}`
@@ -92,7 +92,9 @@ export default function ClinicSite({ site }) {
               <span className="small">Dental clinic · {site.area}</span>
             </div>
           </div>
-          <button className="cs-btn ghost sm" onClick={() => nav(`${base}/login`)}><LogIn /> Staff sign in</button>
+          {user
+            ? <button className="cs-btn ghost sm" onClick={() => nav(base)}><LogIn /> Back to dashboard</button>
+            : <button className="cs-btn ghost sm" onClick={() => nav(`${base}/login`)}><LogIn /> Staff sign in</button>}
         </div>
       </header>
 

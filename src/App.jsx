@@ -4,7 +4,7 @@ import { RouteScan } from './components/toothscan'
 import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
-  Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles, BarChart3, PiggyBank,
+  Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles, BarChart3, PiggyBank, Globe,
 } from 'lucide-react'
 import { db, auth, useDb, server } from './lib/store'
 import { hasModule, ROLE_MODULES, ROLE_LABEL, PLANS, planFor, MODULES } from './lib/plans'
@@ -115,6 +115,8 @@ function TenantApp() {
           <Route path="register" element={<SelfRegister />} />
           {/* A real clinic with a public page shows it at its own address; staff sign in from there */}
           {site && !ctx.user && <Route index element={<ClinicSite site={site} />} />}
+          {/* Signed-in staff can still open their clinic's public home page */}
+          {site && <Route path="home" element={<ClinicSite site={site} />} />}
           <Route path="*" element={waiting ? <ServerWait info={srv} /> : ctx.user ? <Shell /> : <Login />} />
         </Routes>
         {onServer && <ServerStart tid={ctx.tid} />}
@@ -190,6 +192,7 @@ function Shell() {
               {(boss || role === 'doctor') && <NavItem to={`${base}/analytics`} icon={BarChart3} label="Practice analytics" />}
               {(boss || role === 'doctor') && <NavItem to={`${base}/expenses`} icon={PiggyBank} label="Expenses" />}
               {smile && <NavItem to={`${base}/smile`} icon={Sparkles} label="AI Smile preview" fresh />}
+              {SITES[tenant.slug] && <NavItem to={`${base}/home`} icon={Globe} label="Clinic home page" />}
               {canSettings && <NavItem to={`${base}/settings`} icon={SettingsIcon} label="Plan & settings" />}
             </>
           )}
