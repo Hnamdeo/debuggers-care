@@ -199,7 +199,7 @@ function Shell() {
           </div>
           <main className="main" key={loc.pathname}>
             <Routes>
-              <Route index element={<Navigate to={home} replace />} />
+              <Route index element={<GoHome to={`${base}/${home}`} />} />
               <Route path="dashboard" element={guard('dashboard', <Dashboard />)} />
               <Route path="patients" element={guard('patients', <Patients />)} />
               <Route path="patients/:id" element={guard('patients', <PatientProfile />)} />
@@ -257,4 +257,12 @@ export function DemoBand() {
       {!onOwnHost && <button onClick={() => nav('/')}>Switch clinic</button>}
     </div>
   )
+}
+
+// The clinic's bare address opens the home screen. If the browser does not move on by itself,
+// the person still gets a button instead of an empty page.
+function GoHome({ to }) {
+  const nav = useNavigate()
+  useEffect(() => { const t = setTimeout(() => nav(to, { replace: true }), 0); return () => clearTimeout(t) }, [nav, to])
+  return <div className="empty" style={{ padding: 40, textAlign: 'center' }}><button className="btn primary" onClick={() => nav(to, { replace: true })}>Open dashboard</button></div>
 }
