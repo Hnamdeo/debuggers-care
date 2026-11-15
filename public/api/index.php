@@ -66,6 +66,29 @@ $pdo->exec('CREATE TABLE IF NOT EXISTS records (coll TEXT NOT NULL, id TEXT NOT 
   CREATE TABLE IF NOT EXISTS audit (at INTEGER NOT NULL, user_id TEXT, action TEXT NOT NULL, coll TEXT, rec_id TEXT);
   CREATE TABLE IF NOT EXISTS pins (patient_id TEXT PRIMARY KEY, hash TEXT NOT NULL, set_at INTEGER NOT NULL);');
 
+// Daily backup: the first request of each day (India time) saves a clean copy of this
+// clinic's database in data/backups/, kept for 30 days. A GitHub job copies them off the
+// server every night. data/ is never reachable from the web and never touched by deploys.
+function dailyBackup(PDO $pdo, string $slug): void {
+  $dir = DATA_DIR . '/backups';
+  $day = gmdate('Y-m-d', time() + 19800);
+  $dest = "$dir/$slug-$day.sqlite";
+  if (file_exists($dest)) return;
+  try {
+    if (!is_dir($dir)) mkdir($dir, 0750, true);
+    $tmp = "$dest.part";
+    if (file_exists($tmp)) { if (filemtime($tmp) > time() - 300) return; unlink($tmp); }
+    $pdo->exec("VACUUM INTO " . $pdo->quote($tmp));
+    rename($tmp, $dest);
+    foreach (glob("$dir/$slug-*.sqlite") ?: [] as $old) {
+      if (filemtime($old) < time() - 30 * 86400) @unlink($old);
+    }
+  } catch (Throwable $e) {
+    error_log("daily backup failed for $slug: " . $e->getMessage());
+  }
+}
+if (!$fresh) dailyBackup($pdo, $slug);
+
 function meta(string $k): ?string {
   global $pdo;
   $s = $pdo->prepare('SELECT v FROM meta WHERE k = ?');
