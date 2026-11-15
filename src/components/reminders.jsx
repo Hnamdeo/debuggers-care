@@ -1,4 +1,4 @@
-import { BellRing, Check, MessageCircle } from 'lucide-react'
+import { BellRing, Check, MessageCircle, MessageSquareText } from 'lucide-react'
 import { useTenant, Card } from './ui'
 import { whatsappLink } from './videos'
 import { db } from '../lib/store'
@@ -16,10 +16,14 @@ export function reminderText(tenant, p, a, doctor, kind = 'reminder') {
   const first = (p?.name || '').split(' ')[0]
   const near = a.date === today() || a.date === addDays(today(), 1)
   const when = `${dayWord(a.date)}${near ? ` (${fmtDate(a.date)})` : ''} at ${fmtTime(a.time)}`
-  const en = kind === 'booked'
+  const en = kind === 'moved'
+    ? `Hello ${first}, your appointment at ${clinic} has been moved to ${when}${doctor ? ` with ${doctor.name}` : ''}.`
+    : kind === 'booked'
     ? `Hello ${first}, your appointment at ${clinic} is booked ${when}${doctor ? ` with ${doctor.name}` : ''}.`
     : `Hello ${first}, a reminder of your appointment at ${clinic} ${when}${doctor ? ` with ${doctor.name}` : ''}.`
-  const hi = kind === 'booked'
+  const hi = kind === 'moved'
+    ? `नमस्ते ${first}, ${clinic} में आपका अपॉइंटमेंट अब ${dayHindi(a.date)} ${fmtTime(a.time)} बजे है।`
+    : kind === 'booked'
     ? `नमस्ते ${first}, ${clinic} में आपका अपॉइंटमेंट ${dayHindi(a.date)} ${fmtTime(a.time)} बजे बुक हो गया है।`
     : `नमस्ते ${first}, याद दिला दें: ${clinic} में आपका अपॉइंटमेंट ${dayHindi(a.date)} ${fmtTime(a.time)} बजे है।`
   const tail = [
@@ -29,6 +33,9 @@ export function reminderText(tenant, p, a, doctor, kind = 'reminder') {
   ].filter(Boolean).join('\n')
   return `${en}\n${hi}\n\n${tail}`
 }
+
+// SMS for patients without WhatsApp: opens the phone's messages app with the text ready (Phone Link on a Windows laptop).
+export const smsLink = (phone, text) => `sms:+91${phone}?&body=${encodeURIComponent(text)}`
 
 // Opens WhatsApp with the message ready; the staff member just presses Send. Marks the appointment as reminded.
 export function RemindButton({ a, kind = 'reminder', label, small = true }) {
@@ -42,6 +49,27 @@ export function RemindButton({ a, kind = 'reminder', label, small = true }) {
     <a className={`btn ${small ? 'sm' : ''} ${sent ? '' : 'primary'}`} href={href} target="_blank" rel="noreferrer" onClick={mark} title="Opens WhatsApp with the message ready">
       {sent ? <Check /> : <MessageCircle />} {label || (sent ? 'Reminded' : 'Remind')}
     </a>
+  )
+}
+
+// WhatsApp and SMS side by side. Either one marks a reminder as sent.
+export function NotifyButtons({ a, kind = 'reminder', small = true, wide }) {
+  const { tid, tenant, patient, staff } = useTenant()
+  const p = patient(a.patientId)
+  if (!okPhone(p)) return null
+  const text = reminderText(tenant, p, a, staff(a.doctorId), kind)
+  const sent = kind === 'reminder' && a.remindedAt
+  const mark = (via) => () => { if (kind === 'reminder') db.update(tid, 'appointments', a.id, { remindedAt: new Date().toISOString(), remindedVia: via }) }
+  const sz = small ? 'sm' : ''
+  return (
+    <span className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+      <a className={`btn ${sz} ${sent ? '' : 'primary'}`} href={whatsappLink(p.phone, text)} target="_blank" rel="noreferrer" onClick={mark('whatsapp')} title="Opens WhatsApp with the message ready">
+        {sent ? <Check /> : <MessageCircle />} {wide ? 'WhatsApp' : sent ? 'Reminded' : 'WhatsApp'}
+      </a>
+      <a className={`btn ${sz}`} href={smsLink(p.phone, text)} onClick={mark('sms')} title="Text message for patients without WhatsApp">
+        <MessageSquareText /> SMS
+      </a>
+    </span>
   )
 }
 
@@ -59,7 +87,7 @@ export function ReminderCard({ doctorId }) {
   const many = doctors().length > 1 && !doctorId
   return (
     <Card title={<h2><BellRing size={17} style={{ verticalAlign: '-3px' }} /> Appointment reminders</h2>} actions={<span className="small muted">{left ? `${left} to send` : 'All sent'}</span>}>
-      <div className="small muted" style={{ marginBottom: 8 }}>Tap Remind: WhatsApp opens with the message ready in Hindi and English. Press Send there.</div>
+      <div className="small muted" style={{ marginBottom: 8 }}>Tap WhatsApp, or SMS for patients without WhatsApp. The message opens ready in Hindi and English; press Send there.</div>
       {due.map((a) => {
         const p = patient(a.patientId)
         return (
@@ -68,7 +96,7 @@ export function ReminderCard({ doctorId }) {
               <div style={{ fontWeight: 600 }}>{p?.name || a.patientId}</div>
               <div className="small muted">{a.date === T ? 'Today' : 'Tomorrow'} {fmtTime(a.time)}{many ? ` · ${staff(a.doctorId)?.name}` : ''}{okPhone(p) ? '' : ' · no mobile number'}</div>
             </div>
-            <RemindButton a={a} />
+            <NotifyButtons a={a} />
           </div>
         )
       })}

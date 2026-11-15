@@ -1,12 +1,12 @@
 import { slotsOn } from '../lib/slots'
 import { QrPanel } from './qrpanel'
-import { RemindButton } from './reminders'
+import { NotifyButtons } from './reminders'
 import { samePerson } from '../lib/patients'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Modal, Input, Select, Textarea, useTenant, toast } from './ui'
 import { db } from '../lib/store'
-import { today, fmtTime, fmtDate, money } from '../lib/utils'
+import { today, addDays, fmtTime, fmtDate, money } from '../lib/utils'
 
 
 export function PatientForm({ onClose, onSaved, initial }) {
@@ -64,35 +64,41 @@ export function PatientForm({ onClose, onSaved, initial }) {
   )
 }
 
-export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fixedDoctor, date: initDate, time: initTime }) {
+// move: an existing appointment to reschedule (same patient, new doctor/date/time).
+export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fixedDoctor, date: initDate, time: initTime, move }) {
   const { tid, tenant, list, doctors, patient } = useTenant()
   const docs = doctors()
-  const [f, setF] = useState({ patientId: fixedPatient || '', doctorId: fixedDoctor || docs[0].id, date: initDate || today(), time: initTime || '', reason: '' })
+  const [f, setF] = useState(move
+    ? { patientId: move.patientId, doctorId: move.doctorId, date: move.date < today() ? today() : move.date, time: '', reason: move.reason || '' }
+    : { patientId: fixedPatient || '', doctorId: fixedDoctor || docs[0].id, date: initDate || today(), time: initTime || '', reason: '' })
   const [q, setQ] = useState('')
   const [err, setErr] = useState('')
   const [newP, setNewP] = useState(false)
   const [done, setDone] = useState(null)
-  const taken = new Set(list('appointments').filter((a) => a.doctorId === f.doctorId && a.date === f.date && a.status !== 'cancelled').map((a) => a.time))
+  const taken = new Set(list('appointments').filter((a) => a.doctorId === f.doctorId && a.date === f.date && !['cancelled', 'no-show'].includes(a.status) && a.id !== move?.id).map((a) => a.time))
   const nowHM = new Date().toTimeString().slice(0, 5)
   const free = slotsOn(tenant, f.date).filter((s) => !taken.has(s) && (f.date > today() || s > nowHM))
   const matches = q.length > 1 ? list('patients').filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.phone.includes(q) || p.id.toLowerCase() === q.toLowerCase()).slice(0, 6) : []
   const doc = docs.find((d) => d.id === f.doctorId)
   const save = () => {
     if (!f.patientId || !f.time) return setErr('Choose a patient and a free time slot.')
-    const a = db.add(tid, 'appointments', { ...f, reason: f.reason || 'Consultation', status: 'scheduled', type: 'OPD' })
-    toast(`Booked ${patient(f.patientId).name} with ${doc.name} at ${fmtTime(f.time)}`)
+    const a = move
+      ? db.update(tid, 'appointments', move.id, { doctorId: f.doctorId, date: f.date, time: f.time, reason: f.reason || move.reason, status: 'scheduled', remindedAt: null, movedFrom: `${move.date} ${move.time}` }) || { ...move, ...f, status: 'scheduled' }
+      : db.add(tid, 'appointments', { ...f, reason: f.reason || 'Consultation', status: 'scheduled', type: 'OPD' })
+    toast(`${move ? 'Moved' : 'Booked'} ${patient(f.patientId).name} with ${doc.name}, ${fmtDate(f.date)} at ${fmtTime(f.time)}`)
     if (/^\d{10}$/.test(patient(f.patientId)?.phone || '')) setDone(a)
     else onClose(a)
   }
   if (done) return (
-    <Modal title="Appointment booked" onClose={() => onClose(done)} footer={<><button className="btn" onClick={() => onClose(done)}>Done</button><RemindButton a={done} kind="booked" label="Send confirmation on WhatsApp" small={false} /></>}>
+    <Modal title={move ? 'Appointment moved' : 'Appointment booked'} onClose={() => onClose(done)} footer={<><button className="btn" onClick={() => onClose(done)}>Done</button><NotifyButtons a={done} kind={move ? 'moved' : 'booked'} small={false} wide /></>}>
       <p style={{ margin: 0 }}><strong>{patient(done.patientId).name}</strong> with {doc.name}, {fmtDate(done.date)} at {fmtTime(done.time)}.</p>
-      <p className="small muted" style={{ margin: 0 }}>Send the patient a confirmation now. A reminder can be sent the day before from the dashboard.</p>
+      <p className="small muted" style={{ margin: 0 }}>Let the patient know now on WhatsApp, or by SMS if they don’t use WhatsApp. A reminder can be sent the day before from the dashboard.</p>
     </Modal>
   )
   return (
-    <Modal title="Book appointment" onClose={() => onClose()} footer={<><button className="btn" onClick={() => onClose()}>Cancel</button><button className="btn primary" onClick={save}>Confirm booking</button></>}>
-      {!fixedPatient && (
+    <Modal title={move ? 'Move appointment' : 'Book appointment'} onClose={() => onClose()} footer={<><button className="btn" onClick={() => onClose()}>Cancel</button><button className="btn primary" onClick={save}>{move ? 'Move to this time' : 'Confirm booking'}</button></>}>
+      {move && <div className="small muted">Now: {fmtDate(move.date)} at {fmtTime(move.time)}. Pick the new day and time.</div>}
+      {!fixedPatient && !move && (
         f.patientId ? (
           <div className="row between card pad" style={{ padding: 10 }}>
             <span><strong>{patient(f.patientId).name}</strong> <span className="muted small">{f.patientId} · {patient(f.patientId).phone}</span></span>
@@ -113,6 +119,12 @@ export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fi
       <div className="grid g2">
         <Select id="ba-doc" label="Doctor" value={f.doctorId} onChange={(e) => setF({ ...f, doctorId: e.target.value, time: '' })} disabled={!!fixedDoctor} options={docs.map((d) => ({ value: d.id, label: `${d.name} · ${d.dept}` }))} />
         <Input id="ba-date" label="Date" type="date" min={today()} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value, time: '' })} />
+      </div>
+      <div className="row" style={{ gap: 6 }}>
+        {[['Today', 0], ['Tomorrow', 1], ['In 3 days', 3], ['1 week', 7], ['2 weeks', 14], ['1 month', 30]].map(([l, n]) => {
+          const d = addDays(today(), n)
+          return <button key={l} className={`btn sm ${f.date === d ? 'primary' : ''}`} onClick={() => setF({ ...f, date: d, time: '' })}>{l}</button>
+        })}
       </div>
       <div className="field">
         <span>Free slots ({free.length}) · consultation fee {money(doc.fee)}</span>
