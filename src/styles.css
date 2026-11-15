@@ -1912,3 +1912,7 @@ td { padding: 12px 14px; }
 .ask-bar input { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--fg); font: 15px var(--font-body); }
 .ask-bar .btn.primary { background: linear-gradient(120deg, #4f46e5, #7c3aed); border-color: transparent; }
 @media (max-width: 620px) { .ask-bar .btn span, .ask-bar .btn { font-size: 0; gap: 0; padding: 0 12px; } .ask-bar .btn svg { width: 18px; height: 18px; } }
+.ai-row-pick { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+.ai-row-pick > div { flex: 1; min-width: 0; display: grid; gap: 1px; font-size: 13px; }
+.ai-row-pick span { color: var(--muted); font-size: 11.5px; }
+.ai-row-pick .ai-chip { padding: 5px 10px; font-size: 12px; }
