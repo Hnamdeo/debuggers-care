@@ -2177,3 +2177,15 @@ body:has(.chat-page) { background: #070b17; }
 /* AI inspection: the changing step text stays on one line so the card never jumps */
 .ts-phase { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 1.35em; line-height: 1.35em; min-height: 0; }
 .ts-side { min-width: 0; }
+/* AI inspection, compact (16 Nov): % match shown on the tooth, one-line findings */
+.ts { padding: 12px 14px; }
+.ts-head { margin-bottom: 4px; }
+.ts-holo { max-height: 190px; }
+.ts-call text { font-size: 15px; }
+.ts-call text.pct { font: 800 21px var(--font-head); }
+.ts-call text.pct.bad { fill: #f87171; } .ts-call text.pct.warn { fill: #fbbf24; } .ts-call text.pct.ok { fill: #34d399; }
+.ts-side { gap: 6px; }
+.ts-results { gap: 5px; }
+.ts-results li { padding: 5px 9px; }
+.ts-results b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.ts-results li.ok { border-color: #34d399; }
