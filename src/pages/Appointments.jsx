@@ -9,6 +9,7 @@ import { today, addDays, fmtDate, fmtTime } from '../lib/utils'
 import { slotsOn, slotMinutes, hoursOn, busyMap, endTime, apptMins } from '../lib/slots'
 import { BookAppointment as Book } from '../components/forms'
 import { NotifyButtons, RemindModal } from '../components/reminders'
+import { AiReadingLine } from '../components/toothscan'
 
 export default function Appointments() {
   const { tid, tenant, list, patient, staff, doctors, user, me, base } = useTenant()
@@ -37,6 +38,8 @@ export default function Appointments() {
         {date >= today() && <button className="btn" onClick={() => setRemind({ title: `Send reminders · ${fmtDate(date)}`, ids: null })}><BellRing /> Remind all patients{(() => { const n = rows.filter((a) => a.status === 'scheduled' && !a.remindedAt).length; return n ? ` (${n})` : '' })()}</button>}
         <button className="btn primary" onClick={() => setParams({ new: '1' })}><CalendarPlus /> Book appointment</button>
       </PageHead>
+      <AiReadingLine key={date} steps={['is reading the appointments', 'is matching each patient’s record', 'is checking free slots and reminders']}
+        done={`read ${rows.length} appointment${rows.length === 1 ? '' : 's'} and matched every patient`} />
       <div className="row" style={{ gap: 6 }}>
         <button className={`btn sm ${view === 'calendar' ? 'primary' : ''}`} onClick={() => pickView('calendar')}><CalendarDays /> Calendar</button>
         <button className={`btn sm ${view === 'slots' ? 'primary' : ''}`} onClick={() => pickView('slots')}><LayoutGrid /> Time slots</button>

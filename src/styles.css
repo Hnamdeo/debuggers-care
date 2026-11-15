@@ -2091,10 +2091,23 @@ body:has(.demo-band) .ai-rail { top: 40px; }
 .ai-rail .ai-orb { background: var(--brand); color: var(--brand-ink, #fff); }
 .ai-rail-t { writing-mode: vertical-rl; font: 700 11px var(--font-head); letter-spacing: .18em; text-transform: uppercase; }
 body.ai-railed .notes-fab { right: 82px; }
-.ts-src { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
-.ts-src span { font-size: 10.5px; font-weight: 600; padding: 3px 7px; border-radius: 99px; color: #64748b; background: rgb(255 255 255 / 4%); border: 1px solid rgb(148 163 184 / 18%); transition: all .3s; }
-.ts-src span.now { color: #7dd3fc; border-color: rgb(56 189 248 / 55%); box-shadow: 0 0 10px rgb(56 189 248 / 35%); }
-.ts-src span.on { color: #6ee7b7; border-color: rgb(52 211 153 / 40%); background: rgb(52 211 153 / 8%); }
 /* Doctor dashboard: 6 quick actions, 3 per row */
 .qa-row.six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 620px) { .qa-row.six { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* One-line "AI is reading" strip (Appointments, Practice analytics) */
+.ai-line { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--brand) 25%, var(--line)); background: color-mix(in srgb, var(--brand) 6%, var(--surface)); font-size: 13px; }
+.ai-line::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--brand) 14%, transparent) 50%, transparent 70%); transform: translateX(-100%); animation: aiLineSweep 1.8s ease-in-out infinite; pointer-events: none; }
+.ai-line.ok::after { display: none; }
+@keyframes aiLineSweep { to { transform: translateX(100%); } }
+.ai-line-orb { width: 26px; height: 26px; flex: none; border-radius: 8px; display: grid; place-items: center; color: var(--brand-ink, #fff); background: var(--brand); animation: aiLinePulse 1.4s ease-in-out infinite; }
+.ai-line.ok .ai-line-orb { animation: none; background: #16a34a; }
+@keyframes aiLinePulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--brand) 18%, transparent); } }
+.ai-line-t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-line-t b { color: var(--brand); margin-right: 2px; }
+.ai-line-dots { display: inline-flex; gap: 3px; margin-left: 5px; vertical-align: middle; }
+.ai-line-dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--brand); animation: aiDot 1s infinite ease-in-out; }
+.ai-line-dots i:nth-child(2) { animation-delay: .15s; } .ai-line-dots i:nth-child(3) { animation-delay: .3s; }
+.ai-line-bar { width: 90px; height: 4px; flex: none; border-radius: 4px; background: var(--line); overflow: hidden; }
+.ai-line-bar i { display: block; height: 100%; background: var(--brand); transition: width .6s ease; }
+@media (max-width: 520px) { .ai-line-bar { display: none; } }
+@media (prefers-reduced-motion: reduce) { .ai-line::after, .ai-line-orb, .ai-line-dots i { animation: none !important; } }
