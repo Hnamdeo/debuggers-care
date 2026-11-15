@@ -117,6 +117,23 @@ export function RemindModal({ appts, title, onClose }) {
   }, [tid])
   const left = appts.filter((a) => !a.remindedAt && okPhone(patient(a.patientId)))
   const many = doctors().length > 1
+  const { tenant } = useTenant()
+  // Without the Business API a browser can open only one WhatsApp chat per tap, so "all" goes patient by patient:
+  // each tap opens the next patient's chat with the message ready and marks them reminded.
+  const [queue, setQueue] = useState(null)
+  const nextUp = queue && queue.find((id) => !appts.find((a) => a.id === id)?.remindedAt)
+  const openNext = () => {
+    const ids = queue || left.map((a) => a.id)
+    if (!queue) setQueue(ids)
+    const a = appts.find((x) => x.id === ids.find((id) => !appts.find((y) => y.id === id)?.remindedAt))
+    if (!a) return
+    const p = patient(a.patientId)
+    window.open(whatsappLink(p.phone, reminderText(tenant, p, a, staff(a.doctorId))), '_blank', 'noopener')
+    db.update(tid, 'appointments', a.id, { remindedAt: new Date().toISOString(), remindedVia: 'whatsapp' })
+  }
+  const total = queue ? queue.length : left.length
+  const doneN = queue ? queue.filter((id) => appts.find((a) => a.id === id)?.remindedAt).length : 0
+  const nextP = nextUp ? patient(appts.find((a) => a.id === nextUp)?.patientId) : left[0] && patient(left[0].patientId)
   const sendAll = async () => {
     setBusy(true)
     try {
@@ -127,14 +144,19 @@ export function RemindModal({ appts, title, onClose }) {
   return (
     <Modal title={title || 'Send reminders'} wide onClose={onClose} footer={<>
       <button className="btn" onClick={onClose}>Close</button>
-      {auto && left.length > 0 && <button className="btn primary" disabled={busy} onClick={sendAll}><Send /> {busy ? 'Sending…' : `Send WhatsApp to all ${left.length}`}</button>}
+      {auto && left.length > 0 && <button className="btn primary" disabled={busy} onClick={sendAll}><Send /> {busy ? 'Sending…' : `Send reminder to all ${left.length} patients`}</button>}
+      {!auto && (left.length > 0 || queue) && (
+        queue && !nextUp
+          ? <span className="pill ok">All {total} reminded</span>
+          : <button className="btn primary" onClick={openNext}><Send /> {!queue ? `Send reminder to all ${total} patients` : `Next: ${nextP?.name?.split(' ')[0] || 'patient'} (${doneN + 1} of ${total})`}</button>
+      )}
     </>}>
       {!appts.length && <div className="empty">No booked patients to remind.</div>}
       {appts.length > 0 && (
         <div className="small muted">
           {auto
             ? 'Send to everyone at once from the clinic’s WhatsApp Business number, or one by one below.'
-            : 'Tap WhatsApp or SMS for each patient: the message opens ready in Hindi and English, press Send there. To send to everyone in one click, connect the clinic’s WhatsApp Business in Plan & settings.'}
+            : 'Press “Send reminder to all”: WhatsApp opens for each patient in turn with the message ready in Hindi and English. Press Send there, come back and tap Next. Use SMS for patients without WhatsApp. To send to everyone automatically in one click, connect the clinic’s WhatsApp Business in Plan & settings.'}
         </div>
       )}
       {appts.map((a) => {
