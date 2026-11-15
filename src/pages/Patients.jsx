@@ -58,12 +58,14 @@ export default function Patients() {
 
 export function PatientProfile() {
   const { id } = useParams()
-  const { patient, user, can, base } = useTenant()
+  const { patient, user, can, base, tenant } = useTenant()
   const nav = useNavigate()
   const p = patient(id)
   const [modal, setModal] = useState(null)
   if (!p) return <div className="empty">Patient not found.</div>
   const staffView = user.role !== 'patient'
+  // Bills: the admin, the front desk, and in a clinic's own space the doctor too.
+  const canBill = ['admin', 'receptionist'].includes(user.role) || (tenant.live && user.role === 'doctor')
   return (
     <>
       {staffView && <DuplicateNotice p={p} />}
@@ -74,9 +76,9 @@ export function PatientProfile() {
         <button className="btn" onClick={() => setModal('book')}><CalendarPlus /> Book</button>
         <button className="btn" onClick={() => setModal('pin')}><KeyRound /> Patient login</button>
         {can('ipd') && <button className="btn" onClick={() => setModal('admit')}><BedDouble /> Admit</button>}
-        {user.role === 'admin' && <button className="btn" onClick={() => setModal('bill')}><Receipt /> New bill</button>}
+        {canBill && <button className="btn" onClick={() => setModal('bill')}><Receipt /> New bill</button>}
       </PatientHeader>
-      <PatientRecord p={p} canCollect={staffView && user.role === 'admin'} onBook={() => setModal('book')} onBill={user.role === 'admin' ? () => setModal('bill') : null} />
+      <PatientRecord p={p} canCollect={staffView && canBill} onBook={() => setModal('book')} onBill={canBill ? () => setModal('bill') : null} />
       {modal === 'pin' && <PinModal p={p} onClose={() => setModal(null)} />}
       {modal === 'edit' && <PatientForm initial={p} onClose={() => setModal(null)} />}
       {modal === 'image' && <ImageUpload patientId={p.id} onClose={() => setModal(null)} />}

@@ -176,12 +176,24 @@ function rateLimit(int $max, int $seconds): void {
   if ((int)$s->fetchColumn() >= $max) fail('Too many tries. Please wait a few minutes and try again.', 429);
   $pdo->prepare('INSERT INTO hits (ip, at) VALUES (?, ?)')->execute([$ip, time()]);
 }
+// Clinics set up before the front desk login existed get one (same clinic password as everyone).
+function ensureFrontDesk(): void {
+  global $pdo;
+  foreach (users() as $u) if (($u['role'] ?? '') === 'receptionist') return;
+  $pdo->beginTransaction();
+  $rev = nextRev();
+  if (!getRec('staff', 'S-FD')) putRec('staff', ['id' => 'S-FD', 'name' => 'Front desk', 'gender' => 'F', 'role' => 'receptionist', 'dept' => 'Reception', 'title' => 'Receptionist', 'phone' => '', 'email' => '', 'salary' => 0, 'joinDate' => date('Y-m-d')], $rev);
+  putRec('users', ['id' => 'U-front', 'role' => 'receptionist', 'refId' => 'S-FD', 'email' => 'frontdesk@clinic.in'], $rev);
+  audit(null, 'front desk added');
+  $pdo->commit();
+}
 function initialised(): bool { return meta('tenant') !== null; }
 function tenantOut(): array { return json_decode(meta('tenant') ?? '{}', true); }
 function staffPasswordHash(): string { return meta('staff_pw') ?? $GLOBALS['clinic']['initial_password_hash']; }
 
 switch ($action) {
   case 'status':
+    if (initialised()) ensureFrontDesk();
     out(['ready' => initialised(), 'staff' => initialised() ? publicStaff() : []]);
 
   case 'login': {

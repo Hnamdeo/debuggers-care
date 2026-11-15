@@ -16,7 +16,7 @@ export default function Locked({ mod }) {
           {tenant.name} is on the {PLANS[tenant.plan].name} plan. Upgrading switches this module on straight away, and all your patients,
           appointments and bills stay as they are.
         </p>
-        {user.role === 'admin' && <button className="btn primary" onClick={() => nav(`${base}/settings`)}>See plans</button>}
+        {(user.role === 'admin' || (tenant.live && user.role === 'doctor')) && <button className="btn primary" onClick={() => nav(`${base}/settings`)}>See plans</button>}
       </div>
     </div>
   )

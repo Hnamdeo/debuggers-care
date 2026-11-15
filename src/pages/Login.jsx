@@ -35,9 +35,10 @@ export default function Login() {
   }
 
   const quick = [
-    { role: 'admin', icon: ShieldCheck, label: 'Admin', sub: 'Full access, billing, staff, plan' },
-    { role: 'doctor', icon: Stethoscope, label: 'Doctor', sub: 'Today’s patients, prescriptions' },
-    tenant.live && { role: 'receptionist', icon: ClipboardList, label: 'Reception', sub: 'Register patients, vitals, bills' },
+    // A clinic's own space has no separate admin: the doctor runs it, the front desk does the rest.
+    !tenant.live && { role: 'admin', icon: ShieldCheck, label: 'Admin', sub: 'Full access, billing, staff, plan' },
+    { role: 'doctor', icon: Stethoscope, label: 'Doctor', sub: tenant.live ? 'Patients, prescriptions, bills, settings' : 'Today’s patients, prescriptions' },
+    tenant.live && { role: 'receptionist', icon: ClipboardList, label: 'Reception', sub: 'Front desk: register patients, appointments, vitals, bills' },
     can('pharmacy') && { role: 'pharmacist', icon: Store, label: 'Pharmacist', sub: 'Stock and dispensing' },
     !tenant.live && { role: 'patient', icon: User, label: 'Patient', sub: 'Own records, bills, booking' },
   ].filter(Boolean)
