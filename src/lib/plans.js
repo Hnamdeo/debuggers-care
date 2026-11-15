@@ -35,6 +35,7 @@ export const PLANS = {
     id: 'plus',
     name: 'Clinic Plus',
     price: 2499,
+    bonus: 'Free clinic website with Google SEO',
     blurb: 'Multi-doctor clinics with their own pharmacy and staff payroll.',
     maxDoctors: 10,
     modules: ['dashboard', 'patients', 'appointments', 'prescriptions', 'reports', 'education', 'billing', 'staff', 'pharmacy', 'payroll'],
@@ -43,11 +44,15 @@ export const PLANS = {
     id: 'hospital',
     name: 'Hospital',
     price: 7999,
+    bonus: 'Free hospital website with Google SEO',
     blurb: 'Full hospitals: IPD and ICU beds, emergency desk, departments.',
     maxDoctors: Infinity,
     modules: Object.keys(MODULES),
   },
 }
+
+// Terms for the free website that comes with every plan.
+export const WEBSITE_TERMS = 'Free website: we design, build and set up Google SEO for your clinic’s website at no charge. The domain name (for example yourclinic.in) and web hosting are paid by the clinic, at actual cost, every year.'
 
 export const PLAN_ORDER = ['clinic', 'plus', 'hospital']
 
