@@ -3,12 +3,12 @@
 // "who is waiting", "today's collection". Asks back when something is missing or there are two Prems.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Pin, PanelRightClose, Sparkles, Send, X, Mic, CalendarPlus, UserPlus, Search, Hourglass, IndianRupee, Clock, FileHeart, CornerDownLeft, Wand2 } from 'lucide-react'
+import { Pin, PanelRightClose, Maximize2, Minimize2, Sparkles, Send, X, Mic, CalendarPlus, UserPlus, Search, Hourglass, IndianRupee, Clock, FileHeart, CornerDownLeft, Wand2 } from 'lucide-react'
 import { useTenant, toast } from './ui'
 import { db } from '../lib/store'
 import { today, addDays, fmtDate, fmtTime, money, billTotal, nowTime, age } from '../lib/utils'
 import { freeStarts, slotsOn, proceduresFor, hoursOn } from '../lib/slots'
-import { takeDate, takeTime, takePhone, takeId, nameWords, findPatients, parseMeds, matchMed, titleCase } from '../lib/assistant'
+import { takeDate, takeTime, takePhone, takeId, nameWords, findPatients, parseMeds, matchMed, titleCase, looksLikeRx } from '../lib/assistant'
 import { samePerson } from '../lib/patients'
 import { reminderText } from './reminders'
 import { whatsappLink } from './videos'
@@ -101,6 +101,7 @@ export function Assistant() {
   const [hi, setHi] = useState(0)
   const [listening, setListening] = useState(false)
   const logRef = useRef(null)
+  const [big, setBig] = useState(false)
   const inRef = useRef(null)
   const T = today()
 
@@ -309,8 +310,10 @@ export function Assistant() {
       medsPart = ws.slice(k).join(' ')
     }
     const r = d.p ? { p: d.p } : resolve(who || '')
-    return { ...d, ...r, meds: [...(d.meds || []), ...parseMeds(medsPart.replace(/;/g, ','), meds)], dx: dx || d.dx, advice: advice || d.advice, next: next || d.next }
+    return { ...d, ...r, meds: [...(d.meds || []), ...parseMeds(medsPart.replace(/;/g, ','), meds).filter((m) => m.known || m.given || m.dose)], dx: dx || d.dx, advice: advice || d.advice, next: next || d.next }
   }
+  const stripOpen = (t) => t.replace(/\b(open|show|see|view|check|patient|patinet|pateint|the|of|for|ka|ki|profi\w*|hist\w*|hisor\w*|records?|details|page|link|this|is)\b/g, ' ').replace(/https?:\S+/g, ' ').trim()
+  const goProfile = (p) => { nav(`${base}/patients/${p.id}`); return reply({ text: `Opened ${p.name}’s profile (${p.id}).`, chips: [{ label: 'Write prescription', act: () => startRx({ p, meds: [] }) }, { label: 'Book appointment', act: () => askBooking({ p }) }] }) }
   const resolve = (txt) => {
     let t = txt.toLowerCase()
     const i = takeId(t); t = i.text
@@ -340,14 +343,24 @@ export function Assistant() {
     if (!hit) return null
     return { text: hit.a, chips: hit.go ? [{ label: hit.go[0], act: () => nav(`${base}/${hit.go[1]}`) }] : [] }
   }
-  const understand = (typed) => {
+  const understand = (typed, fresh = false) => {
     // Only the first word and words like "appointment" are corrected; names stay as typed.
     const raw = typed.replace(/^\s*\S+/, (w) => fixTypos(w)).replace(/\b(apo?int?ment|appo?int?ment|apointmnt|appointmnt|appoinment)\b/gi, 'appointment')
     const low = raw.toLowerCase().trim()
     // Answers to a question I asked.
-    if (pending) {
+    if (pending && !fresh) {
       const { kind, d, f } = pending
-      if (/^(cancel|stop|no|nahi|leave it|chhodo)$/.test(low)) { setPending(null); return reply({ text: 'Okay, cancelled.' }) }
+      if (/^(cancel|stop|no|nope|nahi|leave it|chhodo|exit|back)$/.test(low)) { setPending(null); return reply({ text: 'Okay, cancelled. What else can I do?', chips: cmdChips() }) }
+      // A fresh request in the middle of a question ("rx anjali", "open Prem profile", a patient link) starts over.
+      const fresh2 = /^(rx|prescription|prescribe|register|registration|book|find|search|who|today|free|new patient|add patient)\b/.test(low)
+        || (/^(open|show|see|view)\s+\S/.test(low) && !/^open (pad|prescription pad|it)$/.test(low))
+        || /\b(profi\w*|hist\w*|hisor\w*)\b|\/patients\/P-\d+/i.test(low)
+      if (fresh2 && !(kind === 'book-type' && /^(new|register)/.test(low)) && !(kind === 'reg-confirm' && low === 'register') && !(kind === 'pick' && /^(new|register)/.test(low))) {
+        setPending(null)
+        // "open patient history" while writing for someone means that patient.
+        if (d?.p && /\b(profi\w*|hist\w*|hisor\w*|records?|details)\b/.test(low) && !resolve(stripOpen(low)).cands?.length) return goProfile(d.p)
+        return understand(typed, true)
+      }
       if (kind === 'pick' || kind === 'rx-pick') {
         let t = low; const i = takeId(t); t = i.text; const ph = takePhone(t); t = ph.text
         const ws = nameWords(t)
@@ -372,10 +385,26 @@ export function Assistant() {
       }
       if (kind === 'find') { setPending(null); return showPatients(resolve(raw).cands) }
       if (kind === 'reg-gender') { const g = /\b(f|female|woman|lady|mahila)\b/.test(low) ? 'F' : /\b(m|male|man|purush)\b/.test(low) ? 'M' : null; if (g) return startRegister({ ...f, gender: g }) }
-      if (kind === 'rx-meds' || kind === 'rx-confirm') { if (!/^(yes|ok|open|haan|ha)$/.test(low)) return startRx(parseRx(raw, { ...d })) ; return openRx(d) }
+      if (kind === 'rx-meds' || kind === 'rx-confirm') {
+        if (/^(yes|ok|okay|open|open pad|haan|ha|done)$/.test(low)) return openRx(d)
+        if (/^(no|nope|cancel|stop|exit|back|nahi|na|leave it|clear)\b/.test(low)) { setPending(null); return reply({ text: 'Okay, stopped the prescription. What else can I do?', chips: cmdChips() }) }
+        if (looksLikeRx(raw, meds)) return startRx(parseRx(raw, { ...d }))
+        // Not a medicine: leave the prescription and treat it as a new request, about this patient if no one else is named.
+        setPending(null)
+        if (d.p && /\b(profi\w*|hist\w*|hisor\w*|records?|details|open|show)\b/.test(low) && !resolve(stripOpen(low)).p) return goProfile(d.p)
+        return understand(typed, true)
+      }
       if (kind === 'confirm' && /^(yes|ok|confirm|haan|ha|done|book)$/.test(low)) return book(d)
       if (kind === 'reg-confirm' && /^(yes|ok|confirm|haan|ha|register)$/.test(low)) return register(f)
       setPending(null)
+    }
+    const link = raw.match(/\/patients\/(P-\d+)/i)
+    if (link) { const p = patient(link[1].toUpperCase()); if (p) return goProfile(p) }
+    if (/\b(profi\w*|hist\w*|hisor\w*|records?|details)\b/.test(low) && !/^(rx|prescription|register|book)\b/.test(low)) {
+      const r = resolve(stripOpen(low))
+      if (r.p) return goProfile(r.p)
+      if (!r.cands?.length && stripOpen(low)) return reply({ text: `I couldn’t find a patient called “${titleCase(stripOpen(low))}”. Try the mobile number or patient ID.` })
+      if (r.cands?.length > 1) return reply({ text: 'Which patient?', rows: r.cands.slice(0, 6).map((p) => ({ main: p.name, sub: `${p.id} · ${p.phone || 'no mobile'}`, act: () => goProfile(p) })) })
     }
     if (/^(hi|hello|hey|namaste|namaskar|good (morning|afternoon|evening)|hii+)\b/.test(low)) return reply({ text: summary() })
     if (/\b(help|what can you do|commands?)\b/.test(low)) return reply({ text: 'I can do the front-desk and doctor work from chat. Try one of these:', chips: cmdChips(true) })
@@ -513,10 +542,11 @@ export function Assistant() {
         </button>
       )}
       {shown && (
-        <div className={`ai-panel ${side ? 'side' : ''} ${docked ? 'docked' : side ? 'over' : ''}`} role={docked ? 'complementary' : 'dialog'} aria-label="AI assistant">
+        <div className={`ai-panel ${side ? 'side' : ''} ${docked ? 'docked' : side ? 'over' : ''} ${big ? 'big' : ''}`} role={docked ? 'complementary' : 'dialog'} aria-label="AI assistant">
           <header className="ai-head">
             <span className="ai-orb"><Sparkles size={18} /></span>
             <div><b>I am your AI agent</b><small><i className="ai-live" /> {rxAppt ? 'Tell me the medicines, I’ll write the prescription' : 'Online · give me any task'}</small></div>
+            {side && <button className="gc-icon sm" onClick={() => setBig(!big)} aria-pressed={big} aria-label={big ? 'Make smaller' : 'Make bigger'} title={big ? 'Back to the side' : 'Make the chat bigger (covers the page)'}>{big ? <Minimize2 /> : <Maximize2 />}</button>}
             {side && <button className={`gc-icon sm ai-pin ${docked ? 'on' : ''}`} onClick={() => { if (docked) { setMode('hidden'); setOpen(true) } else { setMode('pinned'); setOpen(false) } }} aria-pressed={docked} aria-label={docked ? 'Unpin' : 'Pin open'} title={docked ? 'Unpin: closes when you change page' : 'Pin: keep open on every page'}><Pin /></button>}
             <button className="gc-icon sm" onClick={() => { if (side) setMode('hidden'); setOpen(false) }} aria-label="Hide" title={side ? 'Hide to the side rail' : 'Close'}>{side ? <PanelRightClose /> : <X />}</button>
           </header>
@@ -524,7 +554,7 @@ export function Assistant() {
             {msgs.map((m, i) => (
               <div key={i} className={`ai-msg ${m.from}`}>
                 {m.text && <div className="ai-bubble">{m.text}</div>}
-                {m.card && (
+                {m.card && msgs.findLastIndex((x) => x.card) === i && (
                   <div className={`ai-card ${m.card.kind}`}>
                     <b><Wand2 size={14} /> {m.card.title}</b>
                     {m.card.lines.map((l, j) => <span key={j}>{l}</span>)}
