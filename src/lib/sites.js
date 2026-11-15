@@ -4,6 +4,8 @@
 export const SITES = {
   drmourya: {
     name: 'Dr. Mourya’s Dental Clinic',
+    area: 'Mowa, Raipur',
+    addrLines: ['Paras Bhavan, Vidhan Sabha Road', 'Mowa, Raipur'],
     tagline: 'Quality dental care at an affordable cost, in the heart of Mowa, Raipur.',
     rating: 4.8,
     reviews: 110,
@@ -69,6 +71,42 @@ export const SITES = {
       ['crown', 'Crowns & bridges', 'Strong, natural-looking caps and bridges for damaged or missing teeth.'],
       ['implant', 'Dental implants', 'Fixed replacement teeth that look and feel like your own.'],
       ['smile', 'Cosmetic dentistry', 'Smile makeovers to help you smile with confidence.'],
+    ],
+  },
+  vedantadental: {
+    name: 'Vedanta Dental Care',
+    area: 'Janjgir',
+    addrLines: ['Champa Road, near Dr. Prasad Hospital', 'Shankar Nagar, Janjgir'],
+    tagline: 'Gentle, modern dental care for the whole family, on Champa Road, Janjgir.',
+    rating: 4.5,
+    reviewSource: 'Justdial',
+    phone: '+91 95847 86800',
+    whatsapp: '919584786800',
+    address: 'Champa Road, near Dr. Prasad Hospital, Shankar Nagar, Janjgir, Chhattisgarh 495668',
+    mapQuery: 'Vedanta Dental Care, Champa Road, Janjgir',
+    hours: [
+      [1, [[9.5, 14], [17, 21]]],
+      [2, [[9.5, 14], [17, 21]]],
+      [3, [[9.5, 14], [17, 21]]],
+      [4, [[9.5, 14], [17, 21]]],
+      [5, [[9.5, 14], [17, 21]]],
+      [6, [[9.5, 14], [17, 21]]],
+      [0, [[9.5, 14]]],
+    ],
+    // Qualifications to be confirmed by the clinic.
+    doctors: [
+      { name: 'Dr. Deepak', title: 'Dental surgeon', quals: ['BDS'] },
+      { name: 'Dr. Megha', title: 'Dental surgeon', quals: ['BDS'] },
+    ],
+    services: [
+      ['tooth', 'Root canal treatment', 'Painless single and multi-sitting RCT to save your natural tooth.'],
+      ['sparkles', 'Laser dentistry', 'Laser treatment for gums and soft tissue with faster healing.'],
+      ['implant', 'Dental implants', 'Fixed replacement teeth that look and feel like your own.'],
+      ['smile', 'Aligners & braces', 'Straighten crooked teeth with braces or clear aligners.'],
+      ['crown', 'Cosmetic & restorative', 'Tooth-coloured fillings, crowns and smile makeovers.'],
+      ['stethoscope', 'Oral surgery', 'Extractions, wisdom teeth and oral & maxillofacial surgery.'],
+      ['heart', 'Kids dentistry', 'Friendly care for children’s teeth.'],
+      ['shield', 'Gum & mouth care', 'Bleeding gums, mouth ulcers, jaw pain and tobacco cessation help.'],
     ],
   },
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Phone, MapPin, Navigation, Star, Clock, LogIn, Stethoscope, Sparkles, Crown, Smile, GraduationCap, BadgeCheck, MessageCircle, ShieldCheck, HeartHandshake,
+  Phone, MapPin, Navigation, Star, Clock, LogIn, Stethoscope, Sparkles, Crown, Smile, GraduationCap, BadgeCheck, MessageCircle, ShieldCheck, HeartHandshake, Heart,
 } from 'lucide-react'
 import { useTenant, BrandMark, SiteFooter } from '../components/ui'
 
@@ -28,6 +28,8 @@ const SERVICE_ICON = {
   crown: Crown,
   implant: () => <Tooth implant />,
   smile: Smile,
+  heart: Heart,
+  shield: ShieldCheck,
 }
 
 export const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -58,6 +60,8 @@ export function useOpenNow(hours) {
   return s
 }
 
+const initials = (n) => n.replace(/^Dr\.?\s*/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+
 export default function ClinicSite({ site }) {
   const { tenant, base } = useTenant()
   const nav = useNavigate()
@@ -66,11 +70,13 @@ export default function ClinicSite({ site }) {
   const wa = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(`Hello ${site.name}, I would like to book an appointment.`)}`
   const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(site.mapQuery)}`
   const embed = `https://maps.google.com/maps?q=${encodeURIComponent(site.mapQuery)}&z=16&output=embed`
-  const d = site.doctor
+  const docs = site.doctors || [site.doctor]
+  const d = docs[0]
+  const src = site.reviewSource || 'Google'
 
   useEffect(() => {
     const before = document.title
-    document.title = `${site.name} · Raipur`
+    document.title = `${site.name} · ${site.area}`
     return () => { document.title = before }
   }, [site.name])
 
@@ -82,7 +88,7 @@ export default function ClinicSite({ site }) {
             <BrandMark tenant={tenant} size={38} />
             <div>
               <strong>{site.name}</strong>
-              <span className="small">Dental clinic · Mowa, Raipur</span>
+              <span className="small">Dental clinic · {site.area}</span>
             </div>
           </div>
           <button className="cs-btn ghost sm" onClick={() => nav(`${base}/login`)}><LogIn /> Staff sign in</button>
@@ -96,10 +102,10 @@ export default function ClinicSite({ site }) {
             <span className={`cs-status ${status.open ? 'open' : ''}`}><i />{status.text}</span>
             <h1>Healthy teeth,<br /><span>confident smiles.</span></h1>
             <p className="cs-lead">{site.tagline}</p>
-            <div className="cs-rating" aria-label={`Rated ${site.rating} out of 5 from ${site.reviews} Google reviews`}>
+            <div className="cs-rating" aria-label={`Rated ${site.rating} out of 5 ${site.reviews ? ` from ${site.reviews} ${src} reviews` : ` on ${src}`}`}>
               <span className="cs-stars">{[0, 1, 2, 3, 4].map((i) => <Star key={i} />)}</span>
               <strong>{site.rating}</strong>
-              <span>· {site.reviews} Google reviews</span>
+              <span>· {site.reviews ? `${site.reviews} ${src} reviews` : `rated on ${src}`}</span>
             </div>
             <div className="cs-cta">
               <a className="cs-btn primary" href={tel}><Phone /> Call {site.phone}</a>
@@ -109,19 +115,24 @@ export default function ClinicSite({ site }) {
           </div>
 
           <aside className="cs-doc">
-            <div className="cs-doc-top">
-              <span className="cs-doc-av" aria-hidden="true">PM</span>
-              <div>
-                <strong>{d.name}</strong>
-                <span className="small">{d.title} · {d.years}+ years</span>
+            {docs.map((x) => (
+              <div key={x.name} className="cs-doc-one">
+                <div className="cs-doc-top">
+                  <span className="cs-doc-av" aria-hidden="true">{initials(x.name)}</span>
+                  <div>
+                    <strong>{x.name}</strong>
+                    <span className="small">{x.title}{x.years ? ` · ${x.years}+ years` : ''}</span>
+                  </div>
+                </div>
+                <ul>
+                  {x.quals.map((q) => (
+                    <li key={q}>{/^reg/i.test(q) ? <BadgeCheck /> : <GraduationCap />}<span>{q}</span></li>
+                  ))}
+                </ul>
               </div>
-            </div>
-            <ul>
-              {d.quals.map((q, i) => (
-                <li key={q}>{i === 2 ? <BadgeCheck /> : <GraduationCap />}<span>{q}</span></li>
-              ))}
-            </ul>
-            <div className="cs-doc-fee small"><HeartHandshake /> Consultation fee about ₹{site.fee}</div>
+            ))}
+            {site.fee ? <div className="cs-doc-fee small"><HeartHandshake /> Consultation fee about ₹{site.fee}</div>
+              : <div className="cs-doc-fee small"><HeartHandshake /> Call or WhatsApp to book your visit</div>}
           </aside>
         </div>
       </section>
@@ -172,8 +183,8 @@ export default function ClinicSite({ site }) {
 
       <section className="cs-in cs-sec">
         <div className="cs-trust">
-          <div><ShieldCheck /><span><strong>{d.years}+ years of practice</strong><span className="small">Experienced, qualified dental surgeon</span></span></div>
-          <div><Star /><span><strong>{site.rating} on Google</strong><span className="small">Trusted by {site.reviews}+ reviewers</span></span></div>
+          <div><ShieldCheck /><span><strong>{d.years ? `${d.years}+ years of practice` : docs.length > 1 ? `${docs.length} dental surgeons` : 'Qualified dentist'}</strong><span className="small">Experienced, qualified dental {docs.length > 1 ? 'team' : 'surgeon'}</span></span></div>
+          <div><Star /><span><strong>{site.rating} on {src}</strong><span className="small">{site.reviews ? `Trusted by ${site.reviews}+ reviewers` : 'Loved by local patients'}</span></span></div>
           <div><Smile /><span><strong>Affordable care</strong><span className="small">Quality treatment at a fair cost</span></span></div>
         </div>
       </section>

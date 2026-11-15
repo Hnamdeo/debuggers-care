@@ -171,12 +171,15 @@ function ClinicPanel({ site }) {
   const today = site.hours.find(([d]) => d === status.day)?.[1]
   const h = new Date(Date.now() + (330 + new Date().getTimezoneOffset()) * 60000).getHours()
   const hello = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
-  const d = site.doctor
+  const docs = site.doctors || [site.doctor]
+  const d = docs[0]
   const rows = [
     [Clock, status.text, today ? `Today: ${slots(today)}` : 'Closed today'],
-    [Stethoscope, d.name, `${d.title} · ${d.years}+ years`],
-    [GraduationCap, d.quals[0].replace(/ \(.*\)$/, ''), d.quals.slice(1).join(' · ')],
-    [MapPin, 'Paras Bhavan, Vidhan Sabha Road', 'Mowa, Raipur'],
+    ...(docs.length > 1
+      ? [[Stethoscope, docs.map((x) => x.name).join(' & '), `${d.title}s`]]
+      : [[Stethoscope, d.name, `${d.title}${d.years ? ` · ${d.years}+ years` : ''}`],
+        [GraduationCap, d.quals[0].replace(/ \(.*\)$/, ''), d.quals.slice(1).join(' · ')]]),
+    [MapPin, site.addrLines?.[0] || site.address, site.addrLines?.[1] || site.area],
     [Phone, site.phone, 'Clinic phone'],
   ]
   return (
