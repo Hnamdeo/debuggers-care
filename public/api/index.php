@@ -20,6 +20,8 @@
 //   password  admin    change the staff password
 //   setpin    staff    make a 6-digit login PIN for a patient (shown once, to hand over)
 //   plogin    public   patient: mobile number + PIN -> session that sees only their own records
+//   wa        admin    automatic WhatsApp settings: read (token hidden) or save
+//   watest    admin    send one test template message to a number
 
 declare(strict_types=1);
 date_default_timezone_set('Asia/Kolkata');
@@ -40,6 +42,7 @@ function out(array $body, int $code = 200) {
 function fail(string $msg, int $code = 400) { out(['error' => $msg], $code); }
 
 $config = require __DIR__ . '/config.php';
+require __DIR__ . '/whatsapp.php';
 $slug = strtolower((string)($_GET['t'] ?? ''));
 $action = (string)($_GET['a'] ?? '');
 if (!isset($config['clinics'][$slug])) fail('Unknown clinic.', 404);
@@ -398,6 +401,41 @@ switch ($action) {
     header('Content-Length: ' . filesize($path));
     readfile($path);
     exit;
+  }
+
+  case 'wa': {
+    $u = staffOnly();
+    if (!in_array($u['role'] ?? '', ['admin', 'doctor'], true)) fail('Only the admin or doctor can change WhatsApp settings.', 403);
+    $cfg = array_merge(WA_DEFAULTS, json_decode(meta('wa') ?? '{}', true) ?: []);
+    $patch = $in['patch'] ?? null;
+    if (is_array($patch)) {
+      foreach (['enabled', 'dayBefore'] as $k) if (array_key_exists($k, $patch)) $cfg[$k] = (bool)$patch[$k];
+      foreach (['phoneNumberId', 'template', 'lang', 'clinicName'] as $k) if (array_key_exists($k, $patch)) $cfg[$k] = trim((string)$patch[$k]);
+      foreach (['minutesBefore' => [5, 240], 'dayBeforeHour' => [8, 22]] as $k => [$lo, $hi]) if (array_key_exists($k, $patch)) $cfg[$k] = max($lo, min($hi, (int)$patch[$k]));
+      // The token is write-only: an empty value keeps the saved one.
+      if (trim((string)($patch['token'] ?? '')) !== '') $cfg['token'] = trim((string)$patch['token']);
+      if (!empty($patch['clearToken'])) $cfg['token'] = '';
+      if ($cfg['enabled'] && ($cfg['token'] === '' || $cfg['phoneNumberId'] === '' || $cfg['template'] === '')) fail('Fill in the phone number ID, access token and template name before switching it on.');
+      setMeta('wa', json_encode($cfg, JSON_UNESCAPED_UNICODE));
+      audit($u['id'], 'whatsapp settings');
+    }
+    $last = meta('wa_last_run');
+    out(['wa' => waPublic($cfg), 'lastRun' => $last ? (int)$last : null, 'log' => array_reverse(json_decode(meta('wa_log') ?? '[]', true) ?: [])]);
+  }
+
+  case 'watest': {
+    $u = staffOnly();
+    if (!in_array($u['role'] ?? '', ['admin', 'doctor'], true)) fail('Only the admin or doctor can send a test.', 403);
+    rateLimit(10, 3600);
+    $cfg = array_merge(WA_DEFAULTS, json_decode(meta('wa') ?? '{}', true) ?: []);
+    if ($cfg['token'] === '' || $cfg['phoneNumberId'] === '') fail('Save the phone number ID and access token first.');
+    $phone = preg_replace('/\D/', '', (string)($in['phone'] ?? ''));
+    if (strlen($phone) !== 10) fail('Enter a 10-digit mobile number.');
+    $tenant = tenantOut();
+    $clinicName = (string)($cfg['clinicName'] ?? '') ?: (string)($tenant['name'] ?? $slug);
+    $res = waSend($cfg, $phone, waParams(['name' => 'Test'], ['date' => date('Y-m-d'), 'time' => date('H:i', time() + 1800)], $clinicName, 'the doctor'));
+    if (!$res['ok']) fail('WhatsApp said: ' . $res['error']);
+    out(['ok' => true]);
   }
 
   case 'password': {

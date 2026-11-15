@@ -1,7 +1,7 @@
 import { tenantHost } from '../lib/plans'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, Lock, Download, Upload, ImagePlus, Trash2, Palette, Phone, MessageCircle, BadgePercent } from 'lucide-react'
-import { useTenant, PageHead, Card, toast, BrandMark, PasswordInput } from '../components/ui'
+import { useTenant, PageHead, Card, toast, BrandMark, PasswordInput, Input, Select } from '../components/ui'
 import { db, server } from '../lib/store'
 import { PLANS, PLAN_ORDER, MODULES, SALES_PHONE, salesWhatsApp } from '../lib/plans'
 
@@ -47,6 +47,7 @@ export default function Settings() {
       </div>
       <ThemeCard tenant={tenant} tid={tid} />
       <BackupCard tenant={tenant} tid={tid} />
+      {db.onServer(tid) && <WhatsAppCard tid={tid} tenant={tenant} />}
       {db.onServer(tid) && <PasswordCard tid={tid} />}
       <Card title="Clinic details">
         <dl className="kv">
@@ -103,6 +104,74 @@ function BackupCard({ tenant, tid }) {
         <button className="btn primary" onClick={download}><Download /> Download backup</button>
         <button className="btn" onClick={() => file.current?.click()}><Upload /> Restore from backup</button>
         <input ref={file} type="file" accept="application/json,.json" hidden onChange={restore} />
+      </div>
+    </Card>
+  )
+}
+
+// Automatic WhatsApp reminders through the clinic's own WhatsApp Business number (Meta Cloud API).
+// The server sends the approved template; the access token is write-only and never shown again.
+const WA_TEMPLATE = 'Hello {{1}}, this is a reminder of your appointment at {{2}} {{3}} at {{4}} with {{5}}. Please come 10 minutes early. Reply to this message if you need to change the time.'
+function WhatsAppCard({ tid, tenant }) {
+  const [st, setSt] = useState(null)
+  const [f, setF] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [testTo, setTestTo] = useState('')
+  const load = (r) => { setSt(r); setF({ ...r.wa, clinicName: r.wa.clinicName || tenant.name, token: '' }) }
+  useEffect(() => { server.whatsapp(tid).then(load).catch(() => setSt({ error: true })) }, [tid])
+  if (!st) return <Card title="Automatic WhatsApp reminders"><div className="small muted">Loading…</div></Card>
+  if (st.error || !f) return null
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
+  const save = async (patch) => {
+    setBusy(true)
+    try { load(await server.whatsapp(tid, patch)); toast('WhatsApp settings saved') } catch (err) { toast(err.message || 'Could not save') } finally { setBusy(false) }
+  }
+  const test = async () => {
+    setBusy(true)
+    try { await server.whatsappTest(tid, testTo); toast('Test message sent. Check WhatsApp on that phone.') } catch (err) { toast(err.message || 'Test failed') } finally { setBusy(false) }
+  }
+  const on = st.wa.enabled
+  const cronOk = st.lastRun && Date.now() / 1000 - st.lastRun < 900
+  return (
+    <Card title="Automatic WhatsApp reminders" actions={<span className={`pill ${on ? 'ok' : 'plain'}`}>{on ? 'On' : 'Off'}</span>}>
+      <div className="stack" style={{ gap: 10 }}>
+        <p className="small muted" style={{ margin: 0 }}>
+          Patients get a WhatsApp message from the clinic’s own WhatsApp Business number {f.minutesBefore} minutes before their appointment{f.dayBefore ? ', and the evening before' : ''}, with nobody tapping Send.
+          Needs the clinic’s WhatsApp Business account (Meta) and an approved message template. Debuggers Space sets this up for you.
+        </p>
+        <div className="grid g2">
+          <Input id="wa-name" label="Clinic name in the message" value={f.clinicName} onChange={set('clinicName')} />
+          <Input id="wa-pnid" label="WhatsApp phone number ID" value={f.phoneNumberId} onChange={set('phoneNumberId')} placeholder="From Meta WhatsApp Manager" />
+          <PasswordInput id="wa-token" label={st.wa.hasToken ? 'Access token (saved, type to replace)' : 'Access token'} value={f.token} onChange={set('token')} autoComplete="off" />
+          <Input id="wa-tpl" label="Template name" value={f.template} onChange={set('template')} />
+          <Select id="wa-lang" label="Template language" value={f.lang} onChange={set('lang')} options={[{ value: 'en', label: 'English' }, { value: 'en_US', label: 'English (US)' }, { value: 'hi', label: 'Hindi' }]} />
+          <Select id="wa-min" label="Send before the appointment" value={String(f.minutesBefore)} onChange={set('minutesBefore')} options={[15, 30, 45, 60, 120].map((m) => ({ value: String(m), label: m < 60 ? `${m} minutes` : `${m / 60} hour${m > 60 ? 's' : ''}` }))} />
+        </div>
+        <label className="row small" style={{ gap: 8 }}><input type="checkbox" checked={!!f.dayBefore} onChange={set('dayBefore')} /> Also send the evening before, at
+          <select className="input" style={{ width: 100 }} value={String(f.dayBeforeHour)} onChange={set('dayBeforeHour')}>{[17, 18, 19, 20].map((h) => <option key={h} value={h}>{h - 12}:00 PM</option>)}</select>
+        </label>
+        <details className="small"><summary>Template to submit in Meta (category: Utility)</summary><pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0 0' }}>{WA_TEMPLATE}</pre><div className="muted">Example values: Asha · {f.clinicName} · today, 16 Nov · 4:30 PM · Dr. Deepak</div></details>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn" disabled={busy} onClick={() => save({ ...f, enabled: on })}>Save</button>
+          {on
+            ? <button className="btn danger" disabled={busy} onClick={() => save({ enabled: false })}>Switch off</button>
+            : <button className="btn primary" disabled={busy || !(st.wa.hasToken || f.token) || !f.phoneNumberId} onClick={() => save({ ...f, enabled: true })}>Save and switch on</button>}
+        </div>
+        {st.wa.hasToken && (
+          <div className="row" style={{ gap: 8, alignItems: 'flex-end' }}>
+            <Input id="wa-test" label="Send a test to (mobile)" value={testTo} onChange={(e) => setTestTo(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit number" style={{ width: 180 }} />
+            <button className="btn" disabled={busy || testTo.length !== 10} onClick={test}>Send test</button>
+          </div>
+        )}
+        <div className="small muted">
+          Sender {st.lastRun ? `last checked ${new Date(st.lastRun * 1000).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : 'not running yet'}{st.lastRun && !cronOk ? ' (not running: the server timer needs a look)' : ''}.
+        </div>
+        {st.log?.length > 0 && (
+          <div className="stack" style={{ gap: 2 }}>
+            <strong className="small">Recent messages</strong>
+            {st.log.slice(0, 8).map((l, i) => <div key={i} className="small" style={{ color: l.ok ? undefined : 'var(--bad)' }}>{new Date(l.at * 1000).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} · {l.patient} · {l.kind} · {l.ok ? 'sent' : `failed: ${l.error}`}</div>)}
+          </div>
+        )}
       </div>
     </Card>
   )

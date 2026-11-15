@@ -387,4 +387,11 @@ export const server = {
   async changePassword(tid, current, next) {
     return post(tid, 'password', { current, next })
   },
+  // Automatic WhatsApp messages: read settings (token never comes back) or save a change.
+  async whatsapp(tid, patch) {
+    return post(tid, 'wa', patch ? { patch } : {})
+  },
+  async whatsappTest(tid, phone) {
+    return post(tid, 'watest', { phone })
+  },
 }
