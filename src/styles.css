@@ -1938,3 +1938,52 @@ td { padding: 12px 14px; }
 .lx-ai-note > div { padding: 14px 16px; border-radius: 14px; background: var(--surface, #fff); border: 1px solid rgba(0,0,0,.07); line-height: 1.5; }
 .lx-ai-note > div:last-child { border-color: rgba(99,102,241,.3); }
 @media (max-width: 900px) { .lx-ai-note { grid-template-columns: minmax(0, 1fr); } }
+
+/* High-tech sign-in screen: dark, glowing grid, glass cards. */
+.login-page.hx { --hx-a: color-mix(in srgb, var(--brand) 70%, #22d3ee); --hx-b: #a78bfa; background: #050913; color: #e6edf5; position: relative; isolation: isolate; min-height: 100dvh;
+  --bg: #050913; --surface: #0d1526; --surface-2: #111b30; --line: rgb(148 163 184 / 18%); --line-strong: rgb(148 163 184 / 30%); --fg: #e6edf5; --muted: #94a3b8; --faint: #64748b; color-scheme: dark; }
+.hx .login-wrap::before { display: none; }
+.hx-bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.hx-grid { position: absolute; inset: -50%; background-image: linear-gradient(rgb(56 189 248 / 7%) 1px, transparent 1px), linear-gradient(90deg, rgb(56 189 248 / 7%) 1px, transparent 1px); background-size: 46px 46px; transform: perspective(700px) rotateX(58deg) translateY(10%); transform-origin: center 70%; animation: hx-grid 18s linear infinite; mask-image: radial-gradient(ellipse at center 60%, #000 20%, transparent 70%); }
+@keyframes hx-grid { to { background-position: 0 46px, 0 0; } }
+.hx-orb { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; animation: float-orb 14s ease-in-out infinite; }
+.hx-orb.a { width: 520px; height: 520px; left: -140px; top: -120px; background: var(--hx-a); }
+.hx-orb.b { width: 460px; height: 460px; right: -120px; bottom: -140px; background: var(--hx-b); animation-delay: -6s; opacity: .4; }
+.hx-scan { position: absolute; left: 0; right: 0; height: 120px; top: -120px; background: linear-gradient(180deg, transparent, rgb(56 189 248 / 10%), transparent); animation: hx-scan 7s linear infinite; }
+@keyframes hx-scan { to { top: 110%; } }
+
+.hx .about-panel { background: linear-gradient(160deg, rgb(15 23 42 / 70%), rgb(15 23 42 / 35%)); border: 1px solid rgb(148 163 184 / 18%); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 30px 80px -30px rgb(0 0 0 / 80%), inset 0 1px 0 rgb(255 255 255 / 6%); }
+.hx .about-panel::before { background: radial-gradient(circle, color-mix(in srgb, var(--hx-a) 45%, transparent), transparent 65%); }
+.hx .about-panel::after { display: none; }
+.hx-top { flex-direction: row !important; flex-wrap: wrap; gap: 8px !important; }
+.hx .about-chip { background: rgb(255 255 255 / 6%); border-color: rgb(148 163 184 / 25%); }
+.hx .about-chip.hx-ai { color: #c7d2fe; border-color: rgb(129 140 248 / 55%); background: linear-gradient(135deg, rgb(99 102 241 / 25%), rgb(34 211 238 / 18%)); box-shadow: 0 0 18px -4px rgb(99 102 241 / 70%); }
+.hx-clock { display: flex; flex-direction: column; gap: 2px; }
+.hx-clock strong { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: clamp(1.4rem, 2.6vw, 2rem); letter-spacing: .04em; color: #e0f2fe; text-shadow: 0 0 18px rgb(56 189 248 / 55%); font-variant-numeric: tabular-nums; }
+.hx-clock span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #7dd3fc; text-transform: uppercase; letter-spacing: .08em; }
+.hx-grad { background: linear-gradient(90deg, #67e8f9, #a5b4fc 55%, #f0abfc); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hx .about-list li { background: rgb(255 255 255 / 4%); border-color: rgb(148 163 184 / 16%); }
+.hx .about-list li:hover { background: rgb(56 189 248 / 8%); border-color: rgb(56 189 248 / 40%); }
+.hx .about-ic { background: rgb(56 189 248 / 10%); border: 1px solid rgb(56 189 248 / 35%); color: #7dd3fc; box-shadow: 0 0 14px -4px rgb(56 189 248 / 60%); }
+
+.hx .login-card { position: relative; background: rgb(13 21 38 / 72%); border: 1px solid transparent; border-radius: 22px; color: var(--fg);
+  background-image: linear-gradient(rgb(13 21 38 / 92%), rgb(13 21 38 / 92%)), linear-gradient(135deg, rgb(103 232 249 / 70%), rgb(129 140 248 / 35%) 45%, rgb(240 171 252 / 60%)); background-origin: border-box; background-clip: padding-box, border-box;
+  box-shadow: 0 30px 90px -30px rgb(56 189 248 / 45%), 0 0 0 1px rgb(255 255 255 / 3%); }
+.hx .login-card h2 { color: #f8fafc; }
+.hx .eyebrow { color: #7dd3fc; letter-spacing: .12em; }
+.hx-sys { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.hx-sys span { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 3px 8px; border-radius: 999px; background: rgb(255 255 255 / 5%); border: 1px solid rgb(148 163 184 / 18%); color: #cbd5e1; }
+.hx-sys svg { width: 12px; height: 12px; color: #7dd3fc; }
+.hx-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 0 rgb(52 211 153 / 60%); animation: hx-ping 1.8s ease-out infinite; }
+@keyframes hx-ping { 70% { box-shadow: 0 0 0 7px rgb(52 211 153 / 0%); } 100% { box-shadow: 0 0 0 0 rgb(52 211 153 / 0%); } }
+.hx .role-btn { background: rgb(255 255 255 / 3%); border-color: rgb(148 163 184 / 16%); border-radius: 14px; padding: 12px; color: var(--fg); }
+.hx .role-btn:hover, .hx .role-btn.picked { border-color: rgb(56 189 248 / 60%); background: linear-gradient(135deg, rgb(56 189 248 / 10%), rgb(129 140 248 / 8%)); box-shadow: 0 0 0 1px rgb(56 189 248 / 25%), 0 14px 30px -14px rgb(56 189 248 / 60%); }
+.hx-tile { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex: none; background: linear-gradient(135deg, rgb(56 189 248 / 22%), rgb(129 140 248 / 22%)); border: 1px solid rgb(125 211 252 / 35%); }
+.hx .role-btn .hx-tile svg { color: #a5f3fc; width: 19px; height: 19px; }
+.hx .role-btn .hx-go { width: 18px; height: 18px; color: #64748b; transition: transform .15s, color .15s; }
+.hx .role-btn:hover .hx-go, .hx .role-btn.picked .hx-go { color: #7dd3fc; transform: translateX(3px); }
+.hx .btn.primary { background: linear-gradient(135deg, #06b6d4, #6366f1); border: 0; color: #fff; box-shadow: 0 10px 28px -10px rgb(99 102 241 / 80%); }
+.hx .btn.ghost { color: #cbd5e1; }
+.hx .btn.ghost:hover { background: rgb(255 255 255 / 6%); }
+.hx .login-footer, .hx .login-footer a { color: #64748b; }
+@media (prefers-reduced-motion: reduce) { .hx-grid, .hx-orb, .hx-scan, .hx-dot { animation: none !important; } }
