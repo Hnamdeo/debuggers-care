@@ -1,7 +1,8 @@
-import { BellRing, Check, MessageCircle, MessageSquareText } from 'lucide-react'
-import { useTenant, Card } from './ui'
+import { useEffect, useState } from 'react'
+import { BellRing, Check, MessageCircle, MessageSquareText, Send } from 'lucide-react'
+import { useTenant, Card, Modal, toast } from './ui'
 import { whatsappLink } from './videos'
-import { db } from '../lib/store'
+import { db, server } from '../lib/store'
 import { SITES } from '../lib/sites'
 import { today, addDays, fmtDate, fmtTime } from '../lib/utils'
 
@@ -101,5 +102,53 @@ export function ReminderCard({ doctorId }) {
         )
       })}
     </Card>
+  )
+}
+
+// Reminders for a set of appointments (a whole day, or one slot). One tap per patient on WhatsApp or SMS,
+// or, when the clinic's WhatsApp Business is connected, everyone at once from the clinic number.
+export function RemindModal({ appts, title, onClose }) {
+  const { tid, patient, staff, doctors } = useTenant()
+  const [auto, setAuto] = useState(false)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    if (!db.onServer(tid)) return
+    server.whatsapp(tid).then((r) => setAuto(!!r.wa?.enabled)).catch(() => {})
+  }, [tid])
+  const left = appts.filter((a) => !a.remindedAt && okPhone(patient(a.patientId)))
+  const many = doctors().length > 1
+  const sendAll = async () => {
+    setBusy(true)
+    try {
+      const r = await server.whatsappSend(tid, left.map((a) => a.id))
+      toast(`WhatsApp sent to ${r.sent} ${r.sent === 1 ? 'patient' : 'patients'}${r.failed.length ? `. Not sent: ${r.failed.join('; ')}` : ''}`)
+    } catch (err) { toast(err.message || 'Could not send') } finally { setBusy(false) }
+  }
+  return (
+    <Modal title={title || 'Send reminders'} wide onClose={onClose} footer={<>
+      <button className="btn" onClick={onClose}>Close</button>
+      {auto && left.length > 0 && <button className="btn primary" disabled={busy} onClick={sendAll}><Send /> {busy ? 'Sending…' : `Send WhatsApp to all ${left.length}`}</button>}
+    </>}>
+      {!appts.length && <div className="empty">No booked patients to remind.</div>}
+      {appts.length > 0 && (
+        <div className="small muted">
+          {auto
+            ? 'Send to everyone at once from the clinic’s WhatsApp Business number, or one by one below.'
+            : 'Tap WhatsApp or SMS for each patient: the message opens ready in Hindi and English, press Send there. To send to everyone in one click, connect the clinic’s WhatsApp Business in Plan & settings.'}
+        </div>
+      )}
+      {appts.map((a) => {
+        const p = patient(a.patientId)
+        return (
+          <div key={a.id} className="vid-row">
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontWeight: 600 }}>{fmtTime(a.time)} · {p?.name || a.patientId}</div>
+              <div className="small muted">{fmtDate(a.date)}{many ? ` · ${staff(a.doctorId)?.name}` : ''}{okPhone(p) ? ` · ${p.phone}` : ' · no mobile number'}{a.remindedAt ? (a.remindedVia === 'auto' ? ' · sent from clinic WhatsApp' : ' · reminded') : ''}{a.autoError ? ' · auto send failed' : ''}</div>
+            </div>
+            <NotifyButtons a={a} />
+          </div>
+        )
+      })}
+    </Modal>
   )
 }

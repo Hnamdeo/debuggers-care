@@ -391,6 +391,9 @@ export const server = {
   async whatsapp(tid, patch) {
     return post(tid, 'wa', patch ? { patch } : {})
   },
+  async whatsappSend(tid, ids) {
+    return post(tid, 'wasend', { ids })
+  },
   async whatsappTest(tid, phone) {
     return post(tid, 'watest', { phone })
   },

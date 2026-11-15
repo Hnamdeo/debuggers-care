@@ -22,6 +22,7 @@
 //   plogin    public   patient: mobile number + PIN -> session that sees only their own records
 //   wa        admin    automatic WhatsApp settings: read (token hidden) or save
 //   watest    admin    send one test template message to a number
+//   wasend    staff    send the WhatsApp reminder now to chosen appointments (clinic's own number)
 
 declare(strict_types=1);
 date_default_timezone_set('Asia/Kolkata');
@@ -436,6 +437,34 @@ switch ($action) {
     $res = waSend($cfg, $phone, waParams(['name' => 'Test'], ['date' => date('Y-m-d'), 'time' => date('H:i', time() + 1800)], $clinicName, 'the doctor'));
     if (!$res['ok']) fail('WhatsApp said: ' . $res['error']);
     out(['ok' => true]);
+  }
+
+  case 'wasend': {
+    $u = staffOnly();
+    rateLimit(30, 3600);
+    $cfg = array_merge(WA_DEFAULTS, json_decode(meta('wa') ?? '{}', true) ?: []);
+    if (!$cfg['enabled'] || $cfg['token'] === '' || $cfg['phoneNumberId'] === '') fail('Automatic WhatsApp is not connected for this clinic yet.');
+    $ids = array_slice(array_map('strval', (array)($in['ids'] ?? [])), 0, 60);
+    $tenant = tenantOut();
+    $clinicName = (string)($cfg['clinicName'] ?? '') ?: (string)($tenant['name'] ?? $slug);
+    $log = json_decode(meta('wa_log') ?? '[]', true) ?: [];
+    $sent = 0; $failed = [];
+    foreach ($ids as $id) {
+      $a = getRec('appointments', $id);
+      if (!$a || ($a['status'] ?? '') !== 'scheduled') continue;
+      $p = getRec('patients', (string)$a['patientId']) ?? [];
+      $doc = getRec('staff', (string)$a['doctorId']) ?? [];
+      $res = waSend($cfg, (string)($p['phone'] ?? ''), waParams($p, $a, $clinicName, (string)($doc['name'] ?? '')));
+      $log[] = ['at' => time(), 'appt' => $id, 'patient' => $p['name'] ?? '', 'kind' => 'sent by staff', 'ok' => $res['ok'], 'error' => $res['error'] ?? ''];
+      $pdo->beginTransaction();
+      if ($res['ok']) { $a['remindedAt'] = date('c'); $a['remindedVia'] = 'auto'; unset($a['autoError']); $sent++; }
+      else { $a['autoError'] = $res['error']; $failed[] = ($p['name'] ?? $id) . ': ' . $res['error']; }
+      putRec('appointments', $a, nextRev());
+      $pdo->commit();
+    }
+    setMeta('wa_log', json_encode(array_slice($log, -40), JSON_UNESCAPED_UNICODE));
+    audit($u['id'], 'whatsapp send', 'appointments', implode(',', $ids));
+    out(['sent' => $sent, 'failed' => $failed]);
   }
 
   case 'password': {
