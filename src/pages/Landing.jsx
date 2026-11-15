@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   HeartPulse, ArrowRight, Check, RotateCcw, Building2, Stethoscope, QrCode, MonitorPlay, BedDouble, CalendarCheck,
-  FileHeart, Receipt, Pill, Palette, Wallet, Smartphone, ShieldCheck, Sparkles, Zap, Users, Activity, Clock, MessageCircle, Mic, Globe, MapPin, Megaphone, Share2,
+  FileHeart, Receipt, Pill, Palette, Wallet, Smartphone, ShieldCheck, Sparkles, Zap, Users, Activity, Clock, MessageCircle, Mic, Globe, MapPin, Megaphone, Share2, Gift, Search, BarChart3, Calculator, ClipboardList, History, FileText,
 } from 'lucide-react'
 import { db, useDb } from '../lib/store'
 import { PLANS, PLAN_ORDER, MODULES, tenantHost, SALES_PHONE, salesWhatsApp } from '../lib/plans'
@@ -26,12 +26,24 @@ const FEATURES = [
 
 // Done-for-you services sold alongside the software.
 const SERVICES = [
-  { icon: Globe, title: 'Clinic website', points: ['Your own modern, mobile-first website', 'Doctors, treatments, timings and map', 'Book on WhatsApp and online appointments'] },
+  { icon: Globe, title: 'Clinic website', points: ['Free with the Clinic early bird plan', 'Doctors, treatments, timings and map', 'Book on WhatsApp and online appointments'] },
+  { icon: Search, title: 'Google SEO', points: ['Show up when patients search “dentist near me”', 'Treatment pages written for your area', 'Monthly keyword and traffic report'] },
   { icon: MapPin, title: 'Google Business Profile', points: ['Rank higher on Google Maps nearby', 'Weekly Google posts and photos', 'Review replies and monthly ranking report'] },
   { icon: Megaphone, title: 'Google Ads for clinics', points: ['Campaign setup with a landing page', 'Keywords for your treatments and area', 'Call and WhatsApp lead tracking'] },
   { icon: Share2, title: 'Social media posts', points: ['Festival and health-tip posts in your brand', 'Instagram, Facebook and WhatsApp status', 'Treatment explainer reels'] },
   { icon: MessageCircle, title: 'WhatsApp Business setup', points: ['Verified clinic number with your logo', 'Automatic appointment reminders', 'Broadcasts for camps and offers'] },
   { icon: MonitorPlay, title: 'Patient education videos', points: ['Hindi and English treatment explainers', 'Your clinic’s own playlist', 'Shared after every visit'] },
+]
+
+const ONE_CLICK = [
+  [FileText, 'One-click reports', 'Daily, monthly or any period, ready to print or open in Excel.'],
+  [BarChart3, 'Practice analysis', 'Patients, visits, no-shows and doctor activity in clear charts.'],
+  [Receipt, 'Bills in seconds', 'Treatments and fees filled in, paid and due worked out for you.'],
+  [Wallet, 'Monthly income', 'What you billed, what you collected and what is still due.'],
+  [Calculator, 'All calculations in one go', 'Totals, discounts, dues and medicine days, with no calculator.'],
+  [FileHeart, 'Patient records', 'Find anyone by mobile number and see everything about them.'],
+  [ClipboardList, 'Visit summary', 'Complaint, diagnosis, treatment, charges and next plan at a glance.'],
+  [History, 'Previous cards', 'Every past prescription and visit card, one tap away.'],
 ]
 
 const STEPS = [
@@ -125,7 +137,7 @@ export default function Landing() {
         <div className="lx-grid-bg" aria-hidden="true" />
         <div className="lx-wrap lx-hero-in">
           <div className="lx-hero-copy">
-            <span className="lx-badge"><Sparkles size={14} /> New for 2026 · built for Indian clinics</span>
+            <span className="lx-badge"><Sparkles size={14} /> AI-driven clinic management system · built for India</span>
             <h1>Your whole clinic,<br /><span className="lx-grad">on one beautiful screen.</span></h1>
             <p>Appointments, prescriptions, bills, pharmacy and beds, in software so simple that every doctor and receptionist gets it on day one. From a one-chair clinic to a 200-bed hospital.</p>
             <div className="lx-cta-row">
@@ -175,6 +187,24 @@ export default function Landing() {
       <section className="lx-marquee" aria-label="Made for every speciality">
         <div className="lx-marquee-track">
           {[...SPECIALITIES, ...SPECIALITIES].map((s, i) => <span key={i}><HeartPulse size={14} /> {s}</span>)}
+        </div>
+      </section>
+
+      <section className="lx-sec" id="ai">
+        <div className="lx-wrap">
+          <div className="lx-head" data-reveal>
+            <span className="lx-kicker"><Sparkles size={13} /> AI-driven clinic management</span>
+            <h2>Everything your clinic needs, in one click</h2>
+            <p>The system does the paperwork and the maths, so the doctor can focus on the patient.</p>
+          </div>
+          <div className="lx-ai">
+            {ONE_CLICK.map(([Icon, t, d], i) => (
+              <div key={t} className="lx-ai-item" data-reveal style={{ transitionDelay: `${(i % 4) * 0.06}s` }}>
+                <span className="lx-ic"><Icon /></span>
+                <div><strong>{t}</strong><span>{d}</span></div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -264,6 +294,7 @@ export default function Landing() {
                 {PLANS[p].offer && <span className="offer-tag">{PLANS[p].offerLabel}</span>}
                 <div className="lx-price"><b>{PLANS[p].offer && <span className="was">₹{PLANS[p].price.toLocaleString('en-IN')}</span>}₹{(PLANS[p].offer || PLANS[p].price).toLocaleString('en-IN')}</b><span>/ month</span></div>
                 <p>{PLANS[p].blurb}</p>
+                {PLANS[p].bonus && <div className="lx-bonus"><Gift size={16} /> <span><b>Free</b> {PLANS[p].bonus.replace(/^Free /, '')}</span></div>}
                 <ul>
                   {PLANS[p].modules.filter((m) => m !== 'dashboard').map((m) => <li key={m}><Check size={14} /> {MODULES[m].label}</li>)}
                 </ul>

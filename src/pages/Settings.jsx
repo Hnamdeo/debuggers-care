@@ -1,6 +1,6 @@
 import { tenantHost } from '../lib/plans'
 import { useEffect, useRef, useState } from 'react'
-import { Check, Lock, Download, Upload, ImagePlus, Trash2, Palette, Phone, MessageCircle, BadgePercent } from 'lucide-react'
+import { Check, Lock, Download, Upload, ImagePlus, Trash2, Palette, Phone, MessageCircle, BadgePercent, Gift } from 'lucide-react'
 import { useTenant, PageHead, Card, toast, BrandMark, PasswordInput, Input, Select } from '../components/ui'
 import { db, server } from '../lib/store'
 import { PLANS, PLAN_ORDER, MODULES, SALES_PHONE, salesWhatsApp } from '../lib/plans'
@@ -24,6 +24,7 @@ export default function Settings() {
               {P.offer && <span className="offer-tag"><BadgePercent size={13} /> {P.offerLabel}</span>}
               <div><span className="price">{P.offer && <span className="was">₹{P.price.toLocaleString('en-IN')}</span>}₹{(P.offer || P.price).toLocaleString('en-IN')}</span> <span className="muted small">/ month{P.offer ? ' subscription' : ''}</span></div>
               <p className="muted small" style={{ margin: 0 }}>{P.blurb}</p>
+              {P.bonus && <span className="small row" style={{ gap: 6, color: 'var(--brand)', fontWeight: 600 }}><Gift size={14} /> {P.bonus}</span>}
               <div className="stack" style={{ gap: 4 }}>
                 {Object.keys(MODULES).filter((m) => m !== 'dashboard').map((m) => (
                   <span key={m} className="small row" style={{ gap: 6, color: P.modules.includes(m) ? 'var(--fg)' : 'var(--faint)' }}>

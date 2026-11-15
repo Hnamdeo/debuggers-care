@@ -26,6 +26,7 @@ export const PLANS = {
     price: 999,
     offer: 499,
     offerLabel: 'Early bird offer',
+    bonus: 'Free clinic website with Google SEO',
     blurb: 'For single-doctor and small clinics, like dentists and GPs.',
     maxDoctors: 3,
     modules: ['dashboard', 'patients', 'appointments', 'prescriptions', 'reports', 'education', 'billing', 'staff'],
