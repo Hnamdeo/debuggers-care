@@ -101,7 +101,10 @@ export default function ClinicSite({ site }) {
         <div className="cs-in cs-hero-in">
           <div className="cs-hero-art"><DentalScreen /></div>
           <div className="cs-hero-copy">
-            <span className={`cs-status ${status.open ? 'open' : ''}`}><i />{status.text}</span>
+            <div className="cs-tags">
+              <span className={`cs-status ${status.open ? 'open' : ''}`}><i />{status.text}</span>
+              <span className="cs-ai"><Sparkles size={14} /> AI powered clinical management</span>
+            </div>
             <h1>Healthy teeth,<br /><span>confident smiles.</span></h1>
             <p className="cs-lead">{site.tagline}</p>
             <div className="cs-rating" aria-label={`Rated ${site.rating} out of 5 ${site.reviews ? ` from ${site.reviews} ${src} reviews` : ` on ${src}`}`}>
