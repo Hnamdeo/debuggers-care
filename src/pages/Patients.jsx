@@ -14,6 +14,9 @@ import { VideoPlayer, whatsappLink } from '../components/videos'
 import { VisitForm, VisitDays } from '../components/visits'
 import { PatientSummary } from '../components/summary'
 import { ImagesTab, ImageUpload } from '../components/imaging'
+import { DentalChart } from '../components/dentalchart'
+import { EstimatesTab } from '../components/estimates'
+import { ConsentTab } from '../components/consent'
 import { fmtDate, fmtTime, age, money, billTotal, billStatus } from '../lib/utils'
 
 export default function Patients() {
@@ -109,6 +112,7 @@ export function PatientHeader({ p, children, back }) {
             <div className="row" style={{ gap: 6 }}>
               {p.allergies && <span className="pill bad"><AlertTriangle size={11} /> Allergy: {p.allergies}</span>}
               {p.conditions && <span className="pill warn">{p.conditions}</span>}
+              {p.caseClosed ? <span className="pill ok">Treatment finished {fmtDate(p.caseClosed)}</span> : (p.plan || Object.values(p.teeth || {}).some((t) => t.plan && !t.done)) ? <span className="pill info">Treatment ongoing</span> : null}
               <span className="pill plain">{p.phone}</span>
               {p.abha && <span className="pill abha" title="Ayushman Bharat Health Account">ABHA {p.abha}</span>}
             </div>
@@ -122,8 +126,9 @@ export function PatientHeader({ p, children, back }) {
 
 // Full health record: used by staff (patient profile) and by the patient portal.
 export function PatientRecord({ p, canCollect, onBook, onBill }) {
-  const { list, staff, user } = useTenant()
+  const { list, staff, user, tenant } = useTenant()
   const [tab, setTab] = useState('overview')
+  const dental = /dental/i.test(tenant.kind || '')
   const [doc, setDoc] = useState(null)
   const [play, setPlay] = useState(null)
   const mine = (c) => list(c).filter((r) => r.patientId === p.id)
@@ -141,11 +146,14 @@ export function PatientRecord({ p, canCollect, onBook, onBill }) {
   const tabs = [
     { id: 'overview', label: 'Summary' },
     ...(user.role !== 'patient' ? [{ id: 'days', label: 'Visits by day', count: new Set([...mine('visits'), ...appts.filter((a) => a.status === 'completed'), ...rxs].map((r) => r.date)).size }] : []),
+    ...(dental && (user.role !== 'patient' || Object.keys(p.teeth || {}).length) ? [{ id: 'teeth', label: 'Dental chart', count: Object.keys(p.teeth || {}).length || null }] : []),
     { id: 'appointments', label: 'Appointments', count: appts.length },
     { id: 'prescriptions', label: 'Prescriptions', count: rxs.length },
     { id: 'reports', label: 'Reports', count: reps.length },
     { id: 'bills', label: 'Bills', count: bills.length },
     ...(user.role !== 'patient' || list('images').some((i) => i.patientId === p.id) ? [{ id: 'images', label: 'X-rays & photos', count: list('images').filter((i) => i.patientId === p.id).length }] : []),
+    ...(user.role !== 'patient' || mine('estimates').length ? [{ id: 'estimates', label: 'Estimates', count: mine('estimates').length }] : []),
+    ...(user.role !== 'patient' || mine('consents').length ? [{ id: 'consents', label: 'Consent', count: mine('consents').length }] : []),
     ...(adms.length ? [{ id: 'admissions', label: 'Admissions', count: adms.length }] : []),
     ...(shared.length ? [{ id: 'videos', label: 'Videos', count: shared.length }] : []),
   ]
@@ -175,6 +183,9 @@ export function PatientRecord({ p, canCollect, onBook, onBill }) {
       {tab === 'overview' && <PatientSummary p={p} staffView={user.role !== 'patient'} onOpenDoc={setDoc} onBook={onBook} onBill={onBill} />}
       {tab === 'images' && <ImagesTab p={p} staffView={user.role !== 'patient'} />}
       {tab === 'days' && <VisitDays p={p} />}
+      {tab === 'teeth' && <DentalChart p={p} />}
+      {tab === 'estimates' && <EstimatesTab p={p} />}
+      {tab === 'consents' && <ConsentTab p={p} />}
       {tab === 'appointments' && (
         <Card><Table rows={appts} cols={[
           { label: 'Date', render: (a) => <><div className="cell-main">{fmtDate(a.date)}</div><div className="cell-sub">{fmtTime(a.time)}</div></> },

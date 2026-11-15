@@ -15,6 +15,10 @@ import { PrescriptionDoc } from '../components/docs'
 import { groupByLanguage } from '../lib/healthvideos'
 import { FileText, Mic } from 'lucide-react'
 import { VoiceRx } from '../components/voice'
+import { DentalChartButton } from '../components/dentalchart'
+import { EstimateForm } from '../components/estimates'
+import { ConsentForm } from '../components/consent'
+import { FileSpreadsheet, PenLine } from 'lucide-react'
 
 // One-tap timings, written the way doctors write them (1-0-1) with the words patients read.
 const QUICK_FREQ = [['1-0-0', 'Once a day'], ['1-0-1', 'Twice a day'], ['1-1-1', 'Three times a day'], ['0-0-1', 'At night'], ['SOS', 'When needed for pain']]
@@ -54,6 +58,8 @@ export default function Consult() {
   const [vitals, setVitals] = useState(false)
   const [plan, setPlan] = useState(null)
   const [nextDate, setNextDate] = useState('')
+  const [closeCase, setCloseCase] = useState(false)
+  const [tool, setTool] = useState(null)
   const [nextTime, setNextTime] = useState('11:00')
   const [co, setCo] = useState(null)
   const [oe, setOe] = useState('')
@@ -135,10 +141,12 @@ export default function Consult() {
     db.update(tid, 'appointments', appt.id, { status: 'completed', prescriptionId: rx.id })
     if (JSON.stringify(hist) !== JSON.stringify(p.history) || histNote.trim() !== (p.historyNote || '')) db.update(tid, 'patients', p.id, { history: hist, historyNote: histNote.trim() })
     if (plan !== null && plan.trim() !== (p.plan || '')) db.update(tid, 'patients', p.id, { plan: plan.trim(), planOn: today(), planBy: doc.id })
+    if (closeCase) db.update(tid, 'patients', p.id, { caseClosed: today() })
+    else if (p.caseClosed) db.update(tid, 'patients', p.id, { caseClosed: '' })
     if (nextDate) db.add(tid, 'appointments', { patientId: p.id, doctorId: doc.id, date: nextDate, time: nextT, reason: (plan ?? p.plan ?? '').split('\n')[0].replace(/^\d+\.\s*/, '').slice(0, 60) || 'Follow-up', status: 'scheduled', type: 'OPD' })
     if (visit) db.update(tid, 'visits', visit.id, { status: 'done', appointmentId: appt.id, prescriptionId: rx.id, doctorId: doc.id, doneAt: new Date().toISOString() })
     else db.add(tid, 'visits', { patientId: p.id, date: today(), time: appt.time, status: 'done', source: 'appointment', complaint: appt.reason, doctorId: doc.id, appointmentId: appt.id, prescriptionId: rx.id, vitals: {} })
-    toast(`Visit completed. Prescription ${rx.id} and bill ${bill.id} sent to the front desk.${nextDate ? ` Next visit booked for ${fmtDate(nextDate)} at ${fmtTime(nextT)}.` : ''}`)
+    toast(`Visit completed. Prescription ${rx.id} and bill ${bill.id} sent to the front desk.${nextDate ? ` Next visit booked for ${fmtDate(nextDate)} at ${fmtTime(nextT)}.` : ''}${closeCase ? ' Case closed.' : ''}`)
     nav(`${base}/patients/${p.id}`)
   }
 
@@ -152,7 +160,14 @@ export default function Consult() {
             <div style={{ minWidth: 0 }}><strong>Today’s vitals</strong>{visit?.complaint && <span className="muted"> · {visit.complaint}</span>}<div className="small">{(visit && vitalsText(visit.vitals)) || 'Not taken yet'}</div></div>
             <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => setVitals(true)}>{visit && vitalsText(visit.vitals) ? 'Edit' : 'Add'}</button>
           </div>
-          {dental && <button className="btn sm smile-link" onClick={() => nav(`${base}/smile`)}><Sparkles /> AI Smile preview</button>}
+          <div className="row" style={{ gap: 6 }}>
+            {dental && <DentalChartButton p={p} />}
+            <button className="btn sm" onClick={() => setTool('estimate')}><FileSpreadsheet /> Estimate</button>
+            <button className="btn sm" onClick={() => setTool('consent')}><PenLine /> Consent</button>
+            {dental && <button className="btn sm smile-link" onClick={() => nav(`${base}/smile`)}><Sparkles /> AI Smile preview</button>}
+          </div>
+          {tool === 'estimate' && <EstimateForm p={p} onClose={() => setTool(null)} />}
+          {tool === 'consent' && <ConsentForm p={p} onClose={() => setTool(null)} />}
         </div>
       </PatientHeader>
       {voice && <VoiceRx medNames={[...new Set([...sets.flat().map((x) => x[0]), ...meds.map((m) => m.name)])]} onClose={() => setVoice(false)} onApply={(v) => {
@@ -269,11 +284,15 @@ export default function Consult() {
                   : <div className="field"><span>Time</span><div className="small" style={{ color: 'var(--bad)' }}>Clinic closed or full that day</div></div>}
               </div>
               <div className="row" style={{ gap: 6 }}>
-                {[['1 week', 7], ['2 weeks', 14], ['1 month', 30], ['3 months', 90], ['6 months', 180]].map(([l, n]) => {
+                {[['2 days', 2], ['4 days', 4], ['1 week', 7], ['2 weeks', 14], ['1 month', 30], ['3 months', 90], ['6 months', 180]].map(([l, n]) => {
                   const d = addDays(today(), n)
                   return <button key={l} className={`btn sm ${nextDate === d ? 'primary' : ''}`} onClick={() => setNextDate(nextDate === d ? '' : d)}>{l}</button>
                 })}
               </div>
+              <label className="row close-case" style={{ gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={closeCase} onChange={(e) => { setCloseCase(e.target.checked); if (e.target.checked) setNextDate('') }} />
+                <span><b>Treatment finished: close this case</b><span className="small muted"> · no more visits needed</span></span>
+              </label>
             </div>
           </Card>
           <div className="grid g2">
