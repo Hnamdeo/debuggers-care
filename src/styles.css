@@ -1390,3 +1390,13 @@ td { padding: 12px 14px; }
 .lx-svc-link { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 999px; font-weight: 600; font-size: 13.5px; color: var(--brand); background: color-mix(in srgb, var(--brand) 9%, transparent); text-decoration: none; }
 .lx-svc-link:hover { background: color-mix(in srgb, var(--brand) 16%, transparent); }
 .lx-svc-link svg { width: 15px; height: 15px; }
+.lx-bonus { display: flex; align-items: center; gap: 8px; margin: 2px 0 12px; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; color: var(--brand); background: color-mix(in srgb, var(--brand) 9%, transparent); border: 1px dashed color-mix(in srgb, var(--brand) 40%, transparent); }
+.lx-bonus svg { flex: none; }
+.lx-ai { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1100px) { .lx-ai { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .lx-ai { grid-template-columns: minmax(0, 1fr); } }
+.lx-ai-item { display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.lx-ai-item strong { display: block; font-size: 16px; margin-bottom: 4px; }
+.lx-ai-item span:not(.lx-ic) { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+.lx-kicker svg { vertical-align: -2px; }
+@media (max-width: 560px) { .lx-ai { gap: 10px; } .lx-ai-item { flex-direction: row; align-items: flex-start; padding: 16px; } .lx-ai-item .lx-ic { flex: none; } }
