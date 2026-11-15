@@ -1,11 +1,12 @@
 import { slotsOn } from '../lib/slots'
 import { QrPanel } from './qrpanel'
+import { RemindButton } from './reminders'
 import { samePerson } from '../lib/patients'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Modal, Input, Select, Textarea, useTenant, toast } from './ui'
 import { db } from '../lib/store'
-import { today, fmtTime, money } from '../lib/utils'
+import { today, fmtTime, fmtDate, money } from '../lib/utils'
 
 
 export function PatientForm({ onClose, onSaved, initial }) {
@@ -70,6 +71,7 @@ export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fi
   const [q, setQ] = useState('')
   const [err, setErr] = useState('')
   const [newP, setNewP] = useState(false)
+  const [done, setDone] = useState(null)
   const taken = new Set(list('appointments').filter((a) => a.doctorId === f.doctorId && a.date === f.date && a.status !== 'cancelled').map((a) => a.time))
   const nowHM = new Date().toTimeString().slice(0, 5)
   const free = slotsOn(tenant, f.date).filter((s) => !taken.has(s) && (f.date > today() || s > nowHM))
@@ -79,8 +81,15 @@ export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fi
     if (!f.patientId || !f.time) return setErr('Choose a patient and a free time slot.')
     const a = db.add(tid, 'appointments', { ...f, reason: f.reason || 'Consultation', status: 'scheduled', type: 'OPD' })
     toast(`Booked ${patient(f.patientId).name} with ${doc.name} at ${fmtTime(f.time)}`)
-    onClose(a)
+    if (/^\d{10}$/.test(patient(f.patientId)?.phone || '')) setDone(a)
+    else onClose(a)
   }
+  if (done) return (
+    <Modal title="Appointment booked" onClose={() => onClose(done)} footer={<><button className="btn" onClick={() => onClose(done)}>Done</button><RemindButton a={done} kind="booked" label="Send confirmation on WhatsApp" small={false} /></>}>
+      <p style={{ margin: 0 }}><strong>{patient(done.patientId).name}</strong> with {doc.name}, {fmtDate(done.date)} at {fmtTime(done.time)}.</p>
+      <p className="small muted" style={{ margin: 0 }}>Send the patient a confirmation now. A reminder can be sent the day before from the dashboard.</p>
+    </Modal>
+  )
   return (
     <Modal title="Book appointment" onClose={() => onClose()} footer={<><button className="btn" onClick={() => onClose()}>Cancel</button><button className="btn primary" onClick={save}>Confirm booking</button></>}>
       {!fixedPatient && (

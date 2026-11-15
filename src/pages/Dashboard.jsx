@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, MonitorPlay, Stethoscope } from 'lucide-react'
 import RegisterQR from '../components/RegisterQR'
 import { TodayTimings } from './Appointments'
+import { ReminderCard } from '../components/reminders'
 import { TodayVisits, sendToDoctor } from '../components/visits'
 import { PatientFinder } from '../components/summary'
 import { useTenant, PageHead, Stat, Card, Table, Pill } from '../components/ui'
@@ -100,6 +101,7 @@ function AdminDash() {
         )}
       </div>
       <TodayTimings />
+      <ReminderCard />
       <PatientFinder />
       <TodayVisits />
       <div className="grid g2">
@@ -177,6 +179,7 @@ function DoctorDash() {
         {can('ipd') ? <Stat label="My admitted patients" value={ipd.length} sub="IPD and ICU" icon={BedDouble} /> : <Stat label="Upcoming bookings" value={mine.filter((a) => a.date > T && a.status === 'scheduled').length} sub="Next 7 days" icon={CalendarDays} />}
       </div>
       <TodayTimings doctorId={shared ? undefined : me.id} />
+      <ReminderCard doctorId={shared ? undefined : me.id} />
       <PatientFinder />
       <TodayVisits />
       <Card title={shared ? "Today’s queue" : "My queue today"}>
