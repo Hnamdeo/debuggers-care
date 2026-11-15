@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, MonitorPlay, Stethoscope, Sparkles } from 'lucide-react'
+import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, Stethoscope, Sparkles } from 'lucide-react'
 import { NotesCard } from '../components/notes'
 import { DentalScanCard } from '../components/toothscan'
 import { InsightsCard } from '../components/insights'
@@ -43,7 +43,7 @@ function Hero({ title, sub, actions }) {
           <IstClock />
         </div>
       </section>
-      <div className="qa-row">
+      <div className={`qa-row ${actions.filter(Boolean).length === 6 ? 'six' : ''}`}>
         {actions.filter(Boolean).map((a) => (
           <button key={a.label} className={`qa ${a.main ? 'hot' : ''}`} onClick={a.onClick}>
             <span className="qa-icon"><a.icon /></span>
@@ -190,7 +190,6 @@ function DoctorDash() {
         { icon: FlaskConical, label: 'Lab reports', hint: `${labs.filter((r) => r.status === 'ordered').length} in lab`, onClick: () => nav(`${base}/reports`) },
         { icon: UserPlus, label: 'Register patient', hint: 'New patient form', onClick: () => nav(`${base}/patients?new=1`) },
         { icon: QrCode, label: 'Patient QR', hint: 'Print or share', onClick: () => setQr(true) },
-        can('education') && { icon: MonitorPlay, label: 'Explain videos', hint: 'Show patients', onClick: () => nav(`${base}/education`) },
         /dental/i.test(tenant.kind || '') && { icon: Sparkles, label: 'AI Smile preview', hint: 'Show the new smile', onClick: () => nav(`${base}/smile`) },
       ]} />
       <AskBar />
