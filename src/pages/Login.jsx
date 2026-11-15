@@ -2,7 +2,7 @@ import { tenantHost } from '../lib/plans'
 import { useEffect, useState } from 'react'
 import { PatientSignIn } from '../components/patientlogin'
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck, Stethoscope, Store, User, ClipboardList, ArrowLeft, Lock, Clock, MapPin, Phone, GraduationCap, Building2, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
+import { ChevronRight, Cpu, Wifi, ShieldCheck, Stethoscope, Store, User, ClipboardList, ArrowLeft, Lock, Clock, MapPin, Phone, GraduationCap, Building2, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
 import { auth, db, server } from '../lib/store'
 import { useTenant, Input, PasswordInput, BrandMark, CompanyLink, SiteFooter } from '../components/ui'
 import { DemoBand } from '../App'
@@ -88,8 +88,9 @@ export default function Login() {
   }
 
   return (
-    <div className="login-page">
+    <div className="login-page hx">
       <DemoBand />
+      <div className="hx-bg" aria-hidden="true"><i className="hx-grid" /><i className="hx-orb a" /><i className="hx-orb b" /><i className="hx-scan" /></div>
       <div className="login-wrap login-split">
         {SITES[tenant.slug] ? <ClinicPanel site={SITES[tenant.slug]} /> : <AboutPanel tenant={tenant} />}
         <div className="card login-card">
@@ -102,26 +103,33 @@ export default function Login() {
           </div>
           <div className="stack" style={{ gap: 8 }}>
             <span className="eyebrow">{tenant.live ? 'Who is signing in?' : 'One-click demo login'}</span>
+            <div className="hx-sys">
+              <span><i className="hx-dot" /> {tenant.server ? 'Secure server online' : 'Ready'}</span>
+              <span><ShieldCheck /> Encrypted</span>
+              <span><Sparkles /> AI assistant ready</span>
+            </div>
             {quick.map((q) => {
               const u = users.find((x) => x.role === q.role)
               if (!u) return null
               return (
                 <button key={q.role} className={`role-btn ${pick?.id === u.id ? 'picked' : ''}`} onClick={() => (tenant.live ? choose(u) : go(u))}>
-                  <q.icon />
+                  <span className="hx-tile"><q.icon /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <strong>{q.label}</strong> <span className="muted small">· {who(u)}</span>
                     <div className="small muted">{q.sub}</div>
                   </div>
+                  <ChevronRight className="hx-go" />
                 </button>
               )
             })}
             {tenant.server && (
               <button className={`role-btn ${ptMode ? 'picked' : ''}`} onClick={() => { setPtMode(true); setPick(null); setErr('') }}>
-                <User />
+                <span className="hx-tile"><User /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <strong>I am a patient</strong>
                   <div className="small muted">My prescriptions, reports and bills</div>
                 </div>
+                <ChevronRight className="hx-go" />
               </button>
             )}
           </div>
@@ -186,11 +194,13 @@ function ClinicPanel({ site }) {
   ]
   return (
     <section className="about-panel" aria-label={`About ${site.name}`}>
-      <div className="about-brand">
+      <div className="about-brand hx-top">
         <span className="about-chip"><Building2 size={13} /> {site.name}</span>
+        <span className="about-chip hx-ai"><Cpu size={13} /> AI powered clinical management</span>
       </div>
-      <h1>{hello},<br />welcome to the clinic.</h1>
-      <p>Sign in to see today’s patients, appointments and bills.</p>
+      <LiveClock />
+      <h1>{hello},<br /><span className="hx-grad">welcome to the clinic.</span></h1>
+      <p>Sign in to see today’s patients, appointments and bills. Your AI assistant is ready to book, register and write prescriptions.</p>
       <ul className="about-list">
         {rows.map(([Icon, title, sub], i) => (
           <li key={title} style={{ animationDelay: `${0.15 + i * 0.08}s` }}>
@@ -210,7 +220,8 @@ function AboutPanel({ tenant }) {
         <span className="about-chip"><Sparkles size={13} /> Clinic and Hospital Management System</span>
         <span className="about-by small">by <CompanyLink /></span>
       </div>
-      <h1>Your whole clinic,<br />on one glossy screen.</h1>
+      <LiveClock />
+      <h1>Your whole clinic,<br /><span className="hx-grad">on one AI powered screen.</span></h1>
       <p>Everything {tenant.name} needs, in one place. Made simple for doctors.</p>
       <ul className="about-list">
         {FEATURES.map(([Icon, title, sub], i) => (
@@ -222,5 +233,20 @@ function AboutPanel({ tenant }) {
       </ul>
       <span className="about-foot small">Secure sign-in · Works on any computer, tablet or phone</span>
     </section>
+  )
+}
+
+// India time, ticking, for the high-tech sign-in screen.
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t) }, [])
+  const opt = { timeZone: 'Asia/Kolkata' }
+  const time = now.toLocaleTimeString('en-IN', { ...opt, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+  const date = now.toLocaleDateString('en-IN', { ...opt, weekday: 'long', day: 'numeric', month: 'long' })
+  return (
+    <div className="hx-clock" aria-label={`${date}, ${time}`}>
+      <strong>{time}</strong>
+      <span><Wifi size={13} /> {date} · IST</span>
+    </div>
   )
 }
