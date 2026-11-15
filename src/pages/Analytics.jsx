@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { CalendarDays, FileHeart, UserPlus, IndianRupee, CheckCircle2, UserX, Download, Printer } from 'lucide-react'
 import { useTenant, PageHead, Card, Stat } from '../components/ui'
+import { AiReadingLine } from '../components/toothscan'
 import { today, addDays, fmtDate, money, billTotal } from '../lib/utils'
 
 const RANGES = [['7', 'Last 7 days'], ['30', 'Last 30 days'], ['month', 'This month'], ['90', 'Last 3 months']]
@@ -109,6 +110,8 @@ export default function Analytics() {
           {RANGES.map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={range === v} className={range === v ? 'on' : ''} onClick={() => setRange(v)}>{l}</button>)}
         </span>
       </PageHead>
+      <AiReadingLine key={range} steps={['is collecting visits, bills and prescriptions', 'is arranging the numbers by day and treatment', 'is doing the analysis']}
+        done="has arranged your practice numbers. Analysis ready" />
       <div className="grid g3">
         <Stat label="Appointments" value={appts.length} sub={`${done.length} seen · ${appts.filter((a) => a.status === 'scheduled').length} upcoming`} icon={CalendarDays} />
         <Stat label="Prescriptions written" value={rx.length} sub={label} icon={FileHeart} />
