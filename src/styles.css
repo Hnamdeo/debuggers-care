@@ -1992,3 +1992,38 @@ td { padding: 12px 14px; }
 .ai-datechip input[type="date"] { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); }
 .btn.ai-write { background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; border: 0; }
 .btn.ai-write:hover { filter: brightness(1.08); }
+
+/* Prescription screen: one-line patient strip, pad in the middle, AI docked on the right. */
+.consult-one { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.rx-strip { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-radius: 16px; position: relative; overflow: hidden;
+  background: linear-gradient(120deg, color-mix(in srgb, #6366f1 10%, var(--surface)), color-mix(in srgb, #06b6d4 8%, var(--surface)) 60%, var(--surface));
+  border: 1px solid color-mix(in srgb, #6366f1 25%, var(--line)); box-shadow: 0 10px 30px -18px rgb(99 102 241 / 55%); }
+.rx-strip::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, #06b6d4, #6366f1, #ec4899); opacity: .7; }
+.rx-back { border: 0; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; padding: 4px; border-radius: 8px; }
+.rx-back:hover { background: var(--surface-2); color: var(--fg); }
+.rx-back svg { width: 18px; height: 18px; }
+.rx-av { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; font-size: 13px; color: #fff; background: linear-gradient(135deg, #6366f1, #06b6d4); box-shadow: 0 0 0 3px rgb(99 102 241 / 15%); flex: none; }
+.rx-who { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.rx-who strong { font-size: 15px; }
+.rx-who span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rx-vitals { display: inline-flex; align-items: center; gap: 6px; border: 1px dashed color-mix(in srgb, #ef4444 40%, var(--line)); background: color-mix(in srgb, #ef4444 5%, var(--surface)); color: var(--fg); border-radius: 999px; padding: 5px 11px; font: 600 12px var(--font-body); cursor: pointer; max-width: 340px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rx-vitals svg { width: 14px; height: 14px; color: #ef4444; flex: none; }
+.rx-tools { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+body.ai-docked .rx-ai-only-small { display: none; }
+
+/* Docked AI panel: full height on the right, beside the pad. */
+body.ai-docked .main { padding-right: 404px; }
+.ai-panel.docked { top: 12px; bottom: 12px; right: 12px; height: auto; width: 380px; z-index: 30; border-radius: 20px; animation: none;
+  border: 1px solid transparent; background-image: linear-gradient(var(--surface), var(--surface)), linear-gradient(160deg, #06b6d4, #6366f1 50%, #ec4899); background-origin: border-box; background-clip: padding-box, border-box;
+  box-shadow: 0 20px 50px -24px rgb(99 102 241 / 55%); }
+.ai-panel.docked .ai-head { background: linear-gradient(120deg, #312e81, #4338ca 55%, #0e7490); color: #fff; border-bottom: 0; padding: 14px; }
+.ai-panel.docked .ai-head small { color: rgb(255 255 255 / 80%); display: inline-flex; align-items: center; gap: 6px; }
+.ai-panel.docked .ai-head .gc-icon { color: #fff; background: rgb(255 255 255 / 12%); }
+.ai-panel.docked .ai-orb { background: rgb(255 255 255 / 16%); box-shadow: 0 0 18px rgb(165 180 252 / 60%); }
+.ai-live { width: 7px; height: 7px; border-radius: 50%; background: #34d399; display: inline-block; box-shadow: 0 0 8px #34d399; }
+.ai-panel.docked .ai-log { background: radial-gradient(circle at 0 0, rgb(99 102 241 / 7%), transparent 45%), radial-gradient(circle at 100% 100%, rgb(6 182 212 / 7%), transparent 45%), var(--surface); }
+.ai-panel.docked .ai-msg.bot .ai-bubble { background: color-mix(in srgb, #6366f1 7%, var(--surface)); border: 1px solid color-mix(in srgb, #6366f1 18%, var(--line)); }
+.ai-panel.docked .ai-form { border-radius: 14px; box-shadow: 0 0 0 3px rgb(99 102 241 / 10%); }
+@media (max-width: 1099px) { body.ai-docked .main { padding-right: 0; } }
+body.ai-docked .notes-fab { right: 410px; }
+body.ai-docked .demo-band ~ * .ai-panel.docked, body.ai-docked:has(.demo-band) .ai-panel.docked { top: 40px; }

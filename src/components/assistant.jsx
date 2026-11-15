@@ -2,7 +2,7 @@
 // "26 nov 10:30 am rahul appointment", "register rahul sharma 9826465730 32 male", "rx rahul: amox 500 tds 5 days",
 // "who is waiting", "today's collection". Asks back when something is missing or there are two Rahuls.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Sparkles, Send, X, Mic, CalendarPlus, UserPlus, Search, Hourglass, IndianRupee, Clock, FileHeart, CornerDownLeft, Wand2 } from 'lucide-react'
 import { useTenant, toast } from './ui'
 import { db } from '../lib/store'
@@ -60,6 +60,15 @@ export function Assistant() {
   const nav = useNavigate()
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState([])
+  // On the prescription pad (wide screens) the assistant sits docked on the right, always open.
+  const loc = useLocation()
+  const rxAppt = (loc.pathname.match(/\/consult\/([^/]+)/) || [])[1]
+  const [wide, setWide] = useState(() => window.innerWidth >= 1100)
+  useEffect(() => { const r = () => setWide(window.innerWidth >= 1100); window.addEventListener('resize', r); return () => window.removeEventListener('resize', r) }, [])
+  const [undock, setUndock] = useState(false)
+  useEffect(() => setUndock(false), [rxAppt])
+  const docked = !!rxAppt && wide && !undock && user.role !== 'patient'
+  useEffect(() => { document.body.classList.toggle('ai-docked', docked); return () => document.body.classList.remove('ai-docked') }, [docked])
   const [input, setInput] = useState('')
   const [pending, setPending] = useState(null)
   const [typing, setTyping] = useState(false)
@@ -111,6 +120,14 @@ export function Assistant() {
     window.addEventListener('keydown', key)
     return () => { window.removeEventListener('ai-open', on); window.removeEventListener('keydown', key) }
   })
+  useEffect(() => {
+    if (!docked) return
+    const a = list('appointments').find((x) => x.id === rxAppt)
+    const p = a && patient(a.patientId)
+    if (!p) return
+    setPending({ kind: 'rx-meds', d: { p, meds: [] } })
+    setMsgs((x) => [...x, { from: 'bot', text: `Writing for ${p.name}${p.dob ? ` (${age(p.dob)} y)` : ''}. Type the diagnosis and medicines, for example “dx dental caries 36; amoxicillin 500 tds 5 days, ketorolac sos 3 days; next 1 week”. I’ll suggest the medicines you use most, and fill the pad for you.` }])
+  }, [docked, rxAppt]) // eslint-disable-line react-hooks/exhaustive-deps
   // The first chips start a guided flow; the rest just ask the question.
   const cmdChips = (all) => (all ? COMMANDS : COMMANDS.slice(0, 6)).map(([l, ex]) => ({ label: l, act: l.startsWith('Book') ? () => startBook({}) : l.startsWith('Register') ? () => startRegister({}) : l.startsWith('Write') ? () => startRx({ meds: [] }) : l.startsWith('Find') ? () => { setPending({ kind: 'find' }); reply({ text: 'Type the patient’s name, mobile or ID.' }) } : () => understand(ex) }))
   useEffect(() => { if (open && !msgs.length) setMsgs([{ from: 'bot', text: summary(), chips: cmdChips() }]) }, [open])
@@ -234,14 +251,15 @@ export function Assistant() {
   }
   const openRx = (d) => {
     setPending(null)
-    let a = list('appointments').filter((x) => x.patientId === d.p.id && x.date === T && ['scheduled', 'checked-in'].includes(x.status))[0]
+    const here = rxAppt && list('appointments').find((x) => x.id === rxAppt && x.patientId === d.p.id)
+    let a = here || list('appointments').filter((x) => x.patientId === d.p.id && x.date === T && ['scheduled', 'checked-in'].includes(x.status))[0]
     if (!a) {
       const doc = docFor() || doctors()[0]
       a = db.add(tid, 'appointments', { patientId: d.p.id, doctorId: doc.id, date: T, time: nowTime(), reason: d.dx || 'Consultation', status: 'checked-in', type: 'OPD', walkIn: true, bookedVia: 'assistant' })
     }
     try { sessionStorage.setItem(`ai-rx-${a.id}`, JSON.stringify({ dx: d.dx, meds: d.meds, advice: d.advice, next: d.next })) } catch { /* ignore */ }
     window.dispatchEvent(new CustomEvent('ai-rx-fill', { detail: a.id }))
-    bot({ text: `Opening the prescription pad for ${d.p.name} with everything filled in. Check it and tap “Complete visit”.` })
+    bot({ text: here ? `Filled in on the pad for ${d.p.name}. Check it and tap “Complete visit”.` : `Opening the prescription pad for ${d.p.name} with everything filled in. Check it and tap “Complete visit”.` })
     nav(`${base}/consult/${a.id}`)
     if (window.innerWidth < 900) setOpen(false)
   }
@@ -459,13 +477,13 @@ export function Assistant() {
   if (user.role === 'patient') return null
   return (
     <>
-      {!open && <button className="ai-fab" onClick={() => setOpen(true)} title="AI assistant (Ctrl+K)" aria-label="Open AI assistant"><Sparkles /><span>Ask AI</span></button>}
-      {open && (
-        <div className="ai-panel" role="dialog" aria-label="AI assistant">
+      {!open && !docked && <button className="ai-fab" onClick={() => setOpen(true)} title="AI assistant (Ctrl+K)" aria-label="Open AI assistant"><Sparkles /><span>Ask AI</span></button>}
+      {(open || docked) && (
+        <div className={`ai-panel ${docked ? 'docked' : ''}`} role={docked ? 'complementary' : 'dialog'} aria-label="AI assistant">
           <header className="ai-head">
             <span className="ai-orb"><Sparkles size={18} /></span>
-            <div><b>AI assistant</b><small>Books, registers, writes Rx · Ctrl+K</small></div>
-            <button className="gc-icon sm" onClick={() => setOpen(false)} aria-label="Close"><X /></button>
+            <div><b>AI assistant</b><small>{docked ? <><i className="ai-live" /> Prescription co-pilot · learns from your Rx</> : 'Books, registers, writes Rx · Ctrl+K'}</small></div>
+            <button className="gc-icon sm" onClick={() => (docked ? setUndock(true) : setOpen(false))} aria-label="Close"><X /></button>
           </header>
           <div className="ai-log" ref={logRef} aria-live="polite">
             {msgs.map((m, i) => (

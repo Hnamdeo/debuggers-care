@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Plus, Trash2, CheckCircle2, HeartPulse, Minus, Zap, History, Save, Sparkles, Bot } from 'lucide-react'
 import { VisitForm, vitalsText } from '../components/visits'
 import { useTenant, Card, Input, Select, Textarea, toast, Pill } from '../components/ui'
-import { PatientHeader } from './Patients'
 import { VideoPlayer } from '../components/videos'
 import { MonitorPlay, PlayCircle } from 'lucide-react'
 import { db } from '../lib/store'
@@ -20,7 +19,7 @@ import { DentalChartButton } from '../components/dentalchart'
 import { openAssistant } from '../components/assistant'
 import { EstimateForm } from '../components/estimates'
 import { ConsentForm } from '../components/consent'
-import { FileSpreadsheet, PenLine } from 'lucide-react'
+import { FileSpreadsheet, PenLine, ArrowLeft, AlertTriangle } from 'lucide-react'
 
 // One-tap timings, written the way doctors write them (1-0-1) with the words patients read.
 const QUICK_FREQ = [['1-0-0', 'Once a day'], ['1-0-1', 'Twice a day'], ['1-1-1', 'Three times a day'], ['0-0-1', 'At night'], ['SOS', 'When needed for pain']]
@@ -41,7 +40,7 @@ const FREQ = ['Once a day', 'Twice a day', 'Three times a day', 'At night', 'Bef
 
 export default function Consult() {
   const { id } = useParams()
-  const { tid, tenant, list, patient, staff, doctors, base, user, me } = useTenant()
+  const { tid, tenant, list, patient, staff, doctors, base, user, me, can } = useTenant()
   const nav = useNavigate()
   const appt = list('appointments').find((a) => a.id === id)
   const p = appt && patient(appt.patientId)
@@ -177,25 +176,36 @@ export default function Consult() {
 
   return (
     <>
-      <PatientHeader p={p} back={() => nav(-1)}>
-        <div className="consult-vitals">
-          <div className="small muted">{fmtDate(appt.date)} · {fmtTime(appt.time)}{appt.reason ? ` · ${appt.reason}` : ''}</div>
-          <div className="row" style={{ gap: 8, flexWrap: 'nowrap', alignItems: 'flex-start' }}>
-            <HeartPulse size={18} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
-            <div style={{ minWidth: 0 }}><strong>Today’s vitals</strong>{visit?.complaint && <span className="muted"> · {visit.complaint}</span>}<div className="small">{(visit && vitalsText(visit.vitals)) || 'Not taken yet'}</div></div>
-            <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => setVitals(true)}>{visit && vitalsText(visit.vitals) ? 'Edit' : 'Add'}</button>
-          </div>
-          <div className="row" style={{ gap: 6 }}>
-            <button className="btn sm ai-write" onClick={() => openAssistant(`prescription for ${p.id}`)}><Bot /> Write with AI</button>
-            {dental && <DentalChartButton p={p} />}
-            <button className="btn sm" onClick={() => setTool('estimate')}><FileSpreadsheet /> Estimate</button>
-            <button className="btn sm" onClick={() => setTool('consent')}><PenLine /> Consent</button>
-            {dental && <button className="btn sm smile-link" onClick={() => nav(`${base}/smile`)}><Sparkles /> AI Smile preview</button>}
-          </div>
-          {tool === 'estimate' && <EstimateForm p={p} onClose={() => setTool(null)} />}
-          {tool === 'consent' && <ConsentForm p={p} onClose={() => setTool(null)} />}
+      {/* One-line patient strip: the pad itself carries the name, age and vitals. */}
+      <div className="rx-strip">
+        <button className="rx-back" onClick={() => nav(-1)} aria-label="Back" title="Back"><ArrowLeft /></button>
+        <span className="rx-av">{p.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()}</span>
+        <div className="rx-who">
+          <strong>{p.name}</strong>
+          <span>{p.id} · {p.dob ? `${age(p.dob)} y` : '—'} · {{ F: 'F', M: 'M', O: 'O' }[p.gender] || '-'} · {p.phone || 'no mobile'} · {fmtTime(appt.time)}{appt.reason ? ` · ${appt.reason}` : ''}</span>
         </div>
-      </PatientHeader>
+        <button className="rx-vitals" onClick={() => setVitals(true)} title="Today’s vitals">
+          <HeartPulse /> {(visit && vitalsText(visit.vitals)) || 'Add vitals'}
+        </button>
+        {p.allergies && <span className="pill bad"><AlertTriangle size={11} /> {p.allergies}</span>}
+        <div className="rx-tools">
+          {dental && <DentalChartButton p={p} />}
+          <button className="btn sm" onClick={() => setTool('estimate')}><FileSpreadsheet /> Estimate</button>
+          <button className="btn sm" onClick={() => setTool('consent')}><PenLine /> Consent</button>
+          {can('education') && <button className="btn sm" onClick={() => setTool('explain')}><MonitorPlay /> Explain</button>}
+          {dental && <button className="btn sm smile-link" onClick={() => nav(`${base}/smile`)}><Sparkles /> Smile</button>}
+          <button className="btn sm ai-write rx-ai-only-small" onClick={() => openAssistant(`prescription for ${p.id}`)}><Bot /> Write with AI</button>
+        </div>
+      </div>
+      {tool === 'estimate' && <EstimateForm p={p} onClose={() => setTool(null)} />}
+      {tool === 'consent' && <ConsentForm p={p} onClose={() => setTool(null)} />}
+      {tool === 'explain' && (
+        <div className="modal-scrim" onClick={() => setTool(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
+            <ExplainCard doc={doc} patientId={p.id} onPlay={(v) => { setTool(null); setPlay(v) }} />
+          </div>
+        </div>
+      )}
       {voice && <VoiceRx medNames={[...new Set([...sets.flat().map((x) => x[0]), ...meds.map((m) => m.name)])]} onClose={() => setVoice(false)} onApply={(v) => {
         if (v.complaint) setCo(v.complaint)
         if (v.findings) setOe(v.findings)
@@ -208,7 +218,7 @@ export default function Consult() {
       }} />}
       {vitals && <VisitForm patientId={p.id} onClose={() => setVitals(false)} />}
       {allergic && <div className="card pad" style={{ borderColor: 'var(--bad)', color: 'var(--bad)', fontWeight: 600 }}>Allergy alert: {p.name} is allergic to {p.allergies}. Check the antibiotic before you sign.</div>}
-      <div className="grid consult-grid">
+      <div className="consult-one">
         <div className="stack">
           <Card title="Prescription pad" actions={<><button className="btn sm voice-btn" onClick={() => setVoice(true)}><Mic /> Speak prescription</button><button className="btn sm" onClick={() => setPreview(true)}><FileText /> See printed pad</button></>}>
             <div className="stack">
@@ -356,8 +366,7 @@ export default function Consult() {
             <span className="muted small">Bill: consultation {money(doc.fee)}{procs.length + tests.length ? ` + ${procs.length + tests.length} items` : ''}</span>
           </div>
         </div>
-        <div className="stack">
-          <ExplainCard doc={doc} patientId={p.id} onPlay={setPlay} />
+        <div className="grid g2">
           <Card title="Past prescriptions">
             {history.length ? history.map((r) => (
               <div key={r.id} className="tl-item" style={{ gridTemplateColumns: '1fr' }}>
