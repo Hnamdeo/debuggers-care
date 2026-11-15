@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Trash2, CheckCircle2, HeartPulse, Minus, Zap, History, Save, Sparkles } from 'lucide-react'
+import { Plus, Trash2, CheckCircle2, HeartPulse, Minus, Zap, History, Save, Sparkles, Bot } from 'lucide-react'
 import { VisitForm, vitalsText } from '../components/visits'
 import { useTenant, Card, Input, Select, Textarea, toast, Pill } from '../components/ui'
 import { PatientHeader } from './Patients'
@@ -17,6 +17,7 @@ import { FileText, Mic } from 'lucide-react'
 import { VoiceRx } from '../components/voice'
 import { SITES } from '../lib/sites'
 import { DentalChartButton } from '../components/dentalchart'
+import { openAssistant } from '../components/assistant'
 import { EstimateForm } from '../components/estimates'
 import { ConsentForm } from '../components/consent'
 import { FileSpreadsheet, PenLine } from 'lucide-react'
@@ -77,16 +78,26 @@ export default function Consult() {
     if (v && !v.consultAt) db.update(tid, 'visits', v.id, { consultAt: new Date().toISOString(), status: 'with-doctor', chairAt: v.chairAt || new Date().toISOString() })
   }, [appt?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   // A prescription written in the AI assistant arrives here filled in, for the doctor to check.
+  // It comes either on opening the pad, or live while the pad is already open.
   useEffect(() => {
     if (!appt) return
-    let ai = null
-    try { ai = JSON.parse(sessionStorage.getItem(`ai-rx-${appt.id}`) || 'null'); sessionStorage.removeItem(`ai-rx-${appt.id}`) } catch { /* ignore */ }
-    if (!ai) return
-    if (ai.dx) setDx(ai.dx.charAt(0).toUpperCase() + ai.dx.slice(1))
-    if (ai.meds?.length) setLines(ai.meds.map((m) => ({ name: m.name, dose: /mouthwash|syrup/i.test(m.name) ? '10 ml' : /paste|gel/i.test(m.name) ? 'Apply' : /amoxicillin|cap/i.test(m.name) ? '1 cap' : '1 tab', freq: m.freq, days: m.days })))
-    if (ai.advice) setNotes(ai.advice.charAt(0).toUpperCase() + ai.advice.slice(1))
-    if (ai.next) setNextDate(ai.next)
-    toast('Filled from the AI assistant. Please check before completing.')
+    const apply = (ai) => {
+      if (!ai) return
+      if (ai.dx) setDx(ai.dx.charAt(0).toUpperCase() + ai.dx.slice(1))
+      if (ai.meds?.length) setLines(ai.meds.map((m) => ({ name: m.name, dose: m.dose || (/mouthwash|syrup/i.test(m.name) ? '10 ml' : /paste|gel/i.test(m.name) ? 'Apply' : /amoxicillin|cap/i.test(m.name) ? '1 cap' : '1 tab'), freq: m.freq, days: m.days })))
+      if (ai.advice) setNotes(ai.advice.charAt(0).toUpperCase() + ai.advice.slice(1))
+      if (ai.next) setNextDate(ai.next)
+      toast('Filled from the AI assistant. Please check before completing.')
+    }
+    const take = () => {
+      let ai = null
+      try { ai = JSON.parse(sessionStorage.getItem(`ai-rx-${appt.id}`) || 'null'); sessionStorage.removeItem(`ai-rx-${appt.id}`) } catch { /* ignore */ }
+      apply(ai)
+    }
+    take()
+    const on = (e) => { if (e.detail === appt.id) take() }
+    window.addEventListener('ai-rx-fill', on)
+    return () => window.removeEventListener('ai-rx-fill', on)
   }, [appt?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!appt || !p) return <div className="empty">Appointment not found.</div>
   const visit = list('visits').find((v) => v.appointmentId === appt.id) || list('visits').find((v) => v.patientId === p.id && v.date === appt.date && v.status !== 'done')
@@ -175,6 +186,7 @@ export default function Consult() {
             <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => setVitals(true)}>{visit && vitalsText(visit.vitals) ? 'Edit' : 'Add'}</button>
           </div>
           <div className="row" style={{ gap: 6 }}>
+            <button className="btn sm ai-write" onClick={() => openAssistant(`prescription for ${p.id}`)}><Bot /> Write with AI</button>
             {dental && <DentalChartButton p={p} />}
             <button className="btn sm" onClick={() => setTool('estimate')}><FileSpreadsheet /> Estimate</button>
             <button className="btn sm" onClick={() => setTool('consent')}><PenLine /> Consent</button>

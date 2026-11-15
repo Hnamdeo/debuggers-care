@@ -75,6 +75,27 @@ export function Assistant() {
     return [...new Set([...sets, ...dental, ...list('medicines').map((m) => m.name)])]
   }, [tenant, list])
 
+  // Learns from this clinic's own saved prescriptions: which medicines the doctors use most,
+  // and what they usually give for each diagnosis. Nothing leaves the clinic's records.
+  const learned = useMemo(() => {
+    const count = {}; const byDx = {}
+    for (const r of list('prescriptions')) {
+      for (const it of r.items || []) if (it.name) count[it.name] = (count[it.name] || 0) + 1
+      const k = (r.diagnosis || '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim()
+      if (k && r.items?.length) (byDx[k] = byDx[k] || []).push(r)
+    }
+    return { count, byDx }
+  }, [list])
+  const pastFor = (dx) => {
+    const k = (dx || '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim()
+    if (!k) return null
+    const hit = learned.byDx[k] || Object.entries(learned.byDx).find(([x]) => x.includes(k) || k.includes(x))?.[1]
+    if (!hit?.length) return null
+    const r = [...hit].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0]
+    return { times: hit.length, meds: r.items.map((it) => ({ name: it.name, dose: it.dose, freq: it.freq, days: it.days, known: true, given: true })) }
+  }
+  const byUse = (arr) => [...arr].sort((a, b) => (learned.count[b] || 0) - (learned.count[a] || 0))
+
   // Greeting with what matters right now.
   const summary = () => {
     const appts = list('appointments').filter((a) => a.date === T && a.status !== 'cancelled' && (user.role !== 'doctor' || doctors().length < 2 || a.doctorId === me?.id))
@@ -131,14 +152,14 @@ export function Assistant() {
     }
     if (!d.date) {
       setPending({ kind: 'date', d })
-      return reply({ text: `Which day for ${d.p.name}? Type a date (like 26 Nov) or pick one:`, chips: [0, 1, 2, 3].map((n) => addDays(T, n)).filter((x) => hoursOn(tenant, x).length).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })) })
+      return reply({ text: `Which day for ${d.p.name}? Type a date (like 26 Nov) or pick one:`, chips: [0, 1, 2, 3].map((n) => addDays(T, n)).filter((x) => hoursOn(tenant, x).length).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })).concat([calChip(d)]) })
     }
     const mins = d.mins || 15
     const appts = list('appointments').filter((a) => a.doctorId === d.doc.id && a.date === d.date)
     const free = freeStarts(tenant, d.date, appts, mins, d.date === T ? nowTime() : '', mins <= 15)
-    if (!hoursOn(tenant, d.date).length) { setPending({ kind: 'date', d }); return reply({ text: `The clinic is closed on ${dayLabel(d.date)}. Pick another day.`, chips: [1, 2, 3, 4].map((n) => addDays(d.date, n)).filter((x) => hoursOn(tenant, x).length).slice(0, 3).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })) }) }
-    if (d.date < T) { setPending({ kind: 'date', d: { ...d, date: null } }); return reply({ text: 'That day has already gone. Which day?', chips: [0, 1, 2].map((n) => addDays(T, n)).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })) }) }
-    if (!free.length) { setPending({ kind: 'date', d }); return reply({ text: `${d.doc.name} is fully booked on ${dayLabel(d.date)}. Try another day.`, chips: [1, 2, 3].map((n) => addDays(d.date, n)).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })) }) }
+    if (!hoursOn(tenant, d.date).length) { setPending({ kind: 'date', d }); return reply({ text: `The clinic is closed on ${dayLabel(d.date)}. Pick another day.`, chips: [1, 2, 3, 4].map((n) => addDays(d.date, n)).filter((x) => hoursOn(tenant, x).length).slice(0, 3).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })).concat([calChip(d)]) }) }
+    if (d.date < T) { setPending({ kind: 'date', d: { ...d, date: null } }); return reply({ text: 'That day has already gone. Which day?', chips: [0, 1, 2].map((n) => addDays(T, n)).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })).concat([calChip(d)]) }) }
+    if (!free.length) { setPending({ kind: 'date', d }); return reply({ text: `${d.doc.name} is fully booked on ${dayLabel(d.date)}. Try another day.`, chips: [1, 2, 3].map((n) => addDays(d.date, n)).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })).concat([calChip(d)]) }) }
     if (!d.time || !free.includes(d.time)) {
       const near = d.time ? [...free].sort((a, b) => Math.abs(toM(a) - toM(d.time)) - Math.abs(toM(b) - toM(d.time))).slice(0, 6).sort() : free.slice(0, 8)
       setPending({ kind: 'time', d })
@@ -191,6 +212,9 @@ export function Assistant() {
     bot({ text: `${p.name} added to today’s waiting list. Vitals can be added from the dashboard.`, chips: [{ label: 'Open dashboard', act: () => nav(`${base}/dashboard`) }] })
   }
 
+  // "Another date" opens a calendar; picking a day carries on with the booking.
+  const calChip = (d) => ({ label: '📅 Another date', cal: true, min: T, act: (v) => askBooking({ ...d, date: v, time: d.time && v === d.date ? d.time : null, askedTime: false }) })
+
   // ---- Prescription: fills the prescription pad; the doctor checks it and completes the visit. ----
   const startRx = (d) => {
     if (!d.p) {
@@ -198,6 +222,12 @@ export function Assistant() {
       setPending({ kind: 'rx-who', d }); return reply({ text: 'For which patient? Type the name, mobile or ID.' })
     }
     if (!d.meds.length && !d.dx) { setPending({ kind: 'rx-meds', d }); return reply({ text: `What should I write for ${d.p.name}? For example: “amoxicillin 500 tds 5 days, ketorolac sos 3 days; dx dental caries 36; advice warm salt water rinse; next 1 week”. I’ll suggest medicines as you type.` }) }
+    const past = !d.meds.length && d.dx && !d.skipPast ? pastFor(d.dx) : null
+    if (past) {
+      setPending({ kind: 'rx-meds', d })
+      return reply({ text: `For “${d.dx}” you usually give (${past.times} time${past.times > 1 ? 's' : ''} before): ${past.meds.map((m) => m.name).join(', ')}. Use the same?`,
+        chips: [{ label: '✓ Use the same', main: true, act: () => startRx({ ...d, meds: past.meds }) }, { label: 'Write different medicines', act: () => { setPending({ kind: 'rx-meds', d: { ...d, skipPast: true } }); bot({ text: 'Okay, type the medicines.' }) } }] })
+    }
     setPending({ kind: 'rx-confirm', d })
     reply({ card: { kind: 'rx', title: `Prescription for ${d.p.name}`, lines: [d.dx ? `Diagnosis: ${d.dx}` : 'Diagnosis: (add on the pad)', ...d.meds.map((m, i) => `${i + 1}. ${m.name} · ${m.freq} · ${m.days} days${m.known ? '' : ' (new medicine)'}`), d.advice ? `Advice: ${d.advice}` : '', d.next ? `Next visit: ${dayLabel(d.next)}` : ''].filter(Boolean) },
       chips: [{ label: '✓ Open on prescription pad', main: true, act: () => openRx(d) }, { label: 'Cancel', act: () => { setPending(null); bot({ text: 'Okay, cleared.' }) } }] })
@@ -210,6 +240,7 @@ export function Assistant() {
       a = db.add(tid, 'appointments', { patientId: d.p.id, doctorId: doc.id, date: T, time: nowTime(), reason: d.dx || 'Consultation', status: 'checked-in', type: 'OPD', walkIn: true, bookedVia: 'assistant' })
     }
     try { sessionStorage.setItem(`ai-rx-${a.id}`, JSON.stringify({ dx: d.dx, meds: d.meds, advice: d.advice, next: d.next })) } catch { /* ignore */ }
+    window.dispatchEvent(new CustomEvent('ai-rx-fill', { detail: a.id }))
     bot({ text: `Opening the prescription pad for ${d.p.name} with everything filled in. Check it and tap “Complete visit”.` })
     nav(`${base}/consult/${a.id}`)
     if (window.innerWidth < 900) setOpen(false)
@@ -399,7 +430,7 @@ export function Assistant() {
     const last = low.split(/[\s,:;]+/).pop()
     const rxMode = /^(rx|prescription|prescribe)\b/.test(low) || ['rx-meds'].includes(pending?.kind)
     if (rxMode && (low.includes(':') || pending?.kind === 'rx-meds' || low.split(/\s+/).length > 2) && last.length >= 2) {
-      return meds.filter((m) => m.toLowerCase().startsWith(last) || m.toLowerCase().includes(` ${last}`)).slice(0, 6).map((m) => ({ label: m, sub: 'medicine', apply: v.slice(0, v.length - last.length) + m + ' ' }))
+      return byUse(meds.filter((m) => m.toLowerCase().startsWith(last) || m.toLowerCase().includes(` ${last}`))).slice(0, 6).map((m) => ({ label: m, sub: learned.count[m] ? `used ${learned.count[m]}× by you` : 'medicine', apply: v.slice(0, v.length - last.length) + m + ' ' }))
     }
     if (low.split(/\s+/).length <= 2 && !/\d/.test(low)) {
       const cmd = COMMANDS.filter(([, ex]) => ex.toLowerCase().startsWith(low)).map(([l, ex]) => ({ label: ex, sub: l, apply: ex }))
@@ -409,7 +440,7 @@ export function Assistant() {
       return list('patients').filter((p) => p.name.toLowerCase().split(/\s+/).some((w) => w.startsWith(last))).slice(0, 5).map((p) => ({ label: p.name, sub: `${p.phone || 'no mobile'} · ${p.id}`, apply: v.slice(0, v.length - last.length) + `${p.name} ${p.id} ` }))
     }
     return []
-  }, [input, meds, list, pending])
+  }, [input, meds, list, pending, learned])
 
   const mic = () => {
     const Rec = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -451,7 +482,9 @@ export function Assistant() {
                 ) : <button key={j} onClick={r.act}><b>{r.main}</b><span>{r.sub}</span></button>)}</div>}
                 {m.chips?.length > 0 && i === msgs.length - 1 && (
                   <div className="ai-chips">
-                    {m.chips.map((c, j) => c.href
+                    {m.chips.map((c, j) => c.cal
+                      ? <DateChip key={j} chip={c} onPick={(v) => { setMsgs((x) => [...x, { from: 'me', text: dayLabel(v) }]); c.act(v) }} />
+                      : c.href
                       ? <a key={j} className="ai-chip" href={c.href} target="_blank" rel="noopener noreferrer" onClick={c.act}>{c.label}</a>
                       : <button key={j} className={`ai-chip ${c.main ? 'main' : ''}`} onClick={() => { if (c.fill) { setInput(c.fill); inRef.current?.focus(); return } if (c.say) return send(c.say); setMsgs((x) => [...x, { from: 'me', text: c.label.replace(/^✓ /, '') }]); c.act() }}>{c.label}</button>)}
                   </div>
@@ -490,5 +523,18 @@ export function AskBar() {
       <input value={v} onChange={(e) => setV(e.target.value)} placeholder={`Hi ${callName(me, user.role)}, what should I do? Try “${ex[new Date().getMinutes() % ex.length]}”`} aria-label="Ask the AI assistant" />
       <button className="btn primary" type="submit"><Send /> Ask AI</button>
     </form>
+  )
+}
+
+// A chip that opens the browser's calendar; the chosen day goes back into the chat.
+function DateChip({ chip, onPick }) {
+  const ref = useRef(null)
+  const [show, setShow] = useState(false)
+  const open = () => { setShow(true); setTimeout(() => { try { ref.current?.showPicker() } catch { ref.current?.focus() } }, 30) }
+  return (
+    <span className="ai-datechip">
+      <button type="button" className="ai-chip" onClick={open}>{chip.label}</button>
+      {show && <input ref={ref} type="date" min={chip.min} aria-label="Pick a date" onChange={(e) => e.target.value && onPick(e.target.value)} />}
+    </span>
   )
 }

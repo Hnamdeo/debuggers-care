@@ -1988,3 +1988,7 @@ td { padding: 12px 14px; }
 .hx .login-footer, .hx .login-footer a { color: #64748b; }
 @media (prefers-reduced-motion: reduce) { .hx-grid, .hx-orb, .hx-scan, .hx-dot { animation: none !important; } }
 .lx-terms { margin: 18px auto 0; max-width: 820px; font-size: 13px; color: var(--muted); text-align: center; line-height: 1.5; }
+.ai-datechip { display: inline-flex; align-items: center; gap: 6px; }
+.ai-datechip input[type="date"] { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); }
+.btn.ai-write { background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; border: 0; }
+.btn.ai-write:hover { filter: brightness(1.08); }
