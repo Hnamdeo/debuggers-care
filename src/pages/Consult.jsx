@@ -4,8 +4,8 @@ import { Plus, Trash2, CheckCircle2, HeartPulse } from 'lucide-react'
 import { VisitForm, vitalsText } from '../components/visits'
 import { useTenant, Card, Input, Select, Textarea, toast, Pill } from '../components/ui'
 import { PatientHeader } from './Patients'
-import { VideoPlayer, ShareButton } from '../components/videos'
-import { MonitorPlay } from 'lucide-react'
+import { VideoPlayer } from '../components/videos'
+import { MonitorPlay, PlayCircle } from 'lucide-react'
 import { db } from '../lib/store'
 import { LAB_CATALOG } from '../lib/seed'
 import { fmtDate, fmtTime, money, today, age, addDays } from '../lib/utils'
@@ -223,14 +223,17 @@ export default function Consult() {
 
 // One row per treatment; Hindi / English picks which video Show and Share use.
 function ExplainRow({ g, patientId, onPlay }) {
-  const [pick, setPick] = useState(g.main.id)
-  const v = g.items.find((x) => x.id === pick) || g.main
+  const v = g.main
   return (
     <div className="vid-row">
       <div style={{ flex: 1, minWidth: 140 }}><div style={{ fontWeight: 600, lineHeight: 1.3 }}>{v.builtIn && v.procedure ? v.procedure : v.title}</div><div className="small muted">{v.minutes} min</div></div>
-      {g.items.length > 1 && <span className="row" style={{ gap: 4 }}>{g.items.map((x) => <button key={x.id} className={`btn sm ${x.id === v.id ? 'primary' : ''}`} onClick={() => setPick(x.id)}>{x.lang === 'Hindi' ? 'हिंदी' : x.lang}</button>)}</span>}
-      <button className="btn sm primary" onClick={() => onPlay(v)}>Show</button>
-      <ShareButton video={v} patientId={patientId} small />
+      <span className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+        {g.items.map((x) => (
+          <button key={x.id} className="btn sm primary" onClick={() => onPlay(x)} title={`Play ${x.lang || ''} video`}>
+            <PlayCircle /> {g.items.length > 1 ? (x.lang === 'Hindi' ? 'हिंदी' : x.lang || 'Play') : 'Play'}
+          </button>
+        ))}
+      </span>
     </div>
   )
 }
