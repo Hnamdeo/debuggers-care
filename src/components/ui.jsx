@@ -57,11 +57,11 @@ export function Celebration() {
   )
 }
 
-export function PageHead({ title, sub, children }) {
+export function PageHead({ title, sub, children, aside }) {
   return (
     <div className="page-head">
       <div>
-        <h1>{title}</h1>
+        {aside ? <div className="page-title-row"><h1>{title}</h1>{aside}</div> : <h1>{title}</h1>}
         {sub && <p>{sub}</p>}
       </div>
       {children && <div className="row">{children}</div>}

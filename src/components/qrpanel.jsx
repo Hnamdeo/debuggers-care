@@ -26,7 +26,7 @@ export function QrPanel({ phone }) {
       <span className="small muted" style={{ textAlign: 'center' }}>Patient scans with the phone camera, fills name and mobile, and appears in Today’s visits.</span>
       <a className="btn primary" href={wa} target="_blank" rel="noreferrer"><MessageCircle /> {/^\d{10}$/.test(phone || '') ? `Send form to ${phone}` : 'Send form on WhatsApp'}</a>
       <div className="row" style={{ gap: 6, justifyContent: 'center' }}>
-        <a className="btn sm" href={link} target="_blank" rel="noopener noreferrer"><MessageCircle /> Fill by chat</a>
+        <a className="btn sm" href={link} target="_blank" rel="noopener noreferrer"><MessageCircle /> Register by AI</a>
         <button className="btn sm" onClick={copy}><Copy /> Copy link</button>
         <button className="btn sm" onClick={() => window.print()}><Printer /> Print QR</button>
       </div>

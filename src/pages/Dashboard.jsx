@@ -256,7 +256,7 @@ function DoctorDash() {
           : { icon: Stethoscope, label: 'No one waiting', hint: 'Queue is clear', onClick: () => nav(`${base}/appointments`), main: true },
         { icon: CalendarDays, label: 'My appointments', hint: `${todays.length} today`, onClick: () => nav(`${base}/appointments`) },
         { icon: FlaskConical, label: 'Lab reports', hint: `${labs.filter((r) => r.status === 'ordered').length} in lab`, onClick: () => nav(`${base}/reports`) },
-        { icon: UserPlus, label: 'Register patient', hint: 'Quick chat registration', onClick: () => nav(`${base}/register`) },
+        { icon: UserPlus, label: 'Register patient', hint: 'Register by AI chat', onClick: () => nav(`${base}/register`) },
         { icon: Users, label: 'Seen', hint: seenRange === 'today' ? `${seenToday} today` : `${week} in 7 days`, onClick: () => nav(`${base}/appointments?view=list`),
           toggle: { value: seenRange, onChange: setSeenRange, options: [['today', 'Today'], ['week', 'Week']] } },
         { icon: CalendarDays, label: 'My patients today', hint: `${todays.length} booked · ${todays.filter((a) => a.status === 'completed').length} seen`, onClick: () => nav(`${base}/appointments?view=calendar`) },

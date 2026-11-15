@@ -2225,3 +2225,21 @@ body:has(.chat-page) { background: #070b17; }
 .ai-panel.side .ai-form input { font-size: 13.5px; }
 .ai-panel.side.big { width: min(880px, calc(100vw - 300px)); z-index: 75; box-shadow: -30px 0 80px -20px rgb(2 6 23 / 60%); }
 .ai-panel.side.big .ai-bubble { font-size: 14px; }
+/* Page title with its search box beside it */
+.page-title-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.page-title-row .search, .page-title-row > div { min-width: 240px; }
+
+/* Staff app: tidier, smaller type (16 Nov). Public pages are not affected. */
+.shell .main { font-size: 13.5px; }
+.shell .page-head h1 { font-size: 1.5rem; }
+.shell .page-head p { font-size: 12.5px; }
+.shell .card > .card-head { padding: 11px 16px; }
+.shell .card > .card-head h3, .shell .card-head .card-title { font-size: 15px; }
+.shell th { font-size: 10.5px; padding: 8px 12px; }
+.shell td { padding: 8px 12px; font-size: 13px; }
+.shell .cell-main { font-size: 13px; }
+.shell .cell-sub { font-size: 11.5px; }
+.shell .btn { font-size: 12.5px; padding: 6px 11px; }
+.shell .btn.sm { font-size: 11.5px; padding: 4px 9px; }
+.shell .input, .shell select, .shell textarea { font-size: 13px; }
+.shell td { white-space: nowrap; } .shell td .cell-main, .shell td .cell-sub { white-space: normal; }
