@@ -1608,3 +1608,5 @@ td { padding: 12px 14px; }
 .cs-hero .dsx svg.dsx-mini { width: 30px; height: 30px; }
 .cs-hero .dsx svg.dsx-tools { width: auto; height: 62%; }
 @media (max-width: 480px) { .cs-hero .dsx svg.dsx-tools { height: 52%; } .cs-hero .dsx svg.dsx-mini { width: 22px; height: 22px; } }
+.cs-hero-copy .dsx { width: 100%; max-width: 560px; height: 280px; margin-top: 6px; }
+@media (max-width: 480px) { .cs-hero-copy .dsx { height: 210px; } }

@@ -113,10 +113,9 @@ export default function ClinicSite({ site }) {
               <a className="cs-btn wa" href={wa} target="_blank" rel="noopener noreferrer"><MessageCircle /> Book on WhatsApp</a>
               <a className="cs-btn ghost" href={maps} target="_blank" rel="noopener noreferrer"><Navigation /> Directions</a>
             </div>
+            <DentalScreen />
           </div>
 
-          <div className="cs-hero-side">
-          <DentalScreen />
           <aside className="cs-doc">
             {docs.map((x) => (
               <div key={x.name} className="cs-doc-one">
@@ -137,7 +136,6 @@ export default function ClinicSite({ site }) {
             {site.fee ? <div className="cs-doc-fee small"><HeartHandshake /> Consultation fee about ₹{site.fee}</div>
               : <div className="cs-doc-fee small"><HeartHandshake /> Call or WhatsApp to book your visit</div>}
           </aside>
-          </div>
         </div>
       </section>
 
