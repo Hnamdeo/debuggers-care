@@ -29,6 +29,30 @@ const COMMANDS = [
   ['Today’s collection', 'Today’s collection', IndianRupee],
 ]
 
+// Answers to "how do I…" questions about the app. k = words to look for, need = how many must appear.
+const FAQ = [
+  { k: ['vital', 'bp', 'pulse', 'weight', 'sugar'], need: 1, a: 'Vitals: open the patient (or the waiting list on the dashboard), tap “Today’s visit & vitals”, fill BP, pulse, weight, sugar and save. The doctor sees them on the prescription pad.', go: ['Open dashboard', 'dashboard'] },
+  { k: ['print', 'prescription'], need: 2, a: 'Printing a prescription: open the patient → Prescriptions tab → tap the prescription → Print. It prints on your clinic’s own pad design. You can also tap “See printed pad” while writing it.', go: ['Open prescriptions', 'prescriptions'] },
+  { k: ['whatsapp', 'prescription', 'send'], need: 2, a: 'After you complete the visit, the patient’s visit timeline shows “Send on WhatsApp”. Tap it and WhatsApp opens with the prescription ready to send.' },
+  { k: ['reminder', 'remind'], need: 1, a: 'Reminders: Appointments → “Remind all patients”, or the bell on any booked slot. Each one opens WhatsApp (or SMS) with the message ready. With WhatsApp Business connected in Settings, they go out automatically.', go: ['Open appointments', 'appointments'] },
+  { k: ['password', 'change password', 'login'], need: 1, a: 'Passwords: Plan & settings → Logins. The doctor can change the doctor and reception passwords there. Patients get a 6-digit PIN from the “Patient login” button on their profile.', go: ['Open settings', 'settings'] },
+  { k: ['bill', 'invoice', 'payment'], need: 1, a: 'Bills: completing a consultation makes the bill automatically. For a separate bill open the patient → “New bill”. To collect money, open the bill and tap “Mark received”.', go: ['Open billing', 'billing'] },
+  { k: ['expense', 'kharcha', 'rent', 'salary'], need: 1, a: 'Expenses: open Expenses in the left menu → “Add expense”. It shows money received, expenses and what is left each month.', go: ['Open expenses', 'expenses'] },
+  { k: ['x-ray', 'xray', 'photo', 'image', 'upload'], need: 1, a: 'X-rays and photos: open the patient → “X-ray / photo” → take a photo or choose a file. They stay on the patient’s profile under “X-rays & photos”.' },
+  { k: ['dental chart', 'tooth chart', 'teeth chart', 'chart'], need: 1, a: 'Dental chart: open the patient → “Dental chart” tab (or the Dental chart button on the prescription pad). Tap a tooth, mark what you found and the treatment to do.' },
+  { k: ['estimate', 'quotation', 'cost'], need: 1, a: 'Estimates: open the patient → Estimates → “New estimate”, or “Make estimate from plan” under the dental chart. Send it on WhatsApp, print it, or turn it into a bill.' },
+  { k: ['consent'], need: 1, a: 'Consent: open the patient → Consent → “New consent”. Pick the form (RCT, extraction, braces…), the patient signs on the screen, and it is saved. You can also send it on WhatsApp.' },
+  { k: ['qr', 'self register', 'link'], need: 1, a: 'Patient QR: Patients → “QR / link for patients”. Print the QR for the front desk or send the link on WhatsApp. Patients fill name and mobile and appear in Today’s visits.', go: ['Open patients', 'patients'] },
+  { k: ['import', 'excel', 'csv', 'old patients', 'register book'], need: 1, a: 'Old patients: Patients → “Import list”. Upload an Excel/CSV of your register (name, mobile, age, sex) and they are added in one go.', go: ['Open patients', 'patients'] },
+  { k: ['move', 'reschedule', 'change time'], need: 1, a: 'Moving an appointment: in the calendar, drag it to the new time, or tap it → Move. You can also type here: “cancel rahul” and then book again.', go: ['Open calendar', 'appointments'] },
+  { k: ['backup', 'data safe', 'download data'], need: 1, a: 'Your data is kept on the clinic server and backed up. The doctor can also download a backup from Plan & settings.' },
+  { k: ['video', 'education', 'explain'], need: 1, a: 'Patient videos: on the prescription pad, “Explain to patient” plays short treatment videos in English or Hindi, and you can send them on WhatsApp.', go: ['Open patient education', 'education'] },
+  { k: ['plan', 'price', 'subscription', 'pay'], need: 1, a: 'Your plan and price are in Plan & settings. For upgrades or payment, call or WhatsApp Debuggers Space on 9075013110.' },
+  { k: ['smile', 'ai smile'], need: 1, a: 'AI Smile preview: open it from the left menu, take the patient’s smile photo, and it shows a simulated “after” picture to explain the treatment.' },
+  { k: ['analytics', 'report', 'monthly report'], need: 1, a: 'Practice analytics (left menu) shows patients, appointments and income for any period, and downloads a report.', go: ['Open analytics', 'analytics'] },
+  { k: ['add doctor', 'staff', 'receptionist'], need: 1, a: 'Doctors and staff: Staff in the left menu → Add. Each doctor then appears in booking and on the prescription pad dropdown.' },
+]
+
 export function Assistant() {
   const ctx = useTenant()
   const { tid, tenant, list, patient, staff, doctors, user, me, base } = ctx
@@ -65,7 +89,9 @@ export function Assistant() {
     window.addEventListener('keydown', key)
     return () => { window.removeEventListener('ai-open', on); window.removeEventListener('keydown', key) }
   })
-  useEffect(() => { if (open && !msgs.length) setMsgs([{ from: 'bot', text: summary(), chips: COMMANDS.slice(0, 6).map(([l, ex]) => ({ label: l, say: ex.startsWith('Book') || ex.startsWith('Register') || ex.startsWith('Rx') || ex.startsWith('Find') ? null : ex, fill: ex })) }]) }, [open])
+  // The first chips start a guided flow; the rest just ask the question.
+  const cmdChips = (all) => (all ? COMMANDS : COMMANDS.slice(0, 6)).map(([l, ex]) => ({ label: l, act: l.startsWith('Book') ? () => startBook({}) : l.startsWith('Register') ? () => startRegister({}) : l.startsWith('Write') ? () => startRx({ meds: [] }) : l.startsWith('Find') ? () => { setPending({ kind: 'find' }); reply({ text: 'Type the patient’s name, mobile or ID.' }) } : () => understand(ex) }))
+  useEffect(() => { if (open && !msgs.length) setMsgs([{ from: 'bot', text: summary(), chips: cmdChips() }]) }, [open])
   useEffect(() => { if (open) setTimeout(() => inRef.current?.focus(), 80) }, [open])
   useEffect(() => { const b = logRef.current; if (b) b.scrollTo({ top: b.scrollHeight, behavior: 'smooth' }) }, [msgs, typing])
 
@@ -75,14 +101,27 @@ export function Assistant() {
   const docFor = () => (user.role === 'doctor' ? me : doctors().length === 1 ? doctors()[0] : null)
 
   // ---- Booking ----
+  // Start of booking: existing patient or a new one?
+  const startBook = (d) => {
+    setPending({ kind: 'book-type', d })
+    reply({ text: 'Sure. Is this an existing patient or a new patient?', chips: [{ label: 'Existing patient', main: true, act: () => askBooking({ ...d, asked: true }) }, { label: 'New patient', act: () => startRegister({ then: { ...d } }) }] })
+  }
+  const openProfile = (p) => { if (window.innerWidth < 620) window.open(`#${base}/patients/${p.id}`, '_blank'); else nav(`${base}/patients/${p.id}`) }
+  // Several patients match: show what tells them apart (village/address, else mobile) and a Profile button.
+  const pickRows = (cands, onPick) => cands.slice(0, 8).map((p) => {
+    const last = list('appointments').filter((a) => a.patientId === p.id && a.status === 'completed').sort((a, b) => b.date.localeCompare(a.date))[0]
+    return { main: `${p.name} · ${p.id}`, sub: [p.dob ? `${age(p.dob)} y` : '', { M: 'Male', F: 'Female' }[p.gender] || '', p.address ? `📍 ${p.address}` : `📞 ${p.phone || 'no mobile'}`, last ? `last visit ${fmtDate(last.date)}` : 'new'].filter(Boolean).join(' · '), btns: [{ label: 'Choose', main: true, act: () => onPick(p) }, { label: 'Profile', act: () => openProfile(p) }] }
+  })
   const askBooking = (d) => {
     if (!d.p) {
       if (d.cands?.length > 1) {
         setPending({ kind: 'pick', d })
-        return reply({ text: `I found ${d.cands.length} patients named “${titleCase(d.words.join(' '))}”. Which one? Tap one, or type more of the name, the mobile or the ID.`, chips: d.cands.slice(0, 8).map((p) => ({ label: pChip(p), act: () => askBooking({ ...d, p, cands: null }) })) })
+        const same = d.cands.filter((p) => p.name.toLowerCase() === d.cands[0].name.toLowerCase()).length === d.cands.length
+        return reply({ text: same ? `There are ${d.cands.length} patients named ${d.cands[0].name}. Which one? Check the address or open the profile, then tap Choose. You can also type the mobile or ID.` : `${d.cands.length} patients match “${titleCase(d.words.join(' '))}”. Which one? Tap Choose, or type the full name, mobile or ID.`, rows: pickRows(d.cands, (p) => askBooking({ ...d, p, cands: null })) })
       }
       setPending({ kind: 'who', d })
-      return reply({ text: d.words?.length ? `I couldn’t find “${titleCase(d.words.join(' '))}”. Type the full name, mobile or ID, or register them.` : 'Who is the appointment for? Type the name, mobile or patient ID.', chips: d.words?.length ? [{ label: `Register ${titleCase(d.words.join(' '))}`, act: () => startRegister({ name: titleCase(d.words.join(' ')), then: d }) }] : [] })
+      if (d.words?.length) return reply({ text: `I couldn’t find “${titleCase(d.words.join(' '))}”. Type the full name, mobile or ID again, or register as a new patient.`, chips: [{ label: `Register ${titleCase(d.words.join(' '))} as new`, act: () => startRegister({ name: titleCase(d.words.join(' ')), then: { ...d, words: null, cands: null } }) }] })
+      return reply({ text: 'Type the patient’s full name (for example Rahul Sharma), mobile number or patient ID.' })
     }
     if (!d.doc) {
       const dd = docFor()
@@ -91,7 +130,7 @@ export function Assistant() {
     }
     if (!d.date) {
       setPending({ kind: 'date', d })
-      return reply({ text: `Which day for ${d.p.name}?`, chips: [0, 1, 2, 3].map((n) => addDays(T, n)).filter((x) => hoursOn(tenant, x).length).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })) })
+      return reply({ text: `Which day for ${d.p.name}? Type a date (like 26 Nov) or pick one:`, chips: [0, 1, 2, 3].map((n) => addDays(T, n)).filter((x) => hoursOn(tenant, x).length).map((x) => ({ label: dayLabel(x), act: () => askBooking({ ...d, date: x }) })) })
     }
     const mins = d.mins || 15
     const appts = list('appointments').filter((a) => a.doctorId === d.doc.id && a.date === d.date)
@@ -103,7 +142,8 @@ export function Assistant() {
       const near = d.time ? [...free].sort((a, b) => Math.abs(toM(a) - toM(d.time)) - Math.abs(toM(b) - toM(d.time))).slice(0, 6).sort() : free.slice(0, 8)
       setPending({ kind: 'time', d })
       const taken = d.time && list('appointments').find((a) => a.doctorId === d.doc.id && a.date === d.date && a.time === d.time && a.status !== 'cancelled')
-      return reply({ text: d.time ? `${fmtTime(d.time)} on ${dayLabel(d.date)} is ${taken ? `taken by ${patient(taken.patientId)?.name}` : slotsOn(tenant, d.date).includes(d.time) ? 'not free' : 'outside clinic hours'}. Nearest free times:` : `What time on ${dayLabel(d.date)}? Free times:`, chips: near.map((t) => ({ label: fmtTime(t), act: () => askBooking({ ...d, time: t }) })) })
+      if (!d.time && !d.askedTime) { setPending({ kind: 'time', d: { ...d, askedTime: true } }); return reply({ text: `What time on ${dayLabel(d.date)}? Type it (like 5 pm) or pick a free time:`, chips: near.map((t) => ({ label: fmtTime(t), act: () => askBooking({ ...d, time: t }) })).concat([{ label: 'Another day', act: () => askBooking({ ...d, date: null, time: null }) }]) }) }
+      return reply({ text: d.time ? `${fmtTime(d.time)} ${dayLabel(d.date)} is ${taken ? `already booked for ${patient(taken.patientId)?.name}` : slotsOn(tenant, d.date).includes(d.time) ? 'not free' : 'outside clinic hours'}. These times are free, pick one:` : `What time on ${dayLabel(d.date)}? Free times:`, chips: near.map((t) => ({ label: fmtTime(t), act: () => askBooking({ ...d, time: t }) })).concat([{ label: 'Another day', act: () => askBooking({ ...d, date: null, time: null }) }]) })
     }
     setPending({ kind: 'confirm', d })
     reply({
@@ -117,18 +157,20 @@ export function Assistant() {
     const a = db.add(tid, 'appointments', { patientId: d.p.id, doctorId: d.doc.id, date: d.date, time: d.time, reason: d.reason || d.proc || 'Consultation', status: 'scheduled', type: 'OPD', procedure: d.proc || 'Consultation', mins: d.mins || 15, bookedVia: 'assistant' })
     toast(`Booked ${d.p.name}, ${dayLabel(d.date)} ${fmtTime(d.time)}`)
     const p = d.p
-    bot({ text: `Done ✅ ${p.name} is booked for ${dayLabel(d.date)} at ${fmtTime(d.time)} with ${d.doc.name}.`, chips: [
+    bot({ text: `Done ✅ ${p.name} is booked for ${dayLabel(d.date)} at ${fmtTime(d.time)} with ${d.doc.name}. It’s on the dashboard and the calendar now.`, chips: [
       ...(p.phone ? [{ label: 'Send confirmation on WhatsApp', href: whatsappLink(p.phone, reminderText(tenant, p, a, d.doc, 'booked')), act: () => db.update(tid, 'appointments', a.id, { remindedAt: new Date().toISOString(), remindedVia: 'whatsapp' }) }] : []),
       { label: 'Open calendar', act: () => { nav(`${base}/appointments`) } },
+      { label: 'Book another', act: () => startBook({}) },
     ] })
   }
 
   // ---- Registration ----
   const startRegister = (f) => {
-    if (!f.name) { setPending({ kind: 'reg-name', f }); return reply({ text: 'Sure. What is the patient’s full name? You can type everything at once, like “Rahul Sharma 9826465730 32 male tooth pain”.' }) }
+    if (!f.name) { setPending({ kind: 'reg-name', f }); return reply({ text: `${f.then ? 'New patient. ' : ''}What is the patient’s full name? You can also type everything at once, like “Rahul Sharma 9826465730 32 male”.` }) }
     if (!f.phone && !f.noPhone) { setPending({ kind: 'reg-phone', f }); return reply({ text: `Mobile number for ${f.name}?`, chips: [{ label: 'No mobile', act: () => startRegister({ ...f, noPhone: true }) }] }) }
     const twin = f.phone && list('patients').find((p) => samePerson(p, f))
     if (twin) { setPending(null); return reply({ text: `${twin.name} is already registered with ${twin.phone} as ${twin.id}.`, chips: [{ label: 'Open record', act: () => nav(`${base}/patients/${twin.id}`) }, { label: 'Book appointment', act: () => askBooking({ p: twin }) }, { label: 'Add to today’s waiting', act: () => addWaiting(twin, f.reason) }] }) }
+    if (f.age == null) { setPending({ kind: 'reg-age', f }); return reply({ text: `How old is ${f.name.split(' ')[0]}? (years)`, chips: [{ label: 'Not known', act: () => startRegister({ ...f, age: '' }) }] }) }
     if (!f.gender) { setPending({ kind: 'reg-gender', f }); return reply({ text: `${f.name.split(' ')[0]} is…`, chips: [['M', 'Male'], ['F', 'Female'], ['O', 'Other']].map(([v, l]) => ({ label: l, act: () => startRegister({ ...f, gender: v }) })).concat([{ label: 'Skip', act: () => startRegister({ ...f, gender: '-' }) }]) }) }
     setPending({ kind: 'reg-confirm', f })
     reply({ card: { kind: 'confirm', title: 'Register this patient?', lines: [f.name, f.phone || 'No mobile', [f.age ? `${f.age} years` : '', { M: 'Male', F: 'Female', O: 'Other' }[f.gender] || ''].filter(Boolean).join(' · ') || 'Age and sex not given', f.reason ? `Came for: ${f.reason}` : ''].filter(Boolean) },
@@ -139,7 +181,7 @@ export function Assistant() {
     const dob = f.age ? `${new Date().getFullYear() - +f.age}-01-01` : ''
     const p = db.add(tid, 'patients', { name: titleCase(f.name.trim()), phone: f.phone || '', noPhone: !f.phone, gender: f.gender === '-' ? '' : f.gender, dob, dobApprox: !!dob, ageYears: f.age || '', email: '', blood: '', address: '', allergies: '', conditions: '', emergencyContact: '', regDate: T, via: 'assistant' })
     toast(`${p.name} registered as ${p.id}`)
-    if (f.then) return askBooking({ ...f.then, p, cands: null })
+    if (f.then) { bot({ text: `Registered ✅ ${p.name} is ${p.id}. Now the appointment.` }); return askBooking({ ...f.then, p, cands: null }) }
     bot({ text: `Registered ✅ ${p.name} is ${p.id}. What next?`, chips: [{ label: 'Add to today’s waiting', act: () => addWaiting(p, f.reason) }, { label: 'Book appointment', act: () => askBooking({ p }) }, { label: 'Open record', act: () => nav(`${base}/patients/${p.id}`) }] })
   }
   const addWaiting = (p, reason) => {
@@ -151,7 +193,7 @@ export function Assistant() {
   // ---- Prescription: fills the prescription pad; the doctor checks it and completes the visit. ----
   const startRx = (d) => {
     if (!d.p) {
-      if (d.cands?.length > 1) { setPending({ kind: 'rx-pick', d }); return reply({ text: 'Which patient is this prescription for?', chips: d.cands.slice(0, 8).map((p) => ({ label: pChip(p), act: () => startRx({ ...d, p, cands: null }) })) }) }
+      if (d.cands?.length > 1) { setPending({ kind: 'rx-pick', d }); return reply({ text: 'Which patient is this prescription for?', rows: pickRows(d.cands, (p) => startRx({ ...d, p, cands: null })) }) }
       setPending({ kind: 'rx-who', d }); return reply({ text: 'For which patient? Type the name, mobile or ID.' })
     }
     if (!d.meds.length && !d.dx) { setPending({ kind: 'rx-meds', d }); return reply({ text: `What should I write for ${d.p.name}? For example: “amoxicillin 500 tds 5 days, ketorolac sos 3 days; dx dental caries 36; advice warm salt water rinse; next 1 week”. I’ll suggest medicines as you type.` }) }
@@ -216,6 +258,11 @@ export function Assistant() {
     }), chips: cands.length === 1 ? [{ label: 'Book appointment', act: () => askBooking({ p: cands[0] }) }, { label: 'Write prescription', act: () => startRx({ p: cands[0], meds: [] }) }, { label: 'Add to today’s waiting', act: () => addWaiting(cands[0]) }] : [] })
   }
 
+  const answerFaq = (q) => {
+    const hit = FAQ.map((f) => [f, f.k.filter((k) => q.includes(k)).length]).filter(([f, n]) => n >= f.need).sort((a, b) => b[1] - a[1])[0]?.[0]
+    if (!hit) return null
+    return { text: hit.a, chips: hit.go ? [{ label: hit.go[0], act: () => nav(`${base}/${hit.go[1]}`) }] : [] }
+  }
   const understand = (raw) => {
     const low = raw.toLowerCase().trim()
     // Answers to a question I asked.
@@ -227,7 +274,8 @@ export function Assistant() {
         const ws = nameWords(t)
         const hit = d.cands.filter((p) => (i.id && p.id === i.id) || (ph.phone && p.phone?.endsWith(ph.phone)) || (ws.length && ws.every((w) => p.name.toLowerCase().split(/\s+/).some((x) => x.startsWith(w)))) || (/^\d{3,}$/.test(low) && (p.phone || '').includes(low)))
         if (hit.length === 1) return kind === 'pick' ? askBooking({ ...d, p: hit[0], cands: null }) : startRx({ ...d, p: hit[0], cands: null })
-        if (hit.length > 1) { setPending({ kind, d: { ...d, cands: hit } }); return reply({ text: `Still ${hit.length} matches. Add the mobile or ID.`, chips: hit.map((p) => ({ label: pChip(p), act: () => (kind === 'pick' ? askBooking({ ...d, p, cands: null }) : startRx({ ...d, p, cands: null })) })) }) }
+        if (hit.length > 1) { setPending({ kind, d: { ...d, cands: hit } }); return reply({ text: `Still ${hit.length} match. Type the mobile or ID, or tap Choose.`, rows: pickRows(hit, (p) => (kind === 'pick' ? askBooking({ ...d, p, cands: null }) : startRx({ ...d, p, cands: null }))) }) }
+        if (!/^(new|register)/.test(low)) return reply({ text: 'None of them match that. Type the mobile or patient ID, or tap Choose on the right one.', rows: pickRows(d.cands, (p) => (kind === 'pick' ? askBooking({ ...d, p, cands: null }) : startRx({ ...d, p, cands: null }))) })
       }
       if (kind === 'who' || kind === 'rx-who') { const r = resolve(raw); return kind === 'who' ? askBooking({ ...d, ...r }) : startRx({ ...d, ...r }) }
       if (kind === 'date' || kind === 'time') {
@@ -237,6 +285,13 @@ export function Assistant() {
       if (kind === 'doc') { const x = doctors().find((x) => x.name.toLowerCase().includes(low.replace(/^dr\.?\s*/, ''))); if (x) return askBooking({ ...d, doc: x }) }
       if (kind === 'reg-name') return startRegister(parseRegister(`register ${raw}`, f))
       if (kind === 'reg-phone') { const ph = takePhone(low); if (ph.phone) return startRegister({ ...f, phone: ph.phone }); if (/no|nahi/.test(low)) return startRegister({ ...f, noPhone: true }); return reply({ text: 'Please type a 10-digit mobile number, or tap No mobile.', chips: [{ label: 'No mobile', act: () => startRegister({ ...f, noPhone: true }) }] }) }
+      if (kind === 'reg-age') { const n = low.match(/\d{1,3}/); if (n && +n[0] <= 110) return startRegister({ ...f, age: n[0] }); if (/not|pata|skip|no/.test(low)) return startRegister({ ...f, age: '' }); return reply({ text: 'Please type the age in years, or tap Not known.', chips: [{ label: 'Not known', act: () => startRegister({ ...f, age: '' }) }] }) }
+      if (kind === 'book-type') {
+        if (/\b(new|naya|nayi|first time)\b/.test(low)) return startRegister({ then: { ...d } })
+        if (/\b(existing|old|purana|registered|already)\b/.test(low)) return askBooking({ ...d, asked: true })
+        return askBooking({ ...d, ...resolve(raw) })
+      }
+      if (kind === 'find') { setPending(null); return showPatients(resolve(raw).cands) }
       if (kind === 'reg-gender') { const g = /\b(f|female|woman|lady|mahila)\b/.test(low) ? 'F' : /\b(m|male|man|purush)\b/.test(low) ? 'M' : null; if (g) return startRegister({ ...f, gender: g }) }
       if (kind === 'rx-meds' || kind === 'rx-confirm') { if (!/^(yes|ok|open|haan|ha)$/.test(low)) return startRx(parseRx(raw, { ...d })) ; return openRx(d) }
       if (kind === 'confirm' && /^(yes|ok|confirm|haan|ha|done|book)$/.test(low)) return book(d)
@@ -244,7 +299,7 @@ export function Assistant() {
       setPending(null)
     }
     if (/^(hi|hello|hey|namaste|namaskar|good (morning|afternoon|evening)|hii+)\b/.test(low)) return reply({ text: summary() })
-    if (/\b(help|what can you do|commands?)\b/.test(low)) return reply({ text: 'I can do the front-desk and doctor work from chat. Try one of these:', chips: COMMANDS.map(([l, ex]) => ({ label: l, fill: ex })) })
+    if (/\b(help|what can you do|commands?)\b/.test(low)) return reply({ text: 'I can do the front-desk and doctor work from chat. Try one of these:', chips: cmdChips(true) })
     if (/^(rx|prescription|prescribe|write prescription|likho)\b/.test(low)) return startRx(parseRx(raw))
     if (/^(register|new patient|add patient|registration|naya patient)\b/.test(low)) return startRegister(parseRegister(raw))
     if (/\b(who('?s| is)? waiting|waiting list|in queue|queue)\b/.test(low)) {
@@ -303,9 +358,13 @@ export function Assistant() {
     const wantsBook = /\b(book|appointment|appt|apointment|appoinment|schedule|slot)\b/.test(low) || ((dt.date || tm.time) && (nameWords(t).length || i.id || ph.phone))
     const words = nameWords(t)
     const cands = findPatients(list('patients'), { id: i.id, phone: ph.phone, words })
+    if (wantsBook && !words.length && !i.id && !ph.phone) return startBook({ date: dt.date, time: tm.time, doc, proc: proc?.[0], mins: proc?.[1] })
     if (wantsBook) return askBooking({ p: cands.length === 1 ? cands[0] : null, cands, words, date: dt.date, time: tm.time, doc, proc: proc?.[0], mins: proc?.[1] })
+    const faq = answerFaq(low)
+    if (faq && !cands.length) return reply(faq)
     if (/^(find|search|show|open|lookup|dhundo)\b/.test(low) || i.id || ph.phone || cands.length) return showPatients(cands)
-    reply({ text: 'I didn’t get that yet. Here are things I can do:', chips: COMMANDS.map(([l, ex]) => ({ label: l, fill: ex })) })
+    if (faq) return reply(faq)
+    reply({ text: 'I didn’t get that yet. You can ask me to do something, or ask how to do something in the app (for example “how do I add vitals?”).', chips: cmdChips(true) })
   }
 
   const parseRegister = (raw, base0 = {}) => {
@@ -386,7 +445,9 @@ export function Assistant() {
                     {m.card.lines.map((l, j) => <span key={j}>{l}</span>)}
                   </div>
                 )}
-                {m.rows?.length > 0 && <div className="ai-rows">{m.rows.map((r, j) => <button key={j} onClick={r.act}><b>{r.main}</b><span>{r.sub}</span></button>)}</div>}
+                {m.rows?.length > 0 && <div className="ai-rows">{m.rows.map((r, j) => r.btns ? (
+                  <div key={j} className="ai-row-pick"><div><b>{r.main}</b><span>{r.sub}</span></div>{i === msgs.length - 1 && r.btns.map((b, k) => <button key={k} className={`ai-chip ${b.main ? 'main' : ''}`} onClick={() => { if (b.main) setMsgs((x) => [...x, { from: 'me', text: r.main }]); b.act() }}>{b.label}</button>)}</div>
+                ) : <button key={j} onClick={r.act}><b>{r.main}</b><span>{r.sub}</span></button>)}</div>}
                 {m.chips?.length > 0 && i === msgs.length - 1 && (
                   <div className="ai-chips">
                     {m.chips.map((c, j) => c.href
