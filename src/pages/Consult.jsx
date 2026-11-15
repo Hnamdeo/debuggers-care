@@ -74,6 +74,18 @@ export default function Consult() {
     const v = list('visits').find((x) => x.appointmentId === appt.id) || list('visits').find((x) => x.patientId === p.id && x.date === appt.date && x.status !== 'done')
     if (v && !v.consultAt) db.update(tid, 'visits', v.id, { consultAt: new Date().toISOString(), status: 'with-doctor', chairAt: v.chairAt || new Date().toISOString() })
   }, [appt?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  // A prescription written in the AI assistant arrives here filled in, for the doctor to check.
+  useEffect(() => {
+    if (!appt) return
+    let ai = null
+    try { ai = JSON.parse(sessionStorage.getItem(`ai-rx-${appt.id}`) || 'null'); sessionStorage.removeItem(`ai-rx-${appt.id}`) } catch { /* ignore */ }
+    if (!ai) return
+    if (ai.dx) setDx(ai.dx.charAt(0).toUpperCase() + ai.dx.slice(1))
+    if (ai.meds?.length) setLines(ai.meds.map((m) => ({ name: m.name, dose: /mouthwash|syrup/i.test(m.name) ? '10 ml' : /paste|gel/i.test(m.name) ? 'Apply' : /amoxicillin|cap/i.test(m.name) ? '1 cap' : '1 tab', freq: m.freq, days: m.days })))
+    if (ai.advice) setNotes(ai.advice.charAt(0).toUpperCase() + ai.advice.slice(1))
+    if (ai.next) setNextDate(ai.next)
+    toast('Filled from the AI assistant. Please check before completing.')
+  }, [appt?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!appt || !p) return <div className="empty">Appointment not found.</div>
   const visit = list('visits').find((v) => v.appointmentId === appt.id) || list('visits').find((v) => v.patientId === p.id && v.date === appt.date && v.status !== 'done')
 

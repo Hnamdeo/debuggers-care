@@ -33,6 +33,7 @@ import Smile from './pages/Smile'
 import Analytics from './pages/Analytics'
 import Expenses from './pages/Expenses'
 import { NotesFab } from './components/notes'
+import { Assistant } from './components/assistant'
 import { SITES } from './lib/sites'
 
 const ICONS = { dashboard: LayoutDashboard, patients: Users, appointments: CalendarDays, prescriptions: PillIcon, reports: FlaskConical, education: MonitorPlay, ipd: BedDouble, emergency: Siren, pharmacy: Store, billing: Receipt, staff: IdCard, payroll: Wallet }
@@ -241,6 +242,7 @@ function Shell() {
             <SiteFooter className="app-footer" />
           </main>
           {!isPatient && <NotesFab />}
+          {!isPatient && <Assistant />}
         </div>
       </div>
     </>

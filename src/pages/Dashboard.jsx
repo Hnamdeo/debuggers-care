@@ -9,6 +9,7 @@ import { TodayTimings } from './Appointments'
 import { ReminderCard } from '../components/reminders'
 import { TodayVisits, sendToDoctor } from '../components/visits'
 import { PatientFinder } from '../components/summary'
+import { AskBar, callName } from '../components/assistant'
 import { useTenant, PageHead, Stat, Card, Table, Pill } from '../components/ui'
 import { today, addDays, fmtTime, money, billTotal, fmtDate } from '../lib/utils'
 
@@ -80,13 +81,14 @@ function AdminDash() {
 
   return (
     <>
-      <Hero title={`${greet()}, ${me.name.split(' ')[0]}`} sub={`${tenant.name} · ${fmtDate(T)}`} actions={[
+      <Hero title={`${greet()}, ${callName(me, 'staff')} 👋`} sub={`${tenant.name} · ${fmtDate(T)}`} actions={[
         { icon: CalendarDays, label: 'Book appointment', hint: `${todays.filter((a) => a.status === 'scheduled').length} waiting today`, onClick: () => nav(`${base}/appointments?new=1`), main: true },
         { icon: UserPlus, label: 'Register patient', hint: 'Front desk form', onClick: () => nav(`${base}/patients?new=1`) },
         { icon: QrCode, label: 'Patient QR', hint: 'Patients self-register', onClick: () => setQr(true) },
         can('billing') && { icon: Receipt, label: 'New bill', hint: `${money(due)} due`, onClick: () => nav(`${base}/billing`) },
         can('ipd') && { icon: BedDouble, label: 'Admit patient', hint: `${beds.length - occupied.length} beds free`, onClick: () => nav(`${base}/ipd`) },
       ]} />
+      <AskBar />
       <div className="grid g4">
         <Stat label="Appointments today" value={todays.length} sub={`${todays.filter((a) => a.status === 'completed').length} seen · ${todays.filter((a) => a.status === 'scheduled').length} waiting`} icon={CalendarDays} />
         <Stat label="Collected this month" value={money(collectedMonth)} sub={`${money(due)} still due`} icon={IndianRupee} />
@@ -167,7 +169,7 @@ function DoctorDash() {
 
   return (
     <>
-      <Hero title={`${greet()}, ${me.name}`} sub={`${me.dept} · ${fmtDate(T)}`} actions={[
+      <Hero title={`${greet()}, ${callName(me, 'doctor')} 👋`} sub={`${me.dept} · ${fmtDate(T)}`} actions={[
         next ? { icon: Stethoscope, label: `Start: ${patient(next.patientId)?.name}`, hint: `${fmtTime(next.time)} · ${next.reason}`, onClick: () => nav(`${base}/consult/${next.id}`), main: true }
           : waitingVisit ? { icon: Stethoscope, label: `Start: ${patient(waitingVisit.patientId)?.name}`, hint: `Walk-in · ${waitingVisit.complaint || 'waiting'}`, onClick: () => nav(`${base}/consult/${sendToDoctor(tid, list, waitingVisit, me.id)}`), main: true }
           : { icon: Stethoscope, label: 'No one waiting', hint: 'Queue is clear', onClick: () => nav(`${base}/appointments`), main: true },
@@ -178,6 +180,7 @@ function DoctorDash() {
         can('education') && { icon: MonitorPlay, label: 'Explain videos', hint: 'Show patients', onClick: () => nav(`${base}/education`) },
         /dental/i.test(tenant.kind || '') && { icon: Sparkles, label: 'AI Smile preview', hint: 'Show the new smile', onClick: () => nav(`${base}/smile`) },
       ]} />
+      <AskBar />
       <div className="grid g4">
         <Stat label="My patients today" value={todays.length} sub={`${todays.filter((a) => a.status === 'completed').length} seen`} icon={CalendarDays} />
         <Stat label="Seen this week" value={week} sub="Completed consultations" icon={Users} />
