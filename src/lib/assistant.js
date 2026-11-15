@@ -106,7 +106,7 @@ export function parseMeds(text, known) {
     const freq = FREQ.find(([re]) => re.test(low))?.[1]
     const word = low.replace(/(\d{1,3})\s*(?:d\b|days?|din)/, ' ').replace(/\b(tds|tid|thrice|bd|bid|twice|od|once|daily|hs|sos|prn|night|bedtime|morning|for|x|times?|a day|tab|tabs|tablet|cap|caps|capsule|after food|before food)\b/g, ' ').replace(/\d-\d-\d/g, ' ').replace(/\s+/g, ' ').trim()
     const match = matchMed(word, known)
-    return match || word ? { name: match || titleCase(word), known: !!match, freq: freq || 'Twice a day', days: days || 5, given: !!freq } : null
+    return match || word ? { name: match || titleCase(word), known: !!match, freq: freq || 'Twice a day', days: days || 5, given: !!freq, dose: /\d|\b(mg|ml|gm|tab|cap|syrup|gel|drops?|mouthwash|ointment|cream)\b/.test(low) } : null
   }).filter((m) => m && m.name.length > 2)
 }
 export function matchMed(word, known) {
@@ -117,5 +117,12 @@ export function matchMed(word, known) {
     || known.find((k) => k.toLowerCase().startsWith(w))
     || known.find((k) => { const kl = k.toLowerCase(); return kl.startsWith(first) && w.split(/\s+/).slice(1).every((x) => kl.includes(x)) })
     || (first.length >= 4 ? known.find((k) => k.toLowerCase().startsWith(first)) : null)
+}
+// Does this text read like part of a prescription (a known medicine, a dose or timing, dx/advice/next)?
+export function looksLikeRx(text, known) {
+  const low = text.toLowerCase()
+  if (/\b(dx|diagnosis|advice|adv|next|follow ?up|review)\b/.test(low)) return true
+  if (/\d\s*(mg|ml|gm)\b|\b(tds|tid|bd|bid|od|sos|prn|hs|tab|tabs|cap|caps|syrup|gel|drops?|mouthwash|ointment)\b|\d-\d-\d|\d+\s*(days?|din)\b/.test(low)) return true
+  return low.split(/[,;\n]|\band\b/).some((part) => { const w = part.trim().split(/\s+/)[0]; return w.length >= 3 && !!matchMed(w, known) })
 }
 export const titleCase = (s) => s.replace(/\b[a-z]/g, (c) => c.toUpperCase())

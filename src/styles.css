@@ -2213,3 +2213,15 @@ body:has(.chat-page) { background: #070b17; }
 .rail .rail-foot .small { color: #94a3b8; }
 .rail .avatar { background: rgb(99 102 241 / 22%); color: #c7d2fe; }
 .rail .nav-item svg.lock { width: 13px; height: 13px; margin-left: auto; color: #5b6478; }
+/* AI panel (16 Nov): smaller text, no sideways scroll, bigger mode */
+.ai-panel .ai-log { overflow-x: hidden; gap: 8px; padding: 12px; }
+.ai-panel .ai-msg { max-width: 94%; min-width: 0; }
+.ai-panel .ai-bubble, .ai-panel .ai-card span { overflow-wrap: anywhere; word-break: break-word; }
+.ai-panel.side .ai-bubble { font-size: 13px; line-height: 1.45; padding: 8px 11px; }
+.ai-panel.side .ai-chip { font-size: 12px; padding: 5px 10px; }
+.ai-panel.side .ai-chips { gap: 5px; }
+.ai-panel.side .ai-card { font-size: 12.5px; }
+.ai-panel.side .ai-rows button { font-size: 12.5px; padding: 6px 10px; }
+.ai-panel.side .ai-form input { font-size: 13.5px; }
+.ai-panel.side.big { width: min(880px, calc(100vw - 300px)); z-index: 75; box-shadow: -30px 0 80px -20px rgb(2 6 23 / 60%); }
+.ai-panel.side.big .ai-bubble { font-size: 14px; }
