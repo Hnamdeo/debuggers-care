@@ -1,4 +1,4 @@
-import { slotsOn } from '../lib/slots'
+import { freeStarts, proceduresFor, duringAt } from '../lib/slots'
 import { QrPanel } from './qrpanel'
 import { NotifyButtons } from './reminders'
 import { samePerson } from '../lib/patients'
@@ -71,22 +71,25 @@ export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fi
   const { tid, tenant, list, doctors, patient } = useTenant()
   const docs = doctors()
   const [f, setF] = useState(move
-    ? { patientId: move.patientId, doctorId: move.doctorId, date: move.date < today() ? today() : move.date, time: '', reason: move.reason || '' }
-    : { patientId: fixedPatient || '', doctorId: fixedDoctor || docs[0].id, date: initDate || today(), time: initTime || '', reason: '' })
+    ? { patientId: move.patientId, doctorId: move.doctorId, date: move.date < today() ? today() : move.date, time: '', reason: move.reason || '', procedure: move.procedure || 'Consultation', mins: move.mins || 15 }
+    : { patientId: fixedPatient || '', doctorId: fixedDoctor || docs[0].id, date: initDate || today(), time: initTime || '', reason: '', procedure: 'Consultation', mins: 15 })
   const [q, setQ] = useState('')
   const [err, setErr] = useState('')
   const [newP, setNewP] = useState(false)
   const [done, setDone] = useState(null)
-  const taken = new Set(list('appointments').filter((a) => a.doctorId === f.doctorId && a.date === f.date && !['cancelled', 'no-show'].includes(a.status) && a.id !== move?.id).map((a) => a.time))
+  const dayAppts = list('appointments').filter((a) => a.doctorId === f.doctorId && a.date === f.date && a.id !== move?.id)
   const nowHM = new Date().toTimeString().slice(0, 5)
-  const free = slotsOn(tenant, f.date).filter((s) => !taken.has(s) && (f.date > today() || s > nowHM))
+  const short = f.mins <= 15
+  const free = freeStarts(tenant, f.date, dayAppts, f.mins, f.date > today() ? '' : nowHM, short)
+  const procs = proceduresFor(tenant)
+  const pickProc = (name, mins) => setF((x) => ({ ...x, procedure: name, mins, time: freeStarts(tenant, x.date, dayAppts, mins, x.date > today() ? '' : nowHM, mins <= 15).includes(x.time) ? x.time : '', reason: !x.reason || procs.some(([n]) => n === x.reason) ? (name === 'Consultation' ? '' : name) : x.reason }))
   const matches = q.length > 1 ? list('patients').filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.phone.includes(q) || p.id.toLowerCase() === q.toLowerCase()).slice(0, 6) : []
   const doc = docs.find((d) => d.id === f.doctorId)
   const save = () => {
     if (!f.patientId || !f.time) return setErr('Choose a patient and a free time slot.')
     const a = move
-      ? db.update(tid, 'appointments', move.id, { doctorId: f.doctorId, date: f.date, time: f.time, reason: f.reason || move.reason, status: 'scheduled', remindedAt: null, movedFrom: `${move.date} ${move.time}` }) || { ...move, ...f, status: 'scheduled' }
-      : db.add(tid, 'appointments', { ...f, reason: f.reason || 'Consultation', status: 'scheduled', type: 'OPD' })
+      ? db.update(tid, 'appointments', move.id, { doctorId: f.doctorId, date: f.date, time: f.time, reason: f.reason || move.reason, procedure: f.procedure, mins: f.mins, status: 'scheduled', remindedAt: null, movedFrom: `${move.date} ${move.time}` }) || { ...move, ...f, status: 'scheduled' }
+      : db.add(tid, 'appointments', { ...f, reason: f.reason || f.procedure || 'Consultation', status: 'scheduled', type: 'OPD' })
     toast(`${move ? 'Moved' : 'Booked'} ${patient(f.patientId).name} with ${doc.name}, ${fmtDate(f.date)} at ${fmtTime(f.time)}`)
     if (/^\d{10}$/.test(patient(f.patientId)?.phone || '')) setDone(a)
     else onClose(a)
@@ -129,10 +132,16 @@ export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fi
         })}
       </div>
       <div className="field">
-        <span>Free slots ({free.length}) · consultation fee {money(doc.fee)}</span>
+        <span>Procedure</span>
+        <div className="row proc-chips" style={{ gap: 6 }}>
+          {procs.map(([n, m]) => <button key={n} type="button" className={`btn sm ${f.procedure === n ? 'primary' : ''}`} onClick={() => pickProc(n, m)}>{n} <span className="proc-min">{m} min</span></button>)}
+        </div>
+      </div>
+      <div className="field">
+        <span>Free start times ({free.length}) for {f.procedure} · {f.mins} min{f.procedure === 'Consultation' ? ` · fee ${money(doc.fee)}` : ''}{short ? ' · can fit while a procedure is on' : ''}</span>
         <div className="row" style={{ gap: 6 }}>
           {free.length ? free.map((s) => (
-            <button key={s} className={`btn sm ${f.time === s ? 'primary' : ''}`} onClick={() => setF({ ...f, time: s })}>{fmtTime(s)}</button>
+            <button key={s} className={`btn sm ${f.time === s ? 'primary' : ''}`} onClick={() => setF({ ...f, time: s })}>{fmtTime(s)}{duringAt(dayAppts, tenant, s) && <span className="proc-min"> · during {duringAt(dayAppts, tenant, s).procedure}</span>}</button>
           )) : <span className="muted small">No free slots left on this day. Pick another date.</span>}
         </div>
       </div>

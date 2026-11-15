@@ -9,7 +9,7 @@ import { MonitorPlay, PlayCircle } from 'lucide-react'
 import { db } from '../lib/store'
 import { LAB_CATALOG } from '../lib/seed'
 import { fmtDate, fmtTime, money, today, age, addDays, nowTime } from '../lib/utils'
-import { slotsOn } from '../lib/slots'
+import { freeStarts } from '../lib/slots'
 import { HISTORY, historyFor, usePad } from '../components/rxpad'
 import { PrescriptionDoc } from '../components/docs'
 import { groupByLanguage } from '../lib/healthvideos'
@@ -109,8 +109,8 @@ export default function Consult() {
   const extra = () => ({ complaint: complaint.trim(), findings: oe.trim(), history: hist, historyNote: hist.includes('Others') ? histNote.trim() : '', tests, done: procs })
   const draft = { id: 'Draft', patientId: p.id, doctorId: doc.id, date: today(), diagnosis: dx, notes, items: draftItems(), ...extra(), ...(nextDate ? { nextVisit: nextDate } : {}) }
 
-  const busyNext = new Set(nextDate ? list('appointments').filter((a) => a.doctorId === doc.id && a.date === nextDate && !['cancelled', 'no-show'].includes(a.status)).map((a) => a.time) : [])
-  const nextFree = nextDate ? slotsOn(tenant, nextDate).filter((t) => !busyNext.has(t)) : []
+  const nextAppts = nextDate ? list('appointments').filter((a) => a.doctorId === doc.id && a.date === nextDate) : []
+  const nextFree = nextDate ? freeStarts(tenant, nextDate, nextAppts, 15) : []
   const nextT = nextFree.includes(nextTime) ? nextTime : nextFree[0]
 
   const finish = () => {

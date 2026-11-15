@@ -5,7 +5,7 @@ import { useTenant, PageHead, Card, Table, Pill, Select, toast } from '../compon
 import { BookAppointment } from '../components/forms'
 import { db } from '../lib/store'
 import { today, addDays, fmtDate, fmtTime } from '../lib/utils'
-import { slotsOn, slotMinutes, hoursOn } from '../lib/slots'
+import { slotsOn, slotMinutes, hoursOn, busyMap, endTime, apptMins } from '../lib/slots'
 import { BookAppointment as Book } from '../components/forms'
 import { NotifyButtons, RemindModal } from '../components/reminders'
 
@@ -62,7 +62,7 @@ export default function Appointments() {
           cols={[
             { label: 'Time', render: (a) => <span className="tabular cell-main">{fmtTime(a.time)}</span> },
             { label: 'Patient', render: (a) => <><a href="#" onClick={(e) => { e.preventDefault(); nav(`${base}/patients/${a.patientId}`) }} className="cell-main">{patient(a.patientId)?.name}</a><div className="cell-sub">{a.patientId} · {patient(a.patientId)?.phone}</div></> },
-            { label: 'Reason', key: 'reason' },
+            { label: 'Reason', render: (a) => <>{a.procedure && a.procedure !== 'Consultation' && <span className="proc-tag">{a.procedure} · {apptMins(a, tenant)} min</span>}<div>{a.reason !== a.procedure ? a.reason : ''}</div></> },
             ...(isDoc ? [] : [{ label: 'Doctor', render: (a) => <><div>{staff(a.doctorId)?.name}</div><div className="cell-sub">{staff(a.doctorId)?.dept}</div></> }]),
             { label: 'Status', render: (a) => <Pill status={a.status} /> },
             {
@@ -97,18 +97,35 @@ function SlotBoard({ date, doctorId, onBook, onRemind }) {
   const nav = useNavigate()
   const slots = slotsOn(tenant, date)
   const appts = list('appointments').filter((a) => a.date === date && a.doctorId === doctorId && a.status !== 'cancelled')
-  const byTime = Object.fromEntries(appts.map((a) => [a.time, a]))
+  const byTime = Object.fromEntries(appts.filter((a) => a.status !== 'no-show').map((a) => [a.time, a]))
+  appts.filter((a) => a.status === 'no-show' && !byTime[a.time]).forEach((a) => { byTime[a.time] = a })
+  const busy = busyMap(appts, tenant)
   const times = [...new Set([...slots, ...appts.map((a) => a.time)])].sort()
   const nowHM = new Date().toTimeString().slice(0, 5)
   const past = (t) => date < today() || (date === today() && t < nowHM)
   const canConsult = user.role === 'doctor' || user.role === 'admin'
-  const free = slots.filter((t) => !byTime[t] && !past(t)).length
+  const free = slots.filter((t) => !byTime[t] && !busy[t] && !past(t)).length
   if (!times.length) return <Card><div className="empty">The clinic is closed on {fmtDate(date)}. Pick another day.</div></Card>
   return (
     <Card title={<h2>{staff(doctorId)?.name}</h2>} actions={<span className="small muted">{free} free · {appts.length} booked · {slotMinutes(tenant)} min each</span>}>
       <div className="slot-board">
         {times.map((t) => {
           const a = byTime[t]
+          const cont = !a && busy[t] && !busy[t].start ? busy[t].a : null
+          if (cont) return (
+            past(t) ? (
+              <div key={t} className={`slot booked cont s-${cont.status}`}>
+                <span className="slot-time">{fmtTime(t)}</span>
+                <span className="slot-sub">↳ {cont.procedure || 'Procedure'} continues</span>
+              </div>
+            ) : (
+              <button key={t} className={`slot booked cont s-${cont.status}`} onClick={() => onBook(t, doctorId)} title="Book a quick consultation during this procedure">
+                <span className="slot-time">{fmtTime(t)}</span>
+                <span className="slot-sub">↳ {cont.procedure || 'Procedure'} continues</span>
+                <span className="slot-sub cont-hint">Tap for a quick consult</span>
+              </button>
+            )
+          )
           if (a) {
             const p = patient(a.patientId)
             const open = () => (canConsult && a.status !== 'completed' ? nav(`${base}/consult/${a.id}`) : nav(`${base}/patients/${a.patientId}`))
@@ -118,7 +135,9 @@ function SlotBoard({ date, doctorId, onBook, onRemind }) {
               <button className={`slot booked s-${a.status}`} onClick={open} title={a.reason}>
                 <span className="slot-time">{fmtTime(t)}</span>
                 <span className="slot-name">{p?.name || a.patientId}</span>
-                <span className="slot-sub">{a.status === 'checked-in' ? 'Checked in' : a.status === 'completed' ? 'Done' : a.status === 'no-show' ? 'Didn’t come' : 'Booked'}{slots.includes(t) ? '' : ' · walk-in'}</span>
+                {a.procedure && a.procedure !== 'Consultation' && <span className="proc-tag">{a.procedure} · {apptMins(a, tenant)} min</span>}
+                {(() => { const d = appts.find((x) => x !== a && x.status !== 'no-show' && x.time < t && endTime(x, tenant) > t); return d ? <span className="slot-sub cont-hint">Quick consult during {d.procedure || 'a procedure'}</span> : null })()}
+                <span className="slot-sub">{a.status === 'checked-in' ? (date === today() && t <= nowHM && nowHM < endTime(a, tenant) && a.procedure && a.procedure !== 'Consultation' ? `In procedure till ${fmtTime(endTime(a, tenant))}` : 'Checked in') : a.status === 'completed' ? 'Done' : a.status === 'no-show' ? 'Didn’t come' : 'Booked'}{slots.includes(t) ? '' : ' · walk-in'}</span>
               </button>
               {canRemind && <button className={`slot-bell ${a.remindedAt ? 'done' : ''}`} onClick={() => onRemind(a)} title={a.remindedAt ? 'Reminder sent. Send again' : 'Send reminder'} aria-label="Send reminder"><BellRing size={15} /></button>}
               </div>
@@ -153,7 +172,8 @@ export function TodayTimings({ doctorId }) {
   const nowHM = new Date().toTimeString().slice(0, 5)
   const times = [...new Set([...slots, ...appts.map((a) => a.time)])].sort()
   const bookedAt = (t) => appts.filter((a) => a.time === t)
-  const freeAt = (t) => slots.includes(t) && bookedAt(t).length < docs.length
+  const busyBy = docs.map((d) => busyMap(appts.filter((a) => a.doctorId === d), tenant))
+  const freeAt = (t) => slots.includes(t) && busyBy.filter((m) => m[t]).length < docs.length
   const upcomingFree = times.filter((t) => t >= nowHM && freeAt(t))
   return (
     <Card title={<h2>Today’s timings</h2>} actions={<button className="btn sm" onClick={() => nav(`${base}/appointments`)}>Open schedule</button>}>
@@ -169,7 +189,7 @@ export function TodayTimings({ doctorId }) {
             const isPast = t < nowHM
             if (b.length) return b.map((a) => (
               <button key={a.id} className={`chip-slot booked s-${a.status}`} onClick={() => nav(`${base}/patients/${a.patientId}`)} title={a.reason}>
-                <b>{fmtTime(t)}</b><span>{patient(a.patientId)?.name}</span>
+                <b>{fmtTime(t)}</b><span>{patient(a.patientId)?.name}{a.procedure && a.procedure !== 'Consultation' ? ` · ${a.procedure}` : ''}</span>
               </button>
             ))
             return isPast ? null : (
