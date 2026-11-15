@@ -15,6 +15,7 @@ import { PrescriptionDoc } from '../components/docs'
 import { groupByLanguage } from '../lib/healthvideos'
 import { FileText, Mic } from 'lucide-react'
 import { VoiceRx } from '../components/voice'
+import { SITES } from '../lib/sites'
 import { DentalChartButton } from '../components/dentalchart'
 import { EstimateForm } from '../components/estimates'
 import { ConsentForm } from '../components/consent'
@@ -39,12 +40,13 @@ const FREQ = ['Once a day', 'Twice a day', 'Three times a day', 'At night', 'Bef
 
 export default function Consult() {
   const { id } = useParams()
-  const { tid, tenant, list, patient, staff, doctors, base } = useTenant()
+  const { tid, tenant, list, patient, staff, doctors, base, user, me } = useTenant()
   const nav = useNavigate()
   const appt = list('appointments').find((a) => a.id === id)
   const p = appt && patient(appt.patientId)
   // One login is shared by the clinic's doctors, so the doctor writing this prescription is picked here.
-  const [docId, setDocId] = useState(appt?.doctorId)
+  // Default doctor: the one signed in (Dr. Deepak at Vedanta), otherwise the booked doctor.
+  const [docId, setDocId] = useState(() => (tenant.live && user.role === 'doctor' && me?.id ? me.id : appt?.doctorId))
   const doc = appt && (staff(docId) || staff(appt.doctorId))
   const docs = doctors()
   const meds = list('medicines')
@@ -203,13 +205,20 @@ export default function Consult() {
                 <span>Date <b>{fmtDate(today())}</b></span>
                 <span>Age/Sex <b>{p.dob ? `${age(p.dob)} y` : '–'} / {p.gender || '–'}</b></span>
                 <span style={{ flexBasis: '100%' }}>Name <b>{p.name}</b></span>
-                {docs.length > 1 && (
-                  <label className="pad-doc" style={{ flexBasis: '100%' }}>Doctor
-                    <select className="input" value={doc.id} onChange={(e) => setDocId(e.target.value)}>
-                      {docs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                  </label>
-                )}
+                <label className="pad-doc" style={{ flexBasis: '100%' }}>Doctor
+                  <select className="input" value={doc.id} onChange={(e) => {
+                    const v = e.target.value
+                    if (!v.startsWith('new:')) return setDocId(v)
+                    // A clinic doctor not yet in the staff list (e.g. the second doctor): add them once.
+                    const name = v.slice(4)
+                    const row = db.add(tid, 'staff', { name, gender: '', role: 'doctor', dept: doc.dept || 'Dental Surgery', title: doc.title || 'Dentist', fee: doc.fee || 0, qualification: '', regNo: '', phone: '', email: '', joined: today(), salary: 0 })
+                    setDocId(row.id)
+                    toast(`${name} added as a doctor`)
+                  }}>
+                    {docs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {(SITES[tenant.slug]?.doctors || []).filter((s) => !docs.some((d) => d.name.toLowerCase() === s.name.toLowerCase())).map((s) => <option key={s.name} value={`new:${s.name}`}>{s.name}</option>)}
+                  </select>
+                </label>
               </div>
               <div className="field"><span>Medical history (tick what applies)</span></div>
               <div className="hist-chips">
