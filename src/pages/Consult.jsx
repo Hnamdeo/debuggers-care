@@ -11,6 +11,7 @@ import { LAB_CATALOG } from '../lib/seed'
 import { fmtDate, fmtTime, money, today, age } from '../lib/utils'
 import { HISTORY, historyFor, usePad } from '../components/rxpad'
 import { PrescriptionDoc } from '../components/docs'
+import { groupByLanguage } from '../lib/healthvideos'
 import { FileText } from 'lucide-react'
 
 const FREQ = ['Once a day', 'Twice a day', 'Three times a day', 'At night', 'Before breakfast', 'Twice a day after food', 'When needed for pain', 'Once a week']
@@ -206,22 +207,30 @@ export default function Consult() {
   )
 }
 
+// One row per treatment; Hindi / English picks which video Show and Share use.
+function ExplainRow({ g, patientId, onPlay }) {
+  const [pick, setPick] = useState(g.main.id)
+  const v = g.items.find((x) => x.id === pick) || g.main
+  return (
+    <div className="vid-row">
+      <div style={{ flex: 1, minWidth: 140 }}><div style={{ fontWeight: 600, lineHeight: 1.3 }}>{v.builtIn && v.procedure ? v.procedure : v.title}</div><div className="small muted">{v.minutes} min</div></div>
+      {g.items.length > 1 && <span className="row" style={{ gap: 4 }}>{g.items.map((x) => <button key={x.id} className={`btn sm ${x.id === v.id ? 'primary' : ''}`} onClick={() => setPick(x.id)}>{x.lang === 'Hindi' ? 'हिंदी' : x.lang}</button>)}</span>}
+      <button className="btn sm primary" onClick={() => onPlay(v)}>Show</button>
+      <ShareButton video={v} patientId={patientId} small />
+    </div>
+  )
+}
+
 // Videos for this doctor's speciality first, then the rest of the library.
 function ExplainCard({ doc, patientId, onPlay }) {
   const { list, can } = useTenant()
   if (!can('education')) return null
   const all = list('videos')
   const mine = all.filter((v) => v.speciality === doc.dept || (doc.dept === 'Dental Surgery' || doc.dept === 'Orthodontics') && v.speciality === 'Dental')
-  const vids = [...mine, ...all.filter((v) => !mine.includes(v))].slice(0, 5)
+  const vids = groupByLanguage([...mine, ...all.filter((v) => !mine.includes(v))]).slice(0, 5)
   return (
     <Card title={<h2><MonitorPlay size={17} style={{ verticalAlign: '-3px' }} /> Explain to patient</h2>}>
-      {vids.map((v) => (
-        <div key={v.id} className="vid-row">
-          <div style={{ flex: 1, minWidth: 140 }}><div style={{ fontWeight: 600, lineHeight: 1.3 }}>{v.title}</div><div className="small muted">{v.minutes} min</div></div>
-          <button className="btn sm primary" onClick={() => onPlay(v)}>Show</button>
-          <ShareButton video={v} patientId={patientId} small />
-        </div>
-      ))}
+      {vids.map((g) => <ExplainRow key={g.main.id} g={g} patientId={patientId} onPlay={onPlay} />)}
     </Card>
   )
 }
