@@ -4,7 +4,7 @@ import { NotifyButtons } from './reminders'
 import { samePerson } from '../lib/patients'
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { Modal, Input, Select, Textarea, useTenant, toast } from './ui'
+import { Modal, Input, Select, Textarea, useTenant, toast, celebrate } from './ui'
 import { db } from '../lib/store'
 import { today, addDays, fmtTime, fmtDate, money } from '../lib/utils'
 
@@ -29,7 +29,7 @@ export function PatientForm({ onClose, onSaved, initial }) {
       toast('Patient details saved')
     } else {
       row = db.add(tid, 'patients', { ...f, regDate: today() })
-      toast(`${row.name} registered as ${row.id}`)
+      celebrate({ name: row.name, id: row.id, sub: 'Saved to the clinic records' })
     }
     if (onSaved) onSaved(row)
     else onClose()

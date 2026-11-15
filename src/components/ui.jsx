@@ -22,6 +22,41 @@ export function Toaster() {
   return msg ? <div className="toast" role="status">{msg}</div> : null
 }
 
+// ---- celebration: a short, cheerful moment when a new patient is registered ----
+let pushCelebrate = () => {}
+export const celebrate = (info) => pushCelebrate(info)
+const CONFETTI = Array.from({ length: 28 }, (_, i) => i)
+export function Celebration() {
+  const [info, setInfo] = useState(null)
+  useEffect(() => {
+    let t
+    pushCelebrate = (x) => {
+      setInfo({ ...x, key: Date.now() })
+      clearTimeout(t)
+      t = setTimeout(() => setInfo(null), 3200)
+    }
+  }, [])
+  if (!info) return null
+  return createPortal(
+    <div className="celebrate" key={info.key} onClick={() => setInfo(null)} role="status" aria-live="polite">
+      <div className="celebrate-card">
+        <div className="celebrate-burst" aria-hidden="true">
+          {CONFETTI.map((i) => <i key={i} style={{ '--a': `${(i * 360) / CONFETTI.length}deg`, '--d': `${70 + ((i * 53) % 70)}px`, '--c': i % 4 }} />)}
+        </div>
+        <svg className="celebrate-check" viewBox="0 0 52 52" aria-hidden="true">
+          <circle cx="26" cy="26" r="24" />
+          <path d="M15 27l7 7 15-16" />
+        </svg>
+        <h2>{info.title || 'Patient registered'}</h2>
+        {info.name && <p className="celebrate-name">{info.name}</p>}
+        {info.id && <span className="celebrate-id">{info.id}</span>}
+        {info.sub && <p className="small muted">{info.sub}</p>}
+      </div>
+    </div>,
+    document.getElementById('tenant-root') || document.body,
+  )
+}
+
 export function PageHead({ title, sub, children }) {
   return (
     <div className="page-head">

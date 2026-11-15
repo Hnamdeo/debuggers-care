@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, MonitorPlay, Stethoscope } from 'lucide-react'
+import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, MonitorPlay, Stethoscope, Sparkles } from 'lucide-react'
+import { NotesCard } from '../components/notes'
 import RegisterQR from '../components/RegisterQR'
 import { TodayTimings } from './Appointments'
 import { ReminderCard } from '../components/reminders'
@@ -101,6 +102,7 @@ function AdminDash() {
         )}
       </div>
       <TodayTimings />
+      <NotesCard />
       <ReminderCard />
       <PatientFinder />
       <TodayVisits />
@@ -171,6 +173,7 @@ function DoctorDash() {
         { icon: UserPlus, label: 'Register patient', hint: 'New patient form', onClick: () => nav(`${base}/patients?new=1`) },
         { icon: QrCode, label: 'Patient QR', hint: 'Print or share', onClick: () => setQr(true) },
         can('education') && { icon: MonitorPlay, label: 'Explain videos', hint: 'Show patients', onClick: () => nav(`${base}/education`) },
+        /dental/i.test(tenant.kind || '') && { icon: Sparkles, label: 'AI Smile preview', hint: 'Show the new smile', onClick: () => nav(`${base}/smile`) },
       ]} />
       <div className="grid g4">
         <Stat label="My patients today" value={todays.length} sub={`${todays.filter((a) => a.status === 'completed').length} seen`} icon={CalendarDays} />
@@ -178,6 +181,7 @@ function DoctorDash() {
         <Stat label="Reports to review" value={labs.filter((r) => r.status === 'completed' && r.date >= addDays(T, -3)).length} sub={`${labs.filter((r) => r.status === 'ordered').length} still in lab`} icon={FlaskConical} />
         {can('ipd') ? <Stat label="My admitted patients" value={ipd.length} sub="IPD and ICU" icon={BedDouble} /> : <Stat label="Upcoming bookings" value={mine.filter((a) => a.date > T && a.status === 'scheduled').length} sub="Next 7 days" icon={CalendarDays} />}
       </div>
+      <NotesCard />
       <TodayTimings doctorId={shared ? undefined : me.id} />
       <ReminderCard doctorId={shared ? undefined : me.id} />
       <PatientFinder />
