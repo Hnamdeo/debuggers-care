@@ -43,7 +43,9 @@ export default function Login() {
     !tenant.live && { role: 'patient', icon: User, label: 'Patient', sub: 'Own records, bills, booking' },
   ].filter(Boolean)
 
-  const who = (u) => u.name || (u.role === 'patient' ? patient(u.refId) : staff(u.refId))?.name
+  // A clinic with two doctors sharing one doctor login shows both names: "Dr. Deepak & Dr. Megha".
+  const siteDocs = SITES[tenant.slug]?.doctors?.map((d) => d.name) || []
+  const who = (u) => (u.role === 'doctor' && siteDocs.length > 1 ? siteDocs.join(' & ') : u.name || (u.role === 'patient' ? patient(u.refId) : staff(u.refId))?.name)
 
   // A real clinic: pick who you are, then a password. The first time on a computer, that person sets it.
   const [pick, setPick] = useState(null)
