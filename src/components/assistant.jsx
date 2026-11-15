@@ -1,6 +1,6 @@
 // The clinic's AI assistant: a chat that does the work. Greets the user, then understands plain requests like
-// "26 nov 10:30 am rahul appointment", "register rahul sharma 9826465730 32 male", "rx rahul: amox 500 tds 5 days",
-// "who is waiting", "today's collection". Asks back when something is missing or there are two Rahuls.
+// "26 nov 10:30 am Prem appointment", "register Prem sharma 9826465730 32 male", "rx Prem: amox 500 tds 5 days",
+// "who is waiting", "today's collection". Asks back when something is missing or there are two Prems.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Pin, PanelRightClose, Sparkles, Send, X, Mic, CalendarPlus, UserPlus, Search, Hourglass, IndianRupee, Clock, FileHeart, CornerDownLeft, Wand2 } from 'lucide-react'
@@ -13,16 +13,33 @@ import { samePerson } from '../lib/patients'
 import { reminderText } from './reminders'
 import { whatsappLink } from './videos'
 
+// Doctors type fast: fix a misspelt command word ("ragister", "apointment", "prescripton") before reading the message.
+const CMD_WORDS = ['register', 'registration', 'appointment', 'prescription', 'prescribe', 'reschedule', 'cancel', 'find', 'search', 'book']
+const editDist = (a, b) => {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)])
+  for (let j = 1; j <= b.length; j++) d[0][j] = j
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
+  return d[a.length][b.length]
+}
+export const fixTypos = (text) => text.replace(/[A-Za-z]{4,}/g, (w) => {
+  const lw = w.toLowerCase()
+  if (CMD_WORDS.includes(lw)) return w
+  const allow = lw.length >= 8 ? 2 : lw.length >= 6 ? 1 : 0
+  if (!allow) return w
+  const best = CMD_WORDS.map((c) => [c, editDist(lw, c)]).sort((x, y) => x[1] - y[1])[0]
+  return best[1] <= allow && Math.abs(best[0].length - lw.length) <= 2 ? best[0] : w
+})
+
 export const openAssistant = (text = '') => window.dispatchEvent(new CustomEvent('ai-open', { detail: text }))
 const greetWord = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening' }
 export const callName = (me, role) => { const n = (me?.name || '').replace(/^Dr\.?\s*/i, '').split(' ')[0]; return role === 'doctor' ? `Dr. ${n}` : n }
 const dayLabel = (d) => (d === today() ? 'today' : d === addDays(today(), 1) ? 'tomorrow' : `${new Date(`${d}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'short' })}, ${fmtDate(d)}`)
 
 const COMMANDS = [
-  ['Book an appointment', 'Book rahul tomorrow 10:30 am', CalendarPlus],
-  ['Register a patient', 'Register Rahul Sharma 9826465730 32 male', UserPlus],
-  ['Write a prescription', 'Rx rahul: amoxicillin 500 tds 5 days, ketorolac sos 3 days; dx dental caries 36', FileHeart],
-  ['Find a patient', 'Find rahul', Search],
+  ['Book an appointment', 'Book Prem tomorrow 10:30 am', CalendarPlus],
+  ['Register a patient', 'Register Prem Sharma 9826465730 32 male', UserPlus],
+  ['Write a prescription', 'Rx Prem: amoxicillin 500 tds 5 days, ketorolac sos 3 days; dx dental caries 36', FileHeart],
+  ['Find a patient', 'Find Prem', Search],
   ['Who is waiting?', 'Who is waiting', Hourglass],
   ['Today’s appointments', 'Today’s appointments', Clock],
   ['Free slots tomorrow', 'Free slots tomorrow', Clock],
@@ -44,7 +61,7 @@ const FAQ = [
   { k: ['consent'], need: 1, a: 'Consent: open the patient → Consent → “New consent”. Pick the form (RCT, extraction, braces…), the patient signs on the screen, and it is saved. You can also send it on WhatsApp.' },
   { k: ['qr', 'self register', 'link'], need: 1, a: 'Patient QR: Patients → “QR / link for patients”. Print the QR for the front desk or send the link on WhatsApp. Patients fill name and mobile and appear in Today’s visits.', go: ['Open patients', 'patients'] },
   { k: ['import', 'excel', 'csv', 'old patients', 'register book'], need: 1, a: 'Old patients: Patients → “Import list”. Upload an Excel/CSV of your register (name, mobile, age, sex) and they are added in one go.', go: ['Open patients', 'patients'] },
-  { k: ['move', 'reschedule', 'change time'], need: 1, a: 'Moving an appointment: in the calendar, drag it to the new time, or tap it → Move. You can also type here: “cancel rahul” and then book again.', go: ['Open calendar', 'appointments'] },
+  { k: ['move', 'reschedule', 'change time'], need: 1, a: 'Moving an appointment: in the calendar, drag it to the new time, or tap it → Move. You can also type here: “cancel Prem” and then book again.', go: ['Open calendar', 'appointments'] },
   { k: ['backup', 'data safe', 'download data'], need: 1, a: 'Your data is kept on the clinic server and backed up. The doctor can also download a backup from Plan & settings.' },
   { k: ['video', 'education', 'explain'], need: 1, a: 'Patient videos: on the prescription pad, “Explain to patient” plays short treatment videos in English or Hindi, and you can send them on WhatsApp.', go: ['Open patient education', 'education'] },
   { k: ['plan', 'price', 'subscription', 'pay'], need: 1, a: 'Your plan and price are in Plan & settings. For upgrades or payment, call or WhatsApp Debuggers Space on 9075013110.' },
@@ -169,7 +186,7 @@ export function Assistant() {
       }
       setPending({ kind: 'who', d })
       if (d.words?.length) return reply({ text: `I couldn’t find “${titleCase(d.words.join(' '))}”. Type the full name, mobile or ID again, or register as a new patient.`, chips: [{ label: `Register ${titleCase(d.words.join(' '))} as new`, act: () => startRegister({ name: titleCase(d.words.join(' ')), then: { ...d, words: null, cands: null } }) }] })
-      return reply({ text: 'Type the patient’s full name (for example Rahul Sharma), mobile number or patient ID.' })
+      return reply({ text: 'Type the patient’s full name (for example Prem Sharma), mobile number or patient ID.' })
     }
     if (!d.doc) {
       const dd = docFor()
@@ -214,7 +231,7 @@ export function Assistant() {
 
   // ---- Registration ----
   const startRegister = (f) => {
-    if (!f.name) { setPending({ kind: 'reg-name', f }); return reply({ text: `${f.then ? 'New patient. ' : ''}What is the patient’s full name? You can also type everything at once, like “Rahul Sharma 9826465730 32 male”.` }) }
+    if (!f.name) { setPending({ kind: 'reg-name', f }); return reply({ text: `${f.then ? 'New patient. ' : ''}What is the patient’s full name? You can also type everything at once, like “Prem Sharma 9826465730 32 male”.` }) }
     if (!f.phone && !f.noPhone) { setPending({ kind: 'reg-phone', f }); return reply({ text: `Mobile number for ${f.name}?`, chips: [{ label: 'No mobile', act: () => startRegister({ ...f, noPhone: true }) }] }) }
     const twin = f.phone && list('patients').find((p) => samePerson(p, f))
     if (twin) { setPending(null); return reply({ text: `${twin.name} is already registered with ${twin.phone} as ${twin.id}.`, chips: [{ label: 'Open record', act: () => nav(`${base}/patients/${twin.id}`) }, { label: 'Book appointment', act: () => askBooking({ p: twin }) }, { label: 'Add to today’s waiting', act: () => addWaiting(twin, f.reason) }] }) }
@@ -284,7 +301,7 @@ export function Assistant() {
     let who = d.p ? null : body.split(':')[0]
     let medsPart = body.includes(':') ? body.split(':').slice(1).join(':') : body
     if (!d.p && !body.includes(':')) {
-      // "rx rahul amox 500 tds 5 days": the words before the first medicine are the name.
+      // "rx Prem amox 500 tds 5 days": the words before the first medicine are the name.
       const ws = body.trim().split(/\s+/)
       let k = ws.findIndex((w) => w.length > 2 && matchMed(w, meds))
       if (k < 0) k = ws.length
@@ -323,7 +340,9 @@ export function Assistant() {
     if (!hit) return null
     return { text: hit.a, chips: hit.go ? [{ label: hit.go[0], act: () => nav(`${base}/${hit.go[1]}`) }] : [] }
   }
-  const understand = (raw) => {
+  const understand = (typed) => {
+    // Only the first word and words like "appointment" are corrected; names stay as typed.
+    const raw = typed.replace(/^\s*\S+/, (w) => fixTypos(w)).replace(/\b(apo?int?ment|appo?int?ment|apointmnt|appointmnt|appoinment)\b/gi, 'appointment')
     const low = raw.toLowerCase().trim()
     // Answers to a question I asked.
     if (pending) {
@@ -402,7 +421,7 @@ export function Assistant() {
       addWaiting(r.p)
       return
     }
-    // Booking: "26 nov 10:30 am rahul appointment", "book rahul tomorrow 5 pm", "rahul kal 11 baje".
+    // Booking: "26 nov 10:30 am Prem appointment", "book Prem tomorrow 5 pm", "Prem kal 11 baje".
     let t = low
     const i = takeId(t); t = i.text
     const ph = takePhone(t); t = ph.text
@@ -534,7 +553,7 @@ export function Assistant() {
               </div>
             )}
             <form className="ai-form" onSubmit={(e) => { e.preventDefault(); send() }}>
-              <input ref={inRef} value={input} onChange={(e) => { setInput(e.target.value); setHi(0) }} onKeyDown={keyDown} placeholder={pending ? 'Type your answer…' : 'e.g. 26 nov 10:30 am rahul appointment'} aria-label="Message the assistant" autoComplete="off" />
+              <input ref={inRef} value={input} onChange={(e) => { setInput(e.target.value); setHi(0) }} onKeyDown={keyDown} placeholder={pending ? 'Type your answer…' : 'e.g. 26 nov 10:30 am Prem appointment'} aria-label="Message the assistant" autoComplete="off" />
               <button type="button" className={`ai-mic ${listening ? 'on' : ''}`} onClick={mic} aria-label="Speak"><Mic size={18} /></button>
               <button type="submit" className="ai-send" aria-label="Send" disabled={!input.trim()}><Send size={17} /></button>
             </form>
@@ -550,7 +569,7 @@ export function Assistant() {
 export function AskBar() {
   const { me, user } = useTenant()
   const [v, setV] = useState('')
-  const ex = ['26 nov 10:30 am rahul appointment', 'register Priya Verma 9876543210 28 female', 'who is waiting', 'today collection', 'free slots tomorrow']
+  const ex = ['26 nov 10:30 am Prem appointment', 'register Niharika Singh', 'who is waiting', 'today collection', 'free slots tomorrow']
   return (
     <form className="ask-bar" onSubmit={(e) => { e.preventDefault(); openAssistant(v); setV('') }}>
       <span className="ai-orb"><Sparkles size={18} /></span>
