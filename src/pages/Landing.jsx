@@ -138,7 +138,7 @@ export default function Landing() {
         <div className="lx-grid-bg" aria-hidden="true" />
         <div className="lx-wrap lx-hero-in">
           <div className="lx-hero-copy">
-            <span className="lx-badge"><Sparkles size={14} /> AI-driven clinic management system · built for India</span>
+            <span className="lx-badge"><Sparkles size={14} /> AI powered clinical management system · built for India</span>
             <h1>Your whole clinic,<br /><span className="lx-grad">on one beautiful screen.</span></h1>
             <p>Appointments, prescriptions, bills, pharmacy and beds, in software so simple that every doctor and receptionist gets it on day one. From a one-chair clinic to a 200-bed hospital.</p>
             <div className="lx-cta-row">
@@ -299,16 +299,22 @@ export default function Landing() {
                 {PLANS[p].bonus && <div className="lx-bonus"><Gift size={16} /> <span><b>Free</b> {PLANS[p].bonus.replace(/^Free /, '')}</span></div>}
                 <ul>
                   {PLANS[p].modules.filter((m) => m !== 'dashboard').map((m) => <li key={m}><Check size={14} /> {MODULES[m].label}</li>)}
+                  <li className="lx-ai-li"><Sparkles size={14} /> AI assistant with smart suggestions (free)</li>
+                  <li className="lx-ai-li paid"><Sparkles size={14} /> Full AI: add {p === 'hospital' ? 'Super AI Hospital ₹9,999' : 'Super AI Clinic ₹2,999'}/month</li>
                 </ul>
               </div>
             ))}
+          </div>
+          <div className="lx-ai-note" data-reveal>
+            <div><b>Free in every plan:</b> suggestion-based AI. The assistant books, registers and suggests medicines and doses from your clinic’s own lists as you type.</div>
+            <div><b>Paid Super AI:</b> full AI suggestions. It writes the whole prescription, checks allergies and drug interactions, writes visit notes and explains X-rays.</div>
           </div>
           <div className="lx-superai" data-reveal>
             <div className="lx-superai-head">
               <span className="lx-ic"><Sparkles /></span>
               <div>
                 <h3>{SUPER_AI.name} add-on <span className="offer-tag">{SUPER_AI.status}</span></h3>
-                <p>{SUPER_AI.free} Super AI adds full AI support for prescriptions.</p>
+                <p>Full AI suggestions for prescriptions, on top of the free suggestion-based assistant.</p>
               </div>
             </div>
             <div className="lx-superai-body">

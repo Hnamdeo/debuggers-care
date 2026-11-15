@@ -1928,3 +1928,13 @@ td { padding: 12px 14px; }
 .lx-superai-tiers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .lx-superai-tier { background: var(--surface, #fff); border-radius: 14px; padding: 14px; display: grid; gap: 6px; border: 1px solid rgba(0,0,0,.06); }
 @media (max-width: 900px) { .lx-superai-body, .lx-superai-tiers { grid-template-columns: minmax(0, 1fr); } }
+
+/* AI powered tag on clinic pages, free vs paid AI note on landing */
+.cs-tags { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cs-ai { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: #fff; background: linear-gradient(135deg, rgba(129,140,248,.45), rgba(56,189,248,.35)); border: 1px solid rgba(255,255,255,.35); }
+.lx-ai-li { color: #4f46e5; font-weight: 600; }
+.lx-ai-li.paid { color: var(--muted, #64748b); font-weight: 500; }
+.lx-ai-note { margin-top: 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.lx-ai-note > div { padding: 14px 16px; border-radius: 14px; background: var(--surface, #fff); border: 1px solid rgba(0,0,0,.07); line-height: 1.5; }
+.lx-ai-note > div:last-child { border-color: rgba(99,102,241,.3); }
+@media (max-width: 900px) { .lx-ai-note { grid-template-columns: minmax(0, 1fr); } }
