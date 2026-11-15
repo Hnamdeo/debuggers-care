@@ -48,12 +48,13 @@ function Hero({ title, sub, actions }) {
           <div key={a.toggle ? 'toggle' : a.label} role="button" tabIndex={0} className={`qa ${a.main ? 'hot' : ''}`} onClick={a.onClick}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); a.onClick() } }}>
             <span className="qa-icon"><a.icon /></span>
-            <span className="qa-t"><b>{a.label}</b>{a.hint && <small>{a.hint}</small>}</span>
-            {a.toggle && (
-              <span className="qa-seg" role="radiogroup" aria-label="Period" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                {a.toggle.options.map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={a.toggle.value === v} className={a.toggle.value === v ? 'on' : ''} onClick={() => a.toggle.onChange(v)}>{l}</button>)}
-              </span>
-            )}
+            <span className="qa-t"><b>{a.label}{a.toggle && a.hint ? ` · ${a.hint}` : ''}</b>
+              {a.toggle ? (
+                <span className="qa-seg" role="radiogroup" aria-label="Period" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                  {a.toggle.options.map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={a.toggle.value === v} className={a.toggle.value === v ? 'on' : ''} onClick={() => a.toggle.onChange(v)}>{l}</button>)}
+                </span>
+              ) : a.hint && <small>{a.hint}</small>}
+            </span>
           </div>
         ))}
       </div>
@@ -261,8 +262,8 @@ function DoctorDash() {
         { icon: CalendarDays, label: 'My patients today', hint: `${todays.length} booked · ${todays.filter((a) => a.status === 'completed').length} seen`, onClick: () => nav(`${base}/appointments?view=calendar`) },
       ]} />
       <AskBar />
-      <DoctorTrends appts={mine} rxs={list('prescriptions').filter((r) => shared || r.doctorId === me.id)} patients={list('patients')} />
       <DentalScanCard tenant={tenant} onSmile={() => nav(`${base}/smile`)} onXray={() => nav(`${base}/patients`)} />
+      <DoctorTrends appts={mine} rxs={list('prescriptions').filter((r) => shared || r.doctorId === me.id)} patients={list('patients')} />
       <InsightsCard doctorId={shared ? undefined : me.id} />
       <NotesCard />
       <TodayTimings doctorId={shared ? undefined : me.id} />
