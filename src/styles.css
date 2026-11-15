@@ -940,3 +940,5 @@ button.slot:hover { transform: translateY(-2px); border-color: var(--brand); box
 .slot-bell { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--brand) 40%, var(--line)); background: var(--surface); color: var(--brand); cursor: pointer; box-shadow: 0 4px 10px -6px rgb(0 0 0 / 35%); }
 .slot-bell:hover { background: var(--brand); color: #fff; }
 .slot-bell.done { color: var(--ok, #16a34a); border-color: color-mix(in srgb, var(--ok, #16a34a) 45%, var(--line)); }
+.cs-doc-one + .cs-doc-one { padding-top: 14px; border-top: 1px solid rgb(255 255 255 / 18%); }
+.cs-doc-one { display: flex; flex-direction: column; gap: 12px; }
