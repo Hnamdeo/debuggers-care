@@ -7,7 +7,7 @@ import { db } from '../lib/store'
 import { today, addDays, fmtDate, fmtTime } from '../lib/utils'
 import { slotsOn, slotMinutes, hoursOn } from '../lib/slots'
 import { BookAppointment as Book } from '../components/forms'
-import { RemindButton } from '../components/reminders'
+import { NotifyButtons } from '../components/reminders'
 
 export default function Appointments() {
   const { tid, tenant, list, patient, staff, doctors, user, me, base } = useTenant()
@@ -18,15 +18,16 @@ export default function Appointments() {
   const [doc, setDoc] = useState(isDoc ? me.id : 'all')
   const [view, setView] = useState(() => { try { return localStorage.getItem('ap-view') || 'slots' } catch { return 'slots' } })
   const [book, setBook] = useState(null)
+  const [move, setMove] = useState(null)
   const pickView = (v) => { setView(v); try { localStorage.setItem('ap-view', v) } catch { /* private mode */ } }
   const rows = list('appointments')
     .filter((a) => a.date === date && (doc === 'all' || a.doctorId === doc))
     .sort((a, b) => a.time.localeCompare(b.time))
   const setStatus = (a, status) => {
     db.update(tid, 'appointments', a.id, { status })
-    toast(`${patient(a.patientId).name}: ${status === 'checked-in' ? 'checked in' : status}`)
+    toast(`${patient(a.patientId).name}: ${status === 'checked-in' ? 'checked in' : status === 'no-show' ? 'marked as didn’t come' : status}`)
   }
-  const counts = ['scheduled', 'checked-in', 'completed', 'cancelled'].map((s) => [s, rows.filter((r) => r.status === s).length])
+  const counts = ['scheduled', 'checked-in', 'completed', 'no-show', 'cancelled'].filter((s) => s !== 'no-show' || rows.some((r) => r.status === s)).map((s) => [s, rows.filter((r) => r.status === s).length])
 
   return (
     <>
@@ -41,7 +42,7 @@ export default function Appointments() {
           {date !== today() && <button className="btn sm" onClick={() => setDate(today())}>Today</button>}
         </div>
         <div className="row">
-          {counts.map(([s, n]) => <Pill key={s} status={s}>{`${n} ${s === 'checked-in' ? 'checked in' : s}`}</Pill>)}
+          {counts.map(([s, n]) => <Pill key={s} status={s}>{`${n} ${s === 'checked-in' ? 'checked in' : s === 'no-show' ? 'didn’t come' : s}`}</Pill>)}
           {(!isDoc || doctors().length > 1) && <Select id="ap-doc" value={doc} onChange={(e) => setDoc(e.target.value)} options={[{ value: 'all', label: 'All doctors' }, ...doctors().map((d) => ({ value: d.id, label: d.name }))]} style={{ width: 200 }} />}
         </div>
       </div>
@@ -64,9 +65,12 @@ export default function Appointments() {
             { label: 'Status', render: (a) => <Pill status={a.status} /> },
             {
               label: '', render: (a) => (
-                <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
-                  {a.status === 'scheduled' && a.date >= today() && <RemindButton a={a} />}
-                  {a.status === 'scheduled' && <button className="btn sm" onClick={() => setStatus(a, 'checked-in')}>Check in</button>}
+                <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
+                  {a.status === 'scheduled' && a.date >= today() && <NotifyButtons a={a} />}
+                  {a.status === 'scheduled' && a.date === today() && <button className="btn sm" onClick={() => setStatus(a, 'checked-in')}>Check in</button>}
+                  {a.status === 'scheduled' && <button className="btn sm" onClick={() => setMove(a)}>Move</button>}
+                  {a.status === 'scheduled' && a.date <= today() && <button className="btn sm ghost" onClick={() => setStatus(a, 'no-show')}>Didn’t come</button>}
+                  {a.status === 'no-show' && <button className="btn sm" onClick={() => setMove(a)}>Rebook</button>}
                   {(a.status === 'scheduled' || a.status === 'checked-in') && (isDoc || user.role === 'admin') && <button className="btn sm primary" onClick={() => nav(`${base}/consult/${a.id}`)}>Consult</button>}
                   {a.status === 'scheduled' && <button className="btn sm ghost danger" onClick={() => setStatus(a, 'cancelled')}>Cancel</button>}
                   {a.status === 'completed' && <button className="btn sm" onClick={() => nav(`${base}/patients/${a.patientId}`)}>Record</button>}
@@ -79,6 +83,7 @@ export default function Appointments() {
       )}
       {params.get('new') === '1' && <BookAppointment doctorId={isDoc ? me.id : undefined} onClose={(a) => { setParams({}); if (a) setDate(a.date) }} />}
       {book && <BookAppointment date={date} time={book.time} doctorId={book.doctorId} onClose={() => setBook(null)} />}
+      {move && <BookAppointment move={move} onClose={(a) => { setMove(null); if (a) setDate(a.date) }} />}
     </>
   )
 }
@@ -108,7 +113,7 @@ function SlotBoard({ date, doctorId, onBook }) {
               <button key={t} className={`slot booked s-${a.status}`} onClick={open} title={a.reason}>
                 <span className="slot-time">{fmtTime(t)}</span>
                 <span className="slot-name">{p?.name || a.patientId}</span>
-                <span className="slot-sub">{a.status === 'checked-in' ? 'Checked in' : a.status === 'completed' ? 'Done' : 'Booked'}{slots.includes(t) ? '' : ' · walk-in'}</span>
+                <span className="slot-sub">{a.status === 'checked-in' ? 'Checked in' : a.status === 'completed' ? 'Done' : a.status === 'no-show' ? 'Didn’t come' : 'Booked'}{slots.includes(t) ? '' : ' · walk-in'}</span>
               </button>
             )
           }

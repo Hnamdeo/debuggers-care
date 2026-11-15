@@ -89,14 +89,14 @@ export function Stat({ label, value, sub, icon: Icon }) {
 }
 
 const STATUS_TONE = {
-  scheduled: 'info', 'checked-in': 'warn', completed: 'ok', cancelled: 'plain',
+  scheduled: 'info', 'checked-in': 'warn', completed: 'ok', cancelled: 'plain', 'no-show': 'bad',
   paid: 'ok', unpaid: 'bad', partial: 'warn',
   ordered: 'warn', admitted: 'info', discharged: 'ok',
   waiting: 'warn', 'in-treatment': 'info',
   processed: 'warn', dispensed: 'ok', pending: 'warn',
   red: 'bad', yellow: 'warn', green: 'ok', low: 'bad', expiring: 'warn', ok: 'ok',
 }
-const STATUS_TEXT = { 'checked-in': 'Checked in', 'in-treatment': 'In treatment', red: 'Critical', yellow: 'Urgent', green: 'Stable' }
+const STATUS_TEXT = { 'no-show': 'Didn’t come', 'checked-in': 'Checked in', 'in-treatment': 'In treatment', red: 'Critical', yellow: 'Urgent', green: 'Stable' }
 export function Pill({ status, children, tone }) {
   const t = tone || STATUS_TONE[status] || ''
   const text = children || STATUS_TEXT[status] || (status ? status[0].toUpperCase() + status.slice(1) : '')

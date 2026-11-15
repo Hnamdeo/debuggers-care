@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Plus, Trash2, CheckCircle2, HeartPulse } from 'lucide-react'
 import { VisitForm, vitalsText } from '../components/visits'
-import { useTenant, Card, Input, Textarea, toast, Pill } from '../components/ui'
+import { useTenant, Card, Input, Select, Textarea, toast, Pill } from '../components/ui'
 import { PatientHeader } from './Patients'
 import { VideoPlayer, ShareButton } from '../components/videos'
 import { MonitorPlay } from 'lucide-react'
 import { db } from '../lib/store'
 import { LAB_CATALOG } from '../lib/seed'
-import { fmtDate, fmtTime, money, today, age } from '../lib/utils'
+import { fmtDate, fmtTime, money, today, age, addDays } from '../lib/utils'
+import { slotsOn } from '../lib/slots'
 import { HISTORY, historyFor, usePad } from '../components/rxpad'
 import { PrescriptionDoc } from '../components/docs'
 import { groupByLanguage } from '../lib/healthvideos'
@@ -58,8 +59,13 @@ export default function Consult() {
   const extra = () => ({ complaint: complaint.trim(), findings: oe.trim(), history: hist, historyNote: hist.includes('Others') ? histNote.trim() : '', tests, done: procs })
   const draft = { id: 'Draft', patientId: p.id, doctorId: doc.id, date: today(), diagnosis: dx, notes, items: draftItems(), ...extra(), ...(nextDate ? { nextVisit: nextDate } : {}) }
 
+  const busyNext = new Set(nextDate ? list('appointments').filter((a) => a.doctorId === doc.id && a.date === nextDate && !['cancelled', 'no-show'].includes(a.status)).map((a) => a.time) : [])
+  const nextFree = nextDate ? slotsOn(tenant, nextDate).filter((t) => !busyNext.has(t)) : []
+  const nextT = nextFree.includes(nextTime) ? nextTime : nextFree[0]
+
   const finish = () => {
     if (!dx.trim()) return setErr('Add a diagnosis before completing the visit.')
+    if (nextDate && !nextT) return setErr('No free slot on the next-visit date. Pick another day.')
     const items = lines.filter((l) => l.name.trim()).map((l) => {
       const m = meds.find((x) => x.name === l.name)
       const per = /Three/.test(l.freq) ? 3 : /Twice/.test(l.freq) ? 2 : /week/.test(l.freq) ? 1 / 7 : 1
@@ -79,10 +85,10 @@ export default function Consult() {
     db.update(tid, 'appointments', appt.id, { status: 'completed', prescriptionId: rx.id })
     if (JSON.stringify(hist) !== JSON.stringify(p.history) || histNote.trim() !== (p.historyNote || '')) db.update(tid, 'patients', p.id, { history: hist, historyNote: histNote.trim() })
     if (plan !== null && plan.trim() !== (p.plan || '')) db.update(tid, 'patients', p.id, { plan: plan.trim(), planOn: today(), planBy: doc.id })
-    if (nextDate) db.add(tid, 'appointments', { patientId: p.id, doctorId: doc.id, date: nextDate, time: nextTime || '11:00', reason: (plan ?? p.plan ?? '').split('\n')[0].replace(/^\d+\.\s*/, '').slice(0, 60) || 'Follow-up', status: 'scheduled', type: 'OPD' })
+    if (nextDate) db.add(tid, 'appointments', { patientId: p.id, doctorId: doc.id, date: nextDate, time: nextT, reason: (plan ?? p.plan ?? '').split('\n')[0].replace(/^\d+\.\s*/, '').slice(0, 60) || 'Follow-up', status: 'scheduled', type: 'OPD' })
     if (visit) db.update(tid, 'visits', visit.id, { status: 'done', appointmentId: appt.id, prescriptionId: rx.id, doctorId: doc.id })
     else db.add(tid, 'visits', { patientId: p.id, date: today(), time: appt.time, status: 'done', source: 'appointment', complaint: appt.reason, doctorId: doc.id, appointmentId: appt.id, prescriptionId: rx.id, vitals: {} })
-    toast(`Visit completed. Prescription ${rx.id} and bill ${bill.id} sent to the front desk.${nextDate ? ` Next visit booked for ${fmtDate(nextDate)}.` : ''}`)
+    toast(`Visit completed. Prescription ${rx.id} and bill ${bill.id} sent to the front desk.${nextDate ? ` Next visit booked for ${fmtDate(nextDate)} at ${fmtTime(nextT)}.` : ''}`)
     nav(`${base}/patients/${p.id}`)
   }
 
@@ -148,7 +154,15 @@ export default function Consult() {
               <Textarea id="cs-plan" label="Treatment plan (what happens next)" rows={3} value={plan ?? p.plan ?? ''} onChange={(e) => setPlan(e.target.value)} placeholder={'e.g. 1. RCT 36, second sitting\n2. Crown on 36'} />
               <div className="grid g2">
                 <Input id="cs-next" label="Next visit (books it)" type="date" min={today()} value={nextDate} onChange={(e) => setNextDate(e.target.value)} />
-                <Input id="cs-next-t" label="Time" type="time" value={nextTime} onChange={(e) => setNextTime(e.target.value)} />
+                {!nextDate ? <div className="field"><span>Time</span><div className="small muted">Pick a date first</div></div>
+                  : nextFree.length ? <Select id="cs-next-t" label={`Time (${nextFree.length} free)`} value={nextT} onChange={(e) => setNextTime(e.target.value)} options={nextFree.map((t) => ({ value: t, label: fmtTime(t) }))} />
+                  : <div className="field"><span>Time</span><div className="small" style={{ color: 'var(--bad)' }}>Clinic closed or full that day</div></div>}
+              </div>
+              <div className="row" style={{ gap: 6 }}>
+                {[['1 week', 7], ['2 weeks', 14], ['1 month', 30], ['3 months', 90], ['6 months', 180]].map(([l, n]) => {
+                  const d = addDays(today(), n)
+                  return <button key={l} className={`btn sm ${nextDate === d ? 'primary' : ''}`} onClick={() => setNextDate(nextDate === d ? '' : d)}>{l}</button>
+                })}
               </div>
             </div>
           </Card>

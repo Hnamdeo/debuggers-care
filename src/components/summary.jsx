@@ -6,12 +6,15 @@ import { db } from '../lib/store'
 import { fmtDate, fmtTime, money, billTotal, today, age } from '../lib/utils'
 import { vitalsText } from './visits'
 import { ImageGrid, ImageUpload } from './imaging'
+import { NotifyButtons } from './reminders'
+import { BookAppointment } from './forms'
 
 // The first screen of a patient: everything the doctor or front desk asks about, in plain words.
 export function PatientSummary({ p, staffView, onOpenDoc, onBook, onBill }) {
   const { list, staff } = useTenant()
   const [planEdit, setPlanEdit] = useState(false)
   const [upload, setUpload] = useState(false)
+  const [move, setMove] = useState(false)
   const mine = (c) => list(c).filter((r) => r.patientId === p.id)
   const T = today()
   const next = mine('appointments').filter((a) => a.status === 'scheduled' && a.date >= T).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0]
@@ -22,6 +25,7 @@ export function PatientSummary({ p, staffView, onOpenDoc, onBook, onBill }) {
   const visits = mine('visits').sort((a, b) => b.date.localeCompare(a.date))
   const lastVitals = visits.find((v) => vitalsText(v.vitals))
   const seen = new Set([...visits.map((v) => v.date), ...mine('appointments').filter((a) => a.status === 'completed').map((a) => a.date)]).size
+  const missed = mine('appointments').filter((a) => a.status === 'no-show').length
   const treatments = [...new Set(bills.flatMap((b) => b.items.map((i) => i.desc)).filter((d) => !/^Consultation/.test(d)))]
 
   return (
@@ -32,10 +36,16 @@ export function PatientSummary({ p, staffView, onOpenDoc, onBook, onBill }) {
           {next ? (
             <>
               <div className="sum-big">{fmtDate(next.date)}, {fmtTime(next.time)}</div>
-              <div className="small muted">{staff(next.doctorId)?.name} · {next.reason}</div>
+              <div className="small muted">{staff(next.doctorId)?.name} · {next.reason}{next.remindedAt ? ' · reminder sent' : ''}</div>
+              {staffView && <NotifyButtons a={next} />}
             </>
           ) : <div className="sum-big muted">Not booked</div>}
-          {staffView && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={onBook}>{next ? 'Book another' : 'Book now'}</button>}
+          {missed > 0 && <div className="small" style={{ color: 'var(--bad)' }}>Missed {missed} {missed === 1 ? 'appointment' : 'appointments'} before</div>}
+          {staffView && <div className="row" style={{ gap: 6 }}>
+            {next && <button className="btn sm" onClick={() => setMove(true)}>Move</button>}
+            <button className="btn sm" onClick={onBook}>{next ? 'Book another' : 'Book now'}</button>
+          </div>}
+          {move && next && <BookAppointment move={next} onClose={() => setMove(false)} />}
         </Card>
         <Card pad className="sum-card">
           <span className="sum-label"><ClipboardList /> Treatment plan</span>
