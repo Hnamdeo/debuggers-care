@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { CalendarPlus, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react'
+import { BellRing, CalendarPlus, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react'
 import { useTenant, PageHead, Card, Table, Pill, Select, toast } from '../components/ui'
 import { BookAppointment } from '../components/forms'
 import { db } from '../lib/store'
 import { today, addDays, fmtDate, fmtTime } from '../lib/utils'
 import { slotsOn, slotMinutes, hoursOn } from '../lib/slots'
 import { BookAppointment as Book } from '../components/forms'
-import { NotifyButtons } from '../components/reminders'
+import { NotifyButtons, RemindModal } from '../components/reminders'
 
 export default function Appointments() {
   const { tid, tenant, list, patient, staff, doctors, user, me, base } = useTenant()
@@ -19,6 +19,7 @@ export default function Appointments() {
   const [view, setView] = useState(() => { try { return localStorage.getItem('ap-view') || 'slots' } catch { return 'slots' } })
   const [book, setBook] = useState(null)
   const [move, setMove] = useState(null)
+  const [remind, setRemind] = useState(null)
   const pickView = (v) => { setView(v); try { localStorage.setItem('ap-view', v) } catch { /* private mode */ } }
   const rows = list('appointments')
     .filter((a) => a.date === date && (doc === 'all' || a.doctorId === doc))
@@ -32,6 +33,7 @@ export default function Appointments() {
   return (
     <>
       <PageHead title="Appointments" sub={`${fmtDate(date)}${date === today() ? ' · today' : ''}`}>
+        {date >= today() && <button className="btn" onClick={() => setRemind({ title: `Send reminders · ${fmtDate(date)}`, ids: null })}><BellRing /> Send reminders{(() => { const n = rows.filter((a) => a.status === 'scheduled' && !a.remindedAt).length; return n ? ` (${n})` : '' })()}</button>}
         <button className="btn primary" onClick={() => setParams({ new: '1' })}><CalendarPlus /> Book appointment</button>
       </PageHead>
       <div className="row between">
@@ -51,7 +53,7 @@ export default function Appointments() {
         <button className={`btn sm ${view === 'list' ? 'primary' : ''}`} onClick={() => pickView('list')}><List /> List</button>
       </div>
       {view === 'slots' ? (
-        (doc === 'all' ? doctors().map((d) => d.id) : [doc]).map((id) => <SlotBoard key={id} date={date} doctorId={id} onBook={(time, doctorId) => setBook({ time, doctorId })} />)
+        (doc === 'all' ? doctors().map((d) => d.id) : [doc]).map((id) => <SlotBoard key={id} date={date} doctorId={id} onBook={(time, doctorId) => setBook({ time, doctorId })} onRemind={(a) => setRemind({ title: 'Send reminder', ids: [a.id] })} />)
       ) : (
       <Card>
         <Table
@@ -83,13 +85,14 @@ export default function Appointments() {
       )}
       {params.get('new') === '1' && <BookAppointment doctorId={isDoc ? me.id : undefined} onClose={(a) => { setParams({}); if (a) setDate(a.date) }} />}
       {book && <BookAppointment date={date} time={book.time} doctorId={book.doctorId} onClose={() => setBook(null)} />}
+      {remind && <RemindModal title={remind.title} appts={remind.ids ? rows.filter((a) => remind.ids.includes(a.id)) : rows.filter((a) => a.status === 'scheduled')} onClose={() => setRemind(null)} />}
       {move && <BookAppointment move={move} onClose={(a) => { setMove(null); if (a) setDate(a.date) }} />}
     </>
   )
 }
 
 // The day as a board of time slots: booked ones show the patient, free ones book with one tap.
-function SlotBoard({ date, doctorId, onBook }) {
+function SlotBoard({ date, doctorId, onBook, onRemind }) {
   const { tenant, list, patient, staff, user, base } = useTenant()
   const nav = useNavigate()
   const slots = slotsOn(tenant, date)
@@ -109,12 +112,16 @@ function SlotBoard({ date, doctorId, onBook }) {
           if (a) {
             const p = patient(a.patientId)
             const open = () => (canConsult && a.status !== 'completed' ? nav(`${base}/consult/${a.id}`) : nav(`${base}/patients/${a.patientId}`))
+            const canRemind = a.status === 'scheduled' && date >= today()
             return (
-              <button key={t} className={`slot booked s-${a.status}`} onClick={open} title={a.reason}>
+              <div key={t} className="slot-wrap">
+              <button className={`slot booked s-${a.status}`} onClick={open} title={a.reason}>
                 <span className="slot-time">{fmtTime(t)}</span>
                 <span className="slot-name">{p?.name || a.patientId}</span>
                 <span className="slot-sub">{a.status === 'checked-in' ? 'Checked in' : a.status === 'completed' ? 'Done' : a.status === 'no-show' ? 'Didn’t come' : 'Booked'}{slots.includes(t) ? '' : ' · walk-in'}</span>
               </button>
+              {canRemind && <button className={`slot-bell ${a.remindedAt ? 'done' : ''}`} onClick={() => onRemind(a)} title={a.remindedAt ? 'Reminder sent. Send again' : 'Send reminder'} aria-label="Send reminder"><BellRing size={15} /></button>}
+              </div>
             )
           }
           return past(t) ? (
