@@ -99,6 +99,7 @@ export default function ClinicSite({ site }) {
       <section className="cs-hero">
         <div className="cs-glow" aria-hidden="true" />
         <div className="cs-in cs-hero-in">
+          <div className="cs-hero-art"><DentalScreen /></div>
           <div className="cs-hero-copy">
             <span className={`cs-status ${status.open ? 'open' : ''}`}><i />{status.text}</span>
             <h1>Healthy teeth,<br /><span>confident smiles.</span></h1>
@@ -113,7 +114,6 @@ export default function ClinicSite({ site }) {
               <a className="cs-btn wa" href={wa} target="_blank" rel="noopener noreferrer"><MessageCircle /> Book on WhatsApp</a>
               <a className="cs-btn ghost" href={maps} target="_blank" rel="noopener noreferrer"><Navigation /> Directions</a>
             </div>
-            <DentalScreen />
           </div>
 
           <aside className="cs-doc">

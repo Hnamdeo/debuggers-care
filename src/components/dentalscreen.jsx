@@ -1,6 +1,5 @@
 // Animated hero scene for dental clinic front pages: a tilted glowing screen with a rotating
-// wireframe tooth that turns into a bright smile and back, a live chart card, tooth record cards and dental tools.
-import { useEffect, useState } from 'react'
+// wireframe tooth, a live chart card, tooth record cards and dental tools.
 const TOOTH = 'M116 70 C112 34 146 22 162 40 C174 26 196 26 208 40 C224 22 258 34 254 70 C256 98 246 120 240 140 C234 180 228 222 216 250 C208 264 194 258 194 238 C192 212 188 188 185 176 C182 188 178 212 176 238 C176 258 162 264 154 250 C142 222 136 180 130 140 C124 120 114 98 116 70 Z'
 
 // Mesh lines inside the tooth: rings across, curved meridians down, and diagonals for the triangle look.
@@ -40,49 +39,17 @@ function MeshTooth() {
 }
 
 
-// A happy smile: lips with a row of white teeth and sparkles.
-function SmileArt() {
-  const top = Array.from({ length: 8 }, (_, i) => i)
-  return (
-    <svg className="dsx-smile" viewBox="0 0 260 170" aria-hidden="true">
-      <defs>
-        <linearGradient id="dsxLip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fb7185" /><stop offset="1" stopColor="#e11d48" /></linearGradient>
-        <clipPath id="dsxMouth"><path d="M30 62 Q130 40 230 62 Q190 140 130 142 Q70 140 30 62 Z" /></clipPath>
-      </defs>
-      <path d="M14 58 Q72 22 130 40 Q188 22 246 58 Q200 166 130 166 Q60 166 14 58 Z" fill="url(#dsxLip)" />
-      <path d="M30 62 Q130 40 230 62 Q190 140 130 142 Q70 140 30 62 Z" fill="#7f1d1d" />
-      <g clipPath="url(#dsxMouth)">
-        {top.map((i) => { const x = 36 + i * 24; const h = 34 - Math.abs(i - 3.5) * 4; return <rect key={i} x={x} y={44 + Math.abs(i - 3.5) * 2} width="22" height={h} rx="6" className="dsx-teeth" /> })}
-        {top.map((i) => { const x = 46 + i * 21; const h = 24 - Math.abs(i - 3.5) * 3; return i < 8 ? <rect key={`b${i}`} x={x} y={132 - h - Math.abs(i - 3.5) * 2} width="19" height={h} rx="6" className="dsx-teeth low" /> : null })}
-        <rect x="60" y="96" width="140" height="40" rx="20" fill="#f43f5e" opacity=".85" />
-      </g>
-      <g className="dsx-sparkles">
-        <path d="M84 50 l3 -9 l3 9 l9 3 l-9 3 l-3 9 l-3 -9 l-9 -3 Z" />
-        <path d="M176 46 l2 -6 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 Z" />
-        <path d="M226 24 l2.5 -7 l2.5 7 l7 2.5 l-7 2.5 l-2.5 7 l-2.5 -7 l-7 -2.5 Z" />
-      </g>
-    </svg>
-  )
-}
-
 const MiniTooth = () => (
   <svg viewBox="0 0 24 24" className="dsx-mini" aria-hidden="true"><path d="M7 3c-2 0-3.5 2-3.5 4.5 0 2.4 1 3.4 1.4 5.7.4 2.4.8 6.8 2.4 6.8 1.4 0 1.4-4.4 2.6-4.4h2.2c1.2 0 1.2 4.4 2.6 4.4 1.6 0 2-4.4 2.4-6.8.4-2.3 1.4-3.3 1.4-5.7C20.5 5 19 3 17 3c-1.8 0-2.6 1.2-5 1.2S8.8 3 7 3Z" /></svg>
 )
 
 export function DentalScreen() {
-  const [smile, setSmile] = useState(false)
-  useEffect(() => {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-    const id = setInterval(() => setSmile((x) => !x), 5200)
-    return () => clearInterval(id)
-  }, [])
   return (
     <div className="dsx" aria-hidden="true">
       <div className="dsx-stage">
         <div className="dsx-screen">
           <div className="dsx-sheen" />
-          <div className={`dsx-art ${smile ? 'off' : 'on'}`}><MeshTooth /></div>
-          <div className={`dsx-art ${smile ? 'on' : 'off'}`}><SmileArt /><span className="dsx-cap">Smile ready ✨</span></div>
+          <MeshTooth />
           <div className="dsx-scan" />
         </div>
         <div className="dsx-card chart">
