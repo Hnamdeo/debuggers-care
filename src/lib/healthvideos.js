@@ -1,25 +1,34 @@
-// Our own patient-education videos from the Debuggers Space Health YouTube channel.
+// Our own patient-education videos, on the Debuggers Space YouTube channel (playlist "Patient Education: Dental").
 // Every clinic gets them in its Education library; a dental clinic sees only the dental ones.
 // checked: true once the reviewing doctor has approved the video.
-// Procedure-first videos (animation from second 0) replace the older what/why explainers as they arrive.
-export const HEALTH_CHANNEL = 'https://www.youtube.com/@DebuggersSpaceHealth'
+// Procedure-first videos (animation from second 0) replace the older what/why explainers.
+// Ids stay stable when a video moves, because patients' shared links and visit records store them.
+export const HEALTH_CHANNEL = 'https://www.youtube.com/playlist?list=PLIGFikRElL20'
+const SOURCE = 'Debuggers Space'
 
 export const HEALTH_VIDEOS = [
-  { id: 'DSH-XVVuat6kkdM', title: 'How a Root Canal Is Done, Step by Step', procedure: 'Root canal treatment', speciality: 'Dental', topic: 'Endodontics', lang: 'English', minutes: 1, url: 'https://youtu.be/XVVuat6kkdM', checked: false },
-  { id: 'DSH-RHjrXL4woGY', title: 'रूट कैनाल कैसे होता है? स्टेप बाय स्टेप', procedure: 'Root canal treatment', speciality: 'Dental', topic: 'Endodontics', lang: 'Hindi', minutes: 1.3, url: 'https://youtu.be/RHjrXL4woGY', checked: false },
-  { id: 'DSH-C1gCOQsxxSI', title: 'Scaling (Teeth Cleaning) Explained', procedure: 'Scaling & polishing', speciality: 'Dental', topic: 'Periodontics', lang: 'English', minutes: 1.6, url: 'https://youtu.be/C1gCOQsxxSI', checked: false },
-  { id: 'DSH-XMz4CIed-2A', title: 'स्केलिंग (दाँतों की सफ़ाई) क्या है?', procedure: 'Scaling & polishing', speciality: 'Dental', topic: 'Periodontics', lang: 'Hindi', minutes: 2.4, url: 'https://youtu.be/XMz4CIed-2A', checked: false },
-  { id: 'DSH-C4d8p0anLKU', title: 'Tooth Extraction Explained', procedure: 'Tooth extraction', speciality: 'Dental', topic: 'Oral surgery', lang: 'English', minutes: 1.5, url: 'https://youtu.be/C4d8p0anLKU', checked: false },
-  { id: 'DSH-GsiOZP4YRv8', title: 'दाँत निकलवाना: क्या होता है और बाद में क्या करें?', procedure: 'Tooth extraction', speciality: 'Dental', topic: 'Oral surgery', lang: 'Hindi', minutes: 2.0, url: 'https://youtu.be/GsiOZP4YRv8', checked: false },
-  { id: 'DSH-ENhAaTxOtTo', title: 'Dental Filling Explained', procedure: 'Composite filling', speciality: 'Dental', topic: 'Restorative', lang: 'English', minutes: 1.4, url: 'https://youtu.be/ENhAaTxOtTo', checked: false },
-  { id: 'DSH-mTSZkdI6ubQ', title: 'दाँत की फ़िलिंग: कैविटी क्या है?', procedure: 'Composite filling', speciality: 'Dental', topic: 'Restorative', lang: 'Hindi', minutes: 1.9, url: 'https://youtu.be/mTSZkdI6ubQ', checked: false },
-].map((v) => ({ ...v, source: 'Debuggers Space Health', builtIn: true }))
+  { id: 'DSH-XVVuat6kkdM', title: 'How a Root Canal Is Done, Step by Step', procedure: 'Root canal treatment', speciality: 'Dental', topic: 'Endodontics', lang: 'English', minutes: 1, url: 'https://youtu.be/_oknDnN66a8', checked: false },
+  { id: 'DSH-RHjrXL4woGY', title: 'रूट कैनाल कैसे होता है? स्टेप बाय स्टेप', procedure: 'Root canal treatment', speciality: 'Dental', topic: 'Endodontics', lang: 'Hindi', minutes: 1.3, url: 'https://youtu.be/olduM7xm9Lw', checked: false },
+  { id: 'DSH-xA2V6YRWF9E', title: 'How Teeth Cleaning (Scaling) Is Done, Step by Step', procedure: 'Scaling & polishing', speciality: 'Dental', topic: 'Periodontics', lang: 'English', minutes: 0.7, url: 'https://youtu.be/xA2V6YRWF9E', checked: false },
+  { id: 'DSH-BPlO7M2Y4jQ', title: 'दाँतों की सफ़ाई (स्केलिंग) कैसे होती है?', procedure: 'Scaling & polishing', speciality: 'Dental', topic: 'Periodontics', lang: 'Hindi', minutes: 0.9, url: 'https://youtu.be/BPlO7M2Y4jQ', checked: false },
+  { id: 'DSH-qw_hDU2mUQo', title: 'How a Tooth Is Removed, Step by Step', procedure: 'Tooth extraction', speciality: 'Dental', topic: 'Oral surgery', lang: 'English', minutes: 0.8, url: 'https://youtu.be/qw_hDU2mUQo', checked: false },
+  { id: 'DSH-w48i7IReCzQ', title: 'दाँत कैसे निकाला जाता है? स्टेप बाय स्टेप', procedure: 'Tooth extraction', speciality: 'Dental', topic: 'Oral surgery', lang: 'Hindi', minutes: 1.1, url: 'https://youtu.be/w48i7IReCzQ', checked: false },
+  { id: 'DSH-kT8ptNI9_eQ', title: 'How a Dental Filling Is Done, Step by Step', procedure: 'Composite filling', speciality: 'Dental', topic: 'Restorative', lang: 'English', minutes: 0.6, url: 'https://youtu.be/kT8ptNI9_eQ', checked: false },
+  { id: 'DSH-eaUZaY3hPkk', title: 'दाँत की फ़िलिंग कैसे होती है? स्टेप बाय स्टेप', procedure: 'Composite filling', speciality: 'Dental', topic: 'Restorative', lang: 'Hindi', minutes: 0.8, url: 'https://youtu.be/eaUZaY3hPkk', checked: false },
+].map((v) => ({ ...v, source: SOURCE, builtIn: true }))
 
 // Older what/why explainers, replaced above. Kept so videos already shared with patients still open.
+// The ones not yet moved still play from the old channel (moving the rest on 17 Nov 2026).
 export const OLD_HEALTH_VIDEOS = [
-  { id: 'DSH-qal7LN-3D_A', title: 'Root Canal Treatment Explained Simply', procedure: 'Root canal treatment', speciality: 'Dental', topic: 'Endodontics', lang: 'English', minutes: 2.2, url: 'https://youtu.be/qal7LN-3D_A' },
+  { id: 'DSH-qal7LN-3D_A', title: 'Root Canal Treatment Explained Simply', procedure: 'Root canal treatment', speciality: 'Dental', topic: 'Endodontics', lang: 'English', minutes: 2.2, url: 'https://youtu.be/_5-dmXKOpPE' },
   { id: 'DSH-jvYENb63wXI', title: 'रूट कैनाल ट्रीटमेंट क्या है?', procedure: 'Root canal treatment', speciality: 'Dental', topic: 'Endodontics', lang: 'Hindi', minutes: 2.9, url: 'https://youtu.be/jvYENb63wXI' },
-].map((v) => ({ ...v, source: 'Debuggers Space Health', builtIn: true }))
+  { id: 'DSH-C1gCOQsxxSI', title: 'Scaling (Teeth Cleaning) Explained', procedure: 'Scaling & polishing', speciality: 'Dental', topic: 'Periodontics', lang: 'English', minutes: 1.6, url: 'https://youtu.be/C1gCOQsxxSI' },
+  { id: 'DSH-XMz4CIed-2A', title: 'स्केलिंग (दाँतों की सफ़ाई) क्या है?', procedure: 'Scaling & polishing', speciality: 'Dental', topic: 'Periodontics', lang: 'Hindi', minutes: 2.4, url: 'https://youtu.be/XMz4CIed-2A' },
+  { id: 'DSH-C4d8p0anLKU', title: 'Tooth Extraction Explained', procedure: 'Tooth extraction', speciality: 'Dental', topic: 'Oral surgery', lang: 'English', minutes: 1.5, url: 'https://youtu.be/C4d8p0anLKU' },
+  { id: 'DSH-GsiOZP4YRv8', title: 'दाँत निकलवाना: क्या होता है और बाद में क्या करें?', procedure: 'Tooth extraction', speciality: 'Dental', topic: 'Oral surgery', lang: 'Hindi', minutes: 2.0, url: 'https://youtu.be/GsiOZP4YRv8' },
+  { id: 'DSH-ENhAaTxOtTo', title: 'Dental Filling Explained', procedure: 'Composite filling', speciality: 'Dental', topic: 'Restorative', lang: 'English', minutes: 1.4, url: 'https://youtu.be/ENhAaTxOtTo' },
+  { id: 'DSH-mTSZkdI6ubQ', title: 'दाँत की फ़िलिंग: कैविटी क्या है?', procedure: 'Composite filling', speciality: 'Dental', topic: 'Restorative', lang: 'Hindi', minutes: 1.9, url: 'https://youtu.be/mTSZkdI6ubQ' },
+].map((v) => ({ ...v, source: SOURCE, builtIn: true }))
 export const findOldVideo = (id) => OLD_HEALTH_VIDEOS.find((v) => v.id === id)
 
 const isSearch = (url = '') => url.includes('/results?')
