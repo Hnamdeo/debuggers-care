@@ -2311,3 +2311,20 @@ body:has(.chat-page) { background: #070b17; }
 /* Free website line readable on the dark "Most popular" plan card */
 .lx-plan.pop .lx-bonus { color: #a5f3fc; background: rgb(34 211 238 / 10%); border-color: rgb(34 211 238 / 50%); }
 .lx-plan.pop .lx-bonus sup { color: #a5f3fc; }
+
+/* "Get a free demo" lead form, inside the dark final section of the product page */
+.lead-card { position: relative; max-width: 640px; margin: 26px auto 18px; padding: 22px; border-radius: 20px; text-align: left; color: #fff; background: rgb(255 255 255 / 8%); border: 1px solid rgb(255 255 255 / 18%); backdrop-filter: blur(10px); }
+.lead-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lead-grid label { display: flex; flex-direction: column; gap: 6px; font-size: .85rem; font-weight: 600; color: rgb(255 255 255 / 85%); }
+.lead-grid label.full { grid-column: 1 / -1; }
+.lead-grid input, .lead-grid select { font: inherit; font-weight: 500; padding: 11px 12px; border-radius: 10px; border: 1px solid rgb(255 255 255 / 25%); background: rgb(255 255 255 / 95%); color: #0f172a; }
+.lead-grid input:focus, .lead-grid select:focus { outline: 3px solid rgb(34 211 238 / 55%); outline-offset: 1px; }
+.lead-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.lead-go { width: 100%; justify-content: center; margin-top: 16px; }
+.lead-err { margin: 10px 0 0; color: #fecaca; font-weight: 600; }
+.lead-fine { margin: 10px 0 0; text-align: center; font-size: .8rem; color: rgb(255 255 255 / 70%); }
+.lead-card.done { text-align: center; }
+.lead-card.done h3 { margin: 8px 0 4px; font-size: 1.4rem; }
+.lead-card.done p { margin: 0 auto 14px; max-width: 46ch; }
+@media (max-width: 640px) { .lead-grid { grid-template-columns: 1fr; } .lead-card { padding: 16px; } .lx-nav-lead { display: none; } }
+#lead { scroll-margin-top: 80px; }

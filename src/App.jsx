@@ -27,6 +27,7 @@ import Payroll from './pages/Payroll'
 import Settings from './pages/Settings'
 import { PatientHome, PatientBook, PatientAppointments, PatientBills } from './pages/PatientPortal'
 import Locked from './pages/Locked'
+import Leads from './pages/Leads'
 import Education from './pages/Education'
 import SelfRegister from './pages/SelfRegister'
 import ClinicSite from './pages/ClinicSite'
@@ -46,6 +47,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/leads" element={<Leads />} />
         <Route path="/t/:slug/*" element={<TenantApp />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

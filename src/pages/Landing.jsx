@@ -7,6 +7,7 @@ import {
 import { db, useDb } from '../lib/store'
 import { PLANS, PLAN_ORDER, SUPER_AI, WEBSITE_TERMS, MODULES, tenantHost, SALES_PHONE, salesWhatsApp } from '../lib/plans'
 import FeatureTour from '../components/tour'
+import LeadForm from '../components/leadform'
 import { ToothScan } from '../components/toothscan'
 import { toast, CompanyLink, SiteFooter, COMPANY_URL, CountUp } from '../components/ui'
 
@@ -110,6 +111,10 @@ export default function Landing() {
     e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`)
   }
   const go = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  // Ad links like care.debuggersspace.com/#/?lead=1&src=fb open straight at the demo form.
+  useEffect(() => {
+    if (/[?&]lead\b/.test(window.location.hash)) setTimeout(() => document.getElementById('lead')?.scrollIntoView({ block: 'start' }), 300)
+  }, [])
 
   return (
     <div className="lx" ref={root}>
@@ -129,7 +134,10 @@ export default function Landing() {
             <button onClick={() => go('plans')}>Plans</button>
             <button onClick={() => go('services')}>Services</button>
           </div>
-          <button className="lx-btn sm" onClick={() => go('demo')}>Live demo <ArrowRight /></button>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="lx-btn sm ghost lx-nav-lead" onClick={() => go('lead')}>Free demo</button>
+            <button className="lx-btn sm" onClick={() => go('demo')}>Live demo <ArrowRight /></button>
+          </div>
         </div>
       </nav>
 
@@ -143,7 +151,7 @@ export default function Landing() {
             <p>Appointments, prescriptions, bills, pharmacy and beds, in software so simple that every doctor and receptionist gets it on day one. From a one-chair clinic to a 200-bed hospital.</p>
             <div className="lx-cta-row">
               <button className="lx-btn" onClick={() => go('demo')}>Try the live demo <ArrowRight /></button>
-              <a className="lx-btn ghost" href={COMPANY_URL} target="_blank" rel="noopener noreferrer">Talk to us</a>
+              <button className="lx-btn ghost" onClick={() => go('lead')}>Get a free demo</button>
             </div>
             <ul className="lx-trust">
               <li><Smartphone size={15} /> Phone, tablet or computer</li>
@@ -359,13 +367,14 @@ export default function Landing() {
 
       <section className="lx-sec">
         <div className="lx-wrap">
-          <div className="lx-final" data-reveal>
+          <div className="lx-final" id="lead" data-reveal>
             <div className="lx-aurora" aria-hidden="true"><i /><i /></div>
-            <h2>Ready to give your clinic its own space?</h2>
-            <p>We set it up with your name, logo and colours, and train your team in one short call.</p>
+            <h2>Get a free demo for your clinic</h2>
+            <p>Leave your number. We'll set up your clinic's own space with your name and logo, show it to you on a short call, and train your team. No payment needed to start.</p>
+            <LeadForm />
             <div className="lx-cta-row center">
-              <a className="lx-btn light" href={COMPANY_URL} target="_blank" rel="noopener noreferrer">Talk to Debuggers Space Solutions <ArrowRight /></a>
-              <button className="lx-btn ghost" onClick={() => go('demo')}>See the demo</button>
+              <a className="lx-btn ghost" href={salesWhatsApp('Hi Debuggers Space, I would like a free demo of the clinic app.')} target="_blank" rel="noopener noreferrer">Or WhatsApp {SALES_PHONE.replace(/(\d{5})(\d{5})/, '$1 $2')}</a>
+              <button className="lx-btn ghost" onClick={() => go('demo')}>Try the live demo yourself</button>
             </div>
           </div>
         </div>
