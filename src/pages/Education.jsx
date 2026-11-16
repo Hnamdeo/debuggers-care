@@ -42,7 +42,7 @@ export default function Education() {
               <div className="stack" style={{ gap: 2, padding: '10px 12px' }}>
                 <strong style={{ lineHeight: 1.3 }}>{v.procedure && v.builtIn ? v.procedure : v.title}</strong>
                 <span className="small muted">{[v.speciality, v.topic || (v.builtIn ? '' : v.procedure)].filter(Boolean).join(' · ')}</span>
-                {v.builtIn && <span className="small" style={{ color: 'var(--brand)' }}>Debuggers Space Health</span>}
+                {v.builtIn && <span className="small" style={{ color: 'var(--brand)' }}>Debuggers Space</span>}
                 <span className="small faint">{n ? `Shared with ${n} ${n === 1 ? 'patient' : 'patients'}` : 'Not shared yet'}</span>
                 {g.items.length > 1 && (
                   <div className="row lang-btns" style={{ gap: 6, marginTop: 6 }}>
@@ -59,7 +59,7 @@ export default function Education() {
         })}
       </div>
       {!rows.length && <div className="empty">No videos match. Add one with “Add video”.</div>}
-      <a className="small muted" href={HEALTH_CHANNEL} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><TvMinimalPlay size={15} /> More explainers on our Debuggers Space Health channel</a>
+      <a className="small muted" href={HEALTH_CHANNEL} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><TvMinimalPlay size={15} /> More explainers in our Patient Education playlist on YouTube</a>
       {play && <VideoPlayer video={play} onClose={() => setPlay(null)} />}
       {adding && <AddVideo onClose={() => setAdding(false)} specs={specs.filter((s) => s !== 'All')} />}
     </>
