@@ -4,6 +4,7 @@ import { ReportDoc } from '../components/docs'
 import { db } from '../lib/store'
 import { LAB_CATALOG } from '../lib/seed'
 import { fmtDate, today } from '../lib/utils'
+import { analyseReport } from '../components/aianalysis'
 
 export default function Reports() {
   const { list, patient, staff, user, me } = useTenant()
@@ -38,6 +39,7 @@ export default function Reports() {
             { label: 'Referred by', render: (r) => staff(r.doctorId)?.name },
             { label: 'Ordered', render: (r) => fmtDate(r.date) },
             { label: 'Result', render: (r) => r.status === 'ordered' ? <Pill status="ordered">In lab</Pill> : r.results.some((x) => x.flag) ? <Pill status="red">Abnormal</Pill> : <Pill status="ok">Normal</Pill> },
+            { label: 'AI analysis', render: (r) => { if (r.status !== 'completed') return null; const a = analyseReport(r); return <span className={`ai-chip ${a.abnormal ? 'warn' : 'ok'}`}>✦ {a.abnormal ? `${a.abnormal} to review` : 'All normal'}</span> } },
             { label: '', render: (r) => r.status === 'ordered' && !isDoc ? <button className="btn sm primary">Enter results</button> : <button className="btn sm">View</button> },
           ]}
         />
