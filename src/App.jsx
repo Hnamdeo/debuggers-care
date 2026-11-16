@@ -179,10 +179,14 @@ function Shell() {
             </>
           ) : (
             <>
-              {mods.map((m, i) => {
+              {(() => {
+                // Only the admin (demo clinics) sees modules outside the plan, with a lock, as an upgrade hint.
+                // Doctors and the front desk see only what their plan includes.
+                const shown = mods.filter((m) => role === 'admin' || hasModule(tenant, m))
+                const group = (m) => (['ipd', 'emergency'].includes(m) ? 'Hospital' : ['pharmacy', 'billing', 'staff', 'payroll'].includes(m) ? 'Operations' : 'Clinic')
+                return shown.map((m, i) => ({ m, sep: boss && (i === 0 || group(shown[i - 1]) !== group(m)) ? group(m) : null }))
+              })().map(({ m, sep }) => {
                 const locked = !hasModule(tenant, m)
-                if (locked && !boss) return null
-                const sep = boss && (m === 'ipd' ? 'Hospital' : m === 'pharmacy' ? 'Operations' : i === 0 ? 'Clinic' : null)
                 return (
                   <div key={m}>
                     {sep && <div className="nav-sep">{sep}</div>}
