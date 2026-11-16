@@ -269,6 +269,8 @@ textarea.input { resize: vertical; min-height: 70px; }
 .thumb .dur { position: absolute; right: 8px; bottom: 6px; background: rgb(0 0 0 / 65%); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 4px; font-variant-numeric: tabular-nums; }
 .video-frame { aspect-ratio: 16 / 9; max-width: 100%; background: #000; border-radius: 8px; overflow: hidden; }
 .video-frame iframe { width: 100%; height: 100%; border: 0; }
+.modal.video-modal { width: min(860px, 100%, calc((100dvh - 300px) * 16 / 9 + 36px)); min-width: min(360px, 100%); }
+.modal.video-modal .modal-head h2 { font-size: 1rem; }
 .video-frame.placeholder { background: var(--surface-2); border: 1px dashed var(--line-strong); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; text-align: center; color: var(--muted); }
 .video-frame.placeholder p { margin: 0; max-width: 48ch; }
 .vid-row { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }

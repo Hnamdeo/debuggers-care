@@ -142,7 +142,7 @@ export function Avatar({ name, lg }) {
   return <span className={`avatar ${lg ? 'lg' : ''}`}>{initials(name || '?')}</span>
 }
 
-export function Modal({ title, onClose, children, footer, wide }) {
+export function Modal({ title, onClose, children, footer, wide, className = '' }) {
   useEffect(() => {
     const k = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', k)
@@ -151,7 +151,7 @@ export function Modal({ title, onClose, children, footer, wide }) {
   // Rendered on the page body, so a popup opened from inside a card is never clipped by that card.
   return createPortal(
     <div className="modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
+      <div className={`modal ${wide ? 'wide' : ''} ${className}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-head">
           <h2>{title}</h2>
           <button className="btn ghost sm" onClick={onClose} aria-label="Close"><X /></button>
