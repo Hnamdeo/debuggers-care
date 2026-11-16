@@ -12,7 +12,7 @@ export function youtubeId(url = '') {
 export function VideoPlayer({ video, onClose, patientId }) {
   const id = youtubeId(video.url)
   return (
-    <Modal wide title={video.title} onClose={onClose} footer={<>
+    <Modal wide className="video-modal" title={video.title} onClose={onClose} footer={<>
       {patientId && <ShareButton video={video} patientId={patientId} />}
       {id && <WhatsAppVideo video={video} patientId={patientId} />}
       <a className="btn" href={video.url} target="_blank" rel="noreferrer"><ExternalLink /> Open on YouTube</a>
