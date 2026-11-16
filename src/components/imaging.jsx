@@ -4,6 +4,7 @@ import { Modal, Input, Select, Textarea, Card, useTenant, toast } from './ui'
 import { db, server } from '../lib/store'
 import { today, fmtDate } from '../lib/utils'
 import { VideoPlayer, whatsappLink } from './videos'
+import { ImageAI } from './aianalysis'
 
 export const KINDS = ['X-ray', 'Intraoral photo', 'Smile photo', 'Report scan', 'Other']
 
@@ -113,6 +114,7 @@ export function ImageViewer({ im, onClose }) {
           {im.treatment && !v && <div className="muted no-print">No video for “{im.treatment}” yet. Add one on the Patient education page and it will show here.</div>}
         </div>
         </div>
+        {user.role !== 'patient' && <ImageAI im={im} />}
       </Modal>
       {play && <VideoPlayer video={play} patientId={im.patientId} onClose={() => setPlay(null)} />}
     </>

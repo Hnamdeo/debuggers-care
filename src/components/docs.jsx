@@ -1,5 +1,6 @@
 // Printable documents: prescription, lab report, invoice, payslip.
 import { DocModal, SheetHead, useTenant } from './ui'
+import { ReportAI } from './aianalysis'
 import { fmtDate, money, billTotal, billStatus, age, fmtMonth } from '../lib/utils'
 import { db } from '../lib/store'
 import { toast } from './ui'
@@ -27,7 +28,7 @@ export function PrescriptionDoc({ rx, onClose, title }) {
 }
 
 export function ReportDoc({ rep, onClose }) {
-  const { tenant, patient, staff } = useTenant()
+  const { tenant, patient, staff, user } = useTenant()
   const p = patient(rep.patientId)
   return (
     <DocModal title={`${rep.test} · ${rep.id}`} onClose={onClose}>
@@ -50,6 +51,7 @@ export function ReportDoc({ rep, onClose }) {
         {rep.findings && <p><span className="muted">Findings:</span> {rep.findings}</p>}
         <div className="sign"><div className="muted small">Verified by lab in-charge</div></div>
       </div>
+      {user?.role !== 'patient' && <ReportAI rep={rep} />}
     </DocModal>
   )
 }

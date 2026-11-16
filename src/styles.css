@@ -2328,3 +2328,21 @@ body:has(.chat-page) { background: #070b17; }
 .lead-card.done p { margin: 0 auto 14px; max-width: 46ch; }
 @media (max-width: 640px) { .lead-grid { grid-template-columns: 1fr; } .lead-card { padding: 16px; } .lx-nav-lead { display: none; } }
 #lead { scroll-margin-top: 80px; }
+
+/* AI analysis of reports and X-rays */
+.ai-box { margin: 14px 0 0; padding: 14px 16px; border-radius: 14px; border: 1px solid color-mix(in srgb, #8b5cf6 35%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, #8b5cf6 8%, var(--surface)), color-mix(in srgb, #06b6d4 6%, var(--surface))); display: flex; flex-direction: column; gap: 8px; }
+.ai-head { display: flex; align-items: center; gap: 6px; font-weight: 700; color: #7c3aed; }
+.ai-tag { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 2px 7px; border-radius: 99px; background: color-mix(in srgb, #8b5cf6 15%, transparent); }
+.ai-think { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: .9rem; }
+.ai-think span { width: 7px; height: 7px; border-radius: 50%; background: #8b5cf6; animation: ai-dot 1s infinite ease-in-out; }
+.ai-think span:nth-child(2) { animation-delay: .15s; } .ai-think span:nth-child(3) { animation-delay: .3s; margin-right: 6px; }
+@keyframes ai-dot { 0%, 100% { opacity: .25; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+.ai-sum { margin: 0; font-weight: 600; } .ai-sum.warn { color: #b45309; } .ai-sum.ok { color: #15803d; }
+.ai-item { padding: 10px 12px; border-radius: 10px; background: var(--surface); border-left: 3px solid #22c55e; display: flex; flex-direction: column; gap: 3px; animation: fade .3s ease both; }
+.ai-item.mild { border-left-color: #f59e0b; } .ai-item.marked { border-left-color: #ef4444; }
+.ai-item-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.ai-level { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+.ai-level.mild { background: #fef3c7; color: #92400e; } .ai-level.marked { background: #fee2e2; color: #991b1b; }
+.ai-safe { display: flex; align-items: center; gap: 5px; }
+.ai-chip { font-size: .78rem; font-weight: 700; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+.ai-chip.warn { background: #fef3c7; color: #92400e; } .ai-chip.ok { background: #dcfce7; color: #166534; }
