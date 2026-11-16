@@ -296,7 +296,7 @@ export default function Landing() {
                 {PLANS[p].offer && <span className="offer-tag">{PLANS[p].offerLabel}</span>}
                 <div className="lx-price"><b>{PLANS[p].offer && <span className="was">₹{PLANS[p].price.toLocaleString('en-IN')}</span>}₹{(PLANS[p].offer || PLANS[p].price).toLocaleString('en-IN')}</b><span>/ month</span></div>
                 <p>{PLANS[p].blurb}</p>
-                {PLANS[p].bonus && <div className="lx-bonus"><Gift size={16} /> <span><b>Free</b> {PLANS[p].bonus.replace(/^Free /, '')}<sup>*</sup></span></div>}
+                {PLANS[p].bonus && <div className="lx-bonus"><Gift size={16} /> <span>{/^Free /.test(PLANS[p].bonus) ? <><b>Free</b> {PLANS[p].bonus.replace(/^Free /, '')}</> : PLANS[p].bonus}<sup>*</sup></span></div>}
                 <ul>
                   {PLANS[p].modules.filter((m) => m !== 'dashboard').map((m) => <li key={m}><Check size={14} /> {MODULES[m].label}</li>)}
                   <li className="lx-ai-li"><Sparkles size={14} /> AI assistant with smart suggestions (free)</li>
