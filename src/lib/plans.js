@@ -16,7 +16,7 @@ export const MODULES = {
 }
 
 // How a clinic buys or upgrades for now: a call or WhatsApp to Debuggers Space (online payment comes later).
-export const SALES_PHONE = '9075013110'
+export const SALES_PHONE = '9755561311'
 export const salesWhatsApp = (text) => `https://wa.me/91${SALES_PHONE}?text=${encodeURIComponent(text)}`
 
 export const PLANS = {
