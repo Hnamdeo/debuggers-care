@@ -2306,3 +2306,6 @@ body:has(.chat-page) { background: #070b17; }
 :root[data-look='day'] .ai-panel.side :is(.ai-rx, .ai-card) { background: #f7fbfd; border-color: rgb(8 145 178 / 35%); }
 :root[data-look='day'] .ai-rail { background: radial-gradient(circle at 50% 0, rgb(99 102 241 / 12%), transparent 50%), #fff; color: #4338ca; border-color: #dfe3f3; box-shadow: 0 14px 34px -22px rgb(79 70 229 / 45%); }
 :root[data-look='day'] .ai-rail:hover { color: #1e1b4b; }
+/* Free website line readable on the dark "Most popular" plan card */
+.lx-plan.pop .lx-bonus { color: #a5f3fc; background: rgb(34 211 238 / 10%); border-color: rgb(34 211 238 / 50%); }
+.lx-plan.pop .lx-bonus sup { color: #a5f3fc; }
