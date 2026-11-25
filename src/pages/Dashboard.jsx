@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, Stethoscope, Sparkles } from 'lucide-react'
 import { NotesCard } from '../components/notes'
-import { DentalScanCard } from '../components/toothscan'
 import { InsightsCard } from '../components/insights'
 import RegisterQR from '../components/RegisterQR'
 import { TodayTimings } from './Appointments'
@@ -267,7 +266,6 @@ function DoctorDash() {
         { icon: CalendarDays, label: 'My patients today', hint: `${todays.length} booked · ${todays.filter((a) => a.status === 'completed').length} seen`, onClick: () => nav(`${base}/appointments?view=calendar`) },
       ]} />
       <AskBar />
-      <DentalScanCard tenant={tenant} onSmile={() => nav(`${base}/smile`)} onXray={() => nav(`${base}/patients`)} />
       <DoctorTrends appts={mine} rxs={list('prescriptions').filter((r) => shared || r.doctorId === me.id)} patients={list('patients')} />
       <InsightsCard doctorId={shared ? undefined : me.id} />
       <NotesCard />
