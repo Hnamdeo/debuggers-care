@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 // ds    = Debuggers Space: light pages with the dark AI menu and AI panel (the default)
 // day   = everything light
 // night = everything dark
+// pro   = Enterprise: flat, quiet business look with a top bar (search, + New, AI button)
 export const LOOKS = [
   { id: 'ds', name: 'Debuggers Space', hint: 'Light pages, dark AI menu and panel' },
   { id: 'day', name: 'Day', hint: 'Everything light' },
   { id: 'night', name: 'Night', hint: 'Everything dark, easy on the eyes' },
+  { id: 'pro', name: 'Enterprise', hint: 'Flat business look, top search bar' },
 ]
 const KEY = 'hms-look'
 
