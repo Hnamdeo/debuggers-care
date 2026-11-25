@@ -305,7 +305,7 @@ function GoHome({ to }) {
 // Day / Night / Debuggers Space look, saved on this device.
 function LookSwitch() {
   const [look, setLook] = useLook()
-  const opts = [['ds', Sparkles, 'DS', 'Debuggers Space look'], ['day', Sun, 'Day', 'Day mode'], ['night', Moon, 'Night', 'Night mode'], ['pro', Briefcase, 'Pro', 'Enterprise look']]
+  const opts = [['pro', Briefcase, 'Pro', 'Enterprise look (default)'], ['ds', Sparkles, 'DS', 'Debuggers Space look'], ['day', Sun, 'Day', 'Day mode'], ['night', Moon, 'Night', 'Night mode']]
   return (
     <div className="look-seg" role="radiogroup" aria-label="Screen look">
       {opts.map(([id, Icon, label, title]) => (

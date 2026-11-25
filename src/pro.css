@@ -149,3 +149,17 @@
 :root[data-look='pro'] .tr-kpis div { border-radius: 6px; background: #f7f9fb; border: 1px solid var(--line); }
 :root[data-look='pro'] .tr-kpis b, :root[data-look='pro'] .tr-head h3 { font-weight: 700; }
 :root[data-look='pro'] .insights::before { display: none; }
+
+/* Settings: the Enterprise card's little preview, and four look cards in a row */
+.look-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 960px) { .look-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .look-cards { grid-template-columns: minmax(0, 1fr); } }
+.look-mini.pro { background: #f4f6f9; grid-template-columns: 22% 1fr; } .look-mini.pro .l { background: #0d1b33; } .look-mini.pro .r { display: none; }
+.look-mini.pro .m i { background: #fff; border: 1px solid #e4e8ee; } .look-mini.pro .m i:first-child { background: #fff; border-bottom: 2px solid #0f9488; }
+
+/* Stat tiles: no coloured underline; notes button calmer */
+:root[data-look='pro'] .stat::before { display: none !important; }
+:root[data-look='pro'] .stat { border-radius: 8px; }
+:root[data-look='pro'] .notes-fab { width: 46px; height: 46px; border-radius: 10px; background: #fff; color: #a16207; border: 1px solid var(--line-strong); box-shadow: 0 4px 14px -6px rgb(16 24 40 / 25%); }
+:root[data-look='pro'] .notes-fab:hover { transform: none; background: #fefce8; }
+:root[data-look='pro'] .notes-fab svg { width: 20px; height: 20px; }
