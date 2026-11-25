@@ -83,7 +83,16 @@ export function Assistant() {
   const rxAppt = (loc.pathname.match(/\/consult\/([^/]+)/) || [])[1]
   const [wide, setWide] = useState(() => window.innerWidth >= 1100)
   useEffect(() => { const r = () => setWide(window.innerWidth >= 1100); window.addEventListener('resize', r); return () => window.removeEventListener('resize', r) }, [])
-  const [mode, setModeRaw] = useState(() => { const d = document.documentElement.dataset.look === 'pro' ? 'hidden' : 'pinned'; try { return localStorage.getItem('ai-mode') || d } catch { return d } })
+  const [mode, setModeRaw] = useState(() => {
+    // In the Enterprise look the AI opens from the top bar. A panel pinned before that look
+    // became the default is closed once; after that the person's own choice is kept.
+    const pro = document.documentElement.dataset.look === 'pro'
+    const d = pro ? 'hidden' : 'pinned'
+    try {
+      if (pro && !localStorage.getItem('ai-mode-pro')) { localStorage.setItem('ai-mode-pro', '1'); localStorage.setItem('ai-mode', 'hidden') }
+      return localStorage.getItem('ai-mode') || d
+    } catch { return d }
+  })
   const setMode = (m) => { setModeRaw(m); try { localStorage.setItem('ai-mode', m) } catch { /* ignore */ } }
   const side = wide && user.role !== 'patient'
   const docked = side && mode === 'pinned'

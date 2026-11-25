@@ -163,3 +163,9 @@
 :root[data-look='pro'] .notes-fab { width: 46px; height: 46px; border-radius: 10px; background: #fff; color: #a16207; border: 1px solid var(--line-strong); box-shadow: 0 4px 14px -6px rgb(16 24 40 / 25%); }
 :root[data-look='pro'] .notes-fab:hover { transform: none; background: #fefce8; }
 :root[data-look='pro'] .notes-fab svg { width: 20px; height: 20px; }
+
+/* A pinned AI panel sits above the top bar, and the top bar stops before it, so the panel's
+   header (pin, close, bigger) is never covered. */
+:root[data-look='pro'] .ai-panel.side.docked { z-index: 40; }
+:root[data-look='pro'] body.ai-docked .appbar { margin-right: 380px; }
+@media (max-width: 1099px) { :root[data-look='pro'] body.ai-docked .appbar { margin-right: 0; } }
