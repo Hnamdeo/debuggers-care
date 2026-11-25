@@ -5,7 +5,9 @@ import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, 
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
   Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles, BarChart3, PiggyBank, Globe, Sun, Moon,
+  Briefcase,
 } from 'lucide-react'
+import { AppBar } from './components/appbar'
 import { useLook } from './lib/look'
 import { db, auth, useDb, server } from './lib/store'
 import { hasModule, ROLE_MODULES, ROLE_LABEL, PLANS, planFor, MODULES } from './lib/plans'
@@ -147,6 +149,7 @@ function Shell() {
   const [open, setOpen] = useState(false)
   const nav = useNavigate()
   const loc = useLocation()
+  const [look] = useLook()
   const role = user.role
   // In a clinic's own live space there is no admin login: the doctor gets everything the admin had.
   const boss = role === 'admin' || (tenant.live && role === 'doctor')
@@ -222,6 +225,7 @@ function Shell() {
             <BrandMark tenant={tenant} size={28} />
             <strong style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tenant.short}</strong>
           </div>
+          {look === 'pro' && !isPatient && <AppBar mods={mods} />}
           <main className="main" key={loc.pathname}>
             <RouteScan path={loc.pathname} />
             <Routes>
@@ -301,7 +305,7 @@ function GoHome({ to }) {
 // Day / Night / Debuggers Space look, saved on this device.
 function LookSwitch() {
   const [look, setLook] = useLook()
-  const opts = [['ds', Sparkles, 'DS', 'Debuggers Space look'], ['day', Sun, 'Day', 'Day mode'], ['night', Moon, 'Night', 'Night mode']]
+  const opts = [['ds', Sparkles, 'DS', 'Debuggers Space look'], ['day', Sun, 'Day', 'Day mode'], ['night', Moon, 'Night', 'Night mode'], ['pro', Briefcase, 'Pro', 'Enterprise look']]
   return (
     <div className="look-seg" role="radiogroup" aria-label="Screen look">
       {opts.map(([id, Icon, label, title]) => (

@@ -83,7 +83,7 @@ export function Assistant() {
   const rxAppt = (loc.pathname.match(/\/consult\/([^/]+)/) || [])[1]
   const [wide, setWide] = useState(() => window.innerWidth >= 1100)
   useEffect(() => { const r = () => setWide(window.innerWidth >= 1100); window.addEventListener('resize', r); return () => window.removeEventListener('resize', r) }, [])
-  const [mode, setModeRaw] = useState(() => { try { return localStorage.getItem('ai-mode') || 'pinned' } catch { return 'pinned' } })
+  const [mode, setModeRaw] = useState(() => { const d = document.documentElement.dataset.look === 'pro' ? 'hidden' : 'pinned'; try { return localStorage.getItem('ai-mode') || d } catch { return d } })
   const setMode = (m) => { setModeRaw(m); try { localStorage.setItem('ai-mode', m) } catch { /* ignore */ } }
   const side = wide && user.role !== 'patient'
   const docked = side && mode === 'pinned'
