@@ -151,11 +151,19 @@ export function Assistant() {
   }
   useEffect(() => {
     const on = (e) => { setOpen(true); if (e.detail) setTimeout(() => send(e.detail), 250) }
-    const key = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); if (docked) { setMode('hidden'); setOpen(false) } else setOpen((o) => !o) } }
+    const toggle = () => { if (docked) { setMode('hidden'); setOpen(false) } else setOpen((o) => !o) }
+    const key = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); toggle() } }
     window.addEventListener('ai-open', on)
+    window.addEventListener('ai-toggle', toggle)
     window.addEventListener('keydown', key)
-    return () => { window.removeEventListener('ai-open', on); window.removeEventListener('keydown', key) }
+    return () => { window.removeEventListener('ai-open', on); window.removeEventListener('ai-toggle', toggle); window.removeEventListener('keydown', key) }
   })
+  // Tell the top bar whether the panel is showing, so its button can read "Show AI" or "Hide AI".
+  useEffect(() => {
+    document.body.classList.toggle('ai-shown', !!shown)
+    window.dispatchEvent(new Event('ai-state'))
+    return () => { document.body.classList.remove('ai-shown'); window.dispatchEvent(new Event('ai-state')) }
+  }, [shown])
   useEffect(() => {
     if (!shown || !rxAppt) return
     const a = list('appointments').find((x) => x.id === rxAppt)

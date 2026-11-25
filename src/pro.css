@@ -167,5 +167,7 @@
 /* A pinned AI panel sits above the top bar, and the top bar stops before it, so the panel's
    header (pin, close, bigger) is never covered. */
 :root[data-look='pro'] .ai-panel.side.docked { z-index: 40; }
-:root[data-look='pro'] body.ai-docked .appbar { margin-right: 380px; }
-@media (max-width: 1099px) { :root[data-look='pro'] body.ai-docked .appbar { margin-right: 0; } }
+:root[data-look='pro'] body:is(.ai-docked, .ai-shown) .appbar { margin-right: 380px; }
+@media (max-width: 1099px) { :root[data-look='pro'] body:is(.ai-docked, .ai-shown) .appbar { margin-right: 0; } }
+.ab-ai.on { background: #f5f3ff; border-color: #ddd6fe; color: #5b21b6; }
+.ab-ai.on svg { color: #5b21b6; }
