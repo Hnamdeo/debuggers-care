@@ -1,6 +1,6 @@
 import { tenantHost } from '../lib/plans'
 import { useEffect, useRef, useState } from 'react'
-import { Check, Lock, Download, Upload, ImagePlus, Trash2, Palette, Phone, MessageCircle, BadgePercent, Gift, Sun, Moon, Sparkles } from 'lucide-react'
+import { Check, Lock, Download, Upload, ImagePlus, Trash2, Palette, Phone, MessageCircle, BadgePercent, Gift, Sun, Moon, Sparkles, Briefcase } from 'lucide-react'
 import { LOOKS, useLook } from '../lib/look'
 import { useTenant, PageHead, Card, toast, BrandMark, PasswordInput, Input, Select } from '../components/ui'
 import { db, server } from '../lib/store'
@@ -247,7 +247,7 @@ function readLogo(file) {
 
 function LookCard() {
   const [look, setLook] = useLook()
-  const icon = { ds: Sparkles, day: Sun, night: Moon }
+  const icon = { pro: Briefcase, ds: Sparkles, day: Sun, night: Moon }
   return (
     <Card title="Screen look">
       <p className="muted small" style={{ margin: 0 }}>Pick how the app looks on this computer. Each doctor and the front desk can choose their own; it does not change printouts or the patient pages.</p>
@@ -257,7 +257,7 @@ function LookCard() {
           return (
             <button key={l.id} className={`look-card ${look === l.id ? 'on' : ''}`} onClick={() => { setLook(l.id); toast(`${l.name} look applied`) }}>
               <span className={`look-mini ${l.id}`}><i className="l" /><span className="m"><i /><i /></span><i className="r" /></span>
-              <b><Icon size={15} /> {l.name}{l.id === 'ds' && <span className="pill" style={{ fontSize: 10.5 }}>Default</span>}{look === l.id && <Check size={15} style={{ marginLeft: 'auto', color: '#6366f1' }} />}</b>
+              <b><Icon size={15} /> {l.name}{l.id === 'pro' && <span className="pill" style={{ fontSize: 10.5 }}>Default</span>}{look === l.id && <Check size={15} style={{ marginLeft: 'auto', color: '#6366f1' }} />}</b>
               <small>{l.hint}</small>
             </button>
           )
