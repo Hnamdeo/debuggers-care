@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Search, Plus, Sparkles, Bell, ChevronRight, CalendarPlus, UserPlus, Pill, Receipt, BedDouble } from 'lucide-react'
+import { Search, Plus, Sparkles, Bell, ChevronRight, CalendarPlus, UserPlus, Pill, Receipt, BedDouble, PanelRightClose } from 'lucide-react'
 import { useTenant, Avatar } from './ui'
 import { MODULES, hasModule } from '../lib/plans'
 
@@ -16,6 +16,13 @@ export function AppBar({ mods }) {
   const [hi, setHi] = useState(0)
   const [menu, setMenu] = useState(false)
   const box = useRef(null)
+  const [aiOn, setAiOn] = useState(() => document.body.classList.contains('ai-shown'))
+  useEffect(() => {
+    const on = () => setAiOn(document.body.classList.contains('ai-shown'))
+    window.addEventListener('ai-state', on)
+    on()
+    return () => window.removeEventListener('ai-state', on)
+  }, [])
   const input = useRef(null)
 
   const parts = loc.pathname.replace(base, '').split('/').filter(Boolean)
@@ -92,7 +99,7 @@ export function AppBar({ mods }) {
             )}
           </div>
         )}
-        <button className="btn ab-ai" onClick={() => window.dispatchEvent(new CustomEvent('ai-open'))} title="Open the AI assistant (Ctrl+K)"><Sparkles /> Ask AI</button>
+        <button className={`btn ab-ai ${aiOn ? 'on' : ''}`} onClick={() => window.dispatchEvent(new Event('ai-toggle'))} aria-pressed={aiOn} title={`${aiOn ? 'Hide' : 'Show'} the AI assistant (Ctrl+K)`}>{aiOn ? <PanelRightClose /> : <Sparkles />} {aiOn ? 'Hide AI' : 'Show AI'}</button>
         <button className="ab-icon" title="Notifications" aria-label="Notifications"><Bell /></button>
         <span className="ab-me" title={`${me?.name || ''} · ${user.role}`}><Avatar name={me?.name} /></span>
       </div>
