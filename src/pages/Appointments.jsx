@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BellRing, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react'
 import { CalendarView } from '../components/calendar'
+import { RecallBoard, useRecall } from '../components/recall'
 import { useTenant, PageHead, Card, Table, Pill, Select, toast } from '../components/ui'
 import { BookAppointment } from '../components/forms'
 import { db } from '../lib/store'
@@ -20,6 +21,7 @@ export default function Appointments() {
   const [doc, setDoc] = useState(isDoc ? me.id : 'all')
   const [view, setView] = useState(() => { const v = new URLSearchParams(window.location.hash.split('?')[1] || '').get('view'); if (v) return v; try { return localStorage.getItem('ap-view2') || 'calendar' } catch { return 'slots' } })
   const [book, setBook] = useState(null)
+  const recallDue = useRecall().filter((r) => !r.reminded).length
   const [move, setMove] = useState(null)
   const [remind, setRemind] = useState(null)
   const pickView = (v) => { setView(v); try { localStorage.setItem('ap-view2', v) } catch { /* private mode */ } }
@@ -44,8 +46,9 @@ export default function Appointments() {
         <button className={`btn sm ${view === 'calendar' ? 'primary' : ''}`} onClick={() => pickView('calendar')}><CalendarDays /> Calendar</button>
         <button className={`btn sm ${view === 'slots' ? 'primary' : ''}`} onClick={() => pickView('slots')}><LayoutGrid /> Time slots</button>
         <button className={`btn sm ${view === 'list' ? 'primary' : ''}`} onClick={() => pickView('list')}><List /> List</button>
+        <button className={`btn sm ${view === 'recall' ? 'primary' : ''}`} onClick={() => pickView('recall')}><BellRing /> Check-ups due{recallDue ? <span className="count-dot">{recallDue}</span> : null}</button>
       </div>
-      {view !== 'calendar' && (
+      {view !== 'calendar' && view !== 'recall' && (
       <div className="row between">
         <div className="row">
           <button className="btn sm" onClick={() => setDate(addDays(date, -1))} aria-label="Previous day"><ChevronLeft /></button>
@@ -59,7 +62,9 @@ export default function Appointments() {
         </div>
       </div>
       )}
-      {view === 'calendar' ? (
+      {view === 'recall' ? (
+        <RecallBoard />
+      ) : view === 'calendar' ? (
         <CalendarView date={date} setDate={setDate} onBook={(d, time, doctorId) => setBook({ date: d, time, doctorId })} onMove={setMove} onRemind={(a) => setRemind({ title: 'Send reminder', ids: [a.id], date: a.date })} />
       ) : view === 'slots' ? (
         (doc === 'all' ? doctors().map((d) => d.id) : [doc]).map((id) => <SlotBoard key={id} date={date} doctorId={id} onBook={(time, doctorId) => setBook({ time, doctorId })} onRemind={(a) => setRemind({ title: 'Send reminder', ids: [a.id] })} />)
