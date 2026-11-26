@@ -62,6 +62,7 @@ export default function Settings() {
           <dt>GSTIN</dt><dd>{tenant.gstin}</dd>
           <dt>Registration</dt><dd>{tenant.regNo}</dd>
           <dt>Google review link</dt><dd><ReviewLinkField tenant={tenant} tid={tid} /></dd>
+          <dt>Online pharmacy buttons</dt><dd><label className="row" style={{ gap: 8, flexWrap: 'nowrap' }}><input type="checkbox" checked={tenant.onlinePharmacy !== false} onChange={(e) => { db.updateTenant(tid, { onlinePharmacy: e.target.checked }); toast(e.target.checked ? 'Patients see Tata 1mg and Netmeds buttons' : 'Tata 1mg and Netmeds buttons hidden') }} /> <span className="small">Show Tata 1mg and Netmeds buttons next to each medicine in the patient login</span></label></dd>
           <dt>Tenant ID</dt><dd className="tabular">{tenant.id}</dd>
         </dl>
       </Card>

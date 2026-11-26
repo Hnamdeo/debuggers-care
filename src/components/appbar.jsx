@@ -3,10 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Search, Plus, Sparkles, ChevronRight, ChevronDown, LogOut, Settings as SettingsIcon, CalendarPlus, UserPlus, Pill, Receipt, BedDouble, PanelRightClose } from 'lucide-react'
 import { useTenant, Avatar } from './ui'
 import { MODULES, hasModule, ROLE_LABEL } from '../lib/plans'
+import { InstallButton } from './install'
 
 // Enterprise top bar (Pro look): where you are, one search for every patient, a "+ New" menu
 // for the everyday jobs, and the AI assistant on demand instead of always open.
-const EXTRA = { labwork: 'Lab work', materials: 'Materials stock', ot: 'OT schedule', claims: 'Insurance claims', analytics: 'Practice analytics', expenses: 'Expenses', smile: 'AI Smile preview', settings: 'Plan & settings', consult: 'Consultation', home: 'Clinic home page' }
+const EXTRA = { 'my-medicines': 'My medicines', labwork: 'Lab work', materials: 'Materials stock', ot: 'OT schedule', claims: 'Insurance claims', analytics: 'Practice analytics', expenses: 'Expenses', smile: 'AI Smile preview', settings: 'Plan & settings', consult: 'Consultation', home: 'Clinic home page' }
 
 export function AppBar({ mods, lookSwitch, onLogout, canSettings }) {
   const { tenant, list, base, me, user } = useTenant()
@@ -112,6 +113,7 @@ export function AppBar({ mods, lookSwitch, onLogout, canSettings }) {
               <div className="ab-who-head"><Avatar name={me?.name} /><span><b>{me?.name}</b><small>{ROLE_LABEL[user.role]} · {tenant.name}</small></span></div>
               <div className="ab-who-sec"><small>Screen look</small>{lookSwitch}</div>
               {canSettings && <button role="menuitem" onClick={() => { setWho(false); nav(`${base}/settings`) }}><SettingsIcon /> Plan &amp; settings</button>}
+              <InstallButton className="" role="menuitem" label="Install app on this computer" />
               <button role="menuitem" onClick={() => { setWho(false); onLogout() }}><LogOut /> Log out</button>
             </div>
           )}

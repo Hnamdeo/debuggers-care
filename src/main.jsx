@@ -4,8 +4,10 @@ import App from './App'
 import './styles.css'
 import './pro.css'
 import { applyLook } from './lib/look'
+import { startInstall } from './lib/install'
 
 applyLook()
+startInstall()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

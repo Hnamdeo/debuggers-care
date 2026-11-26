@@ -56,6 +56,9 @@ jobs:
           mirror --reverse --parallel=4 --exclude ^data/ dist/api/ ${FTP_DIR}api/
           put -O ${FTP_DIR} dist/.htaccess
           put -O ${FTP_DIR} dist/index.html
+          put -O ${FTP_DIR} dist/sw.js
+          put -O ${FTP_DIR} dist/manifest.webmanifest
+          mirror --reverse dist/icons/ ${FTP_DIR}icons/
           bye
           LFTP
       - name: Check the site answers
