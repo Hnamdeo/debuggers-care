@@ -9,7 +9,7 @@ import { toast } from '../components/ui'
 const KEY = 'debuggers-care-hms:v3'
 const SESSION_KEY = 'debuggers-care-hms:session'
 const TOKENS_KEY = 'debuggers-care-hms:tokens'
-const COLLS = ['notes', 'staff', 'patients', 'appointments', 'prescriptions', 'reports', 'bills', 'medicines', 'sales', 'beds', 'admissions', 'emergencies', 'payroll', 'users', 'videos', 'shares', 'visits', 'images', 'estimates', 'consents', 'expenses']
+const COLLS = ['notes', 'staff', 'patients', 'appointments', 'prescriptions', 'reports', 'bills', 'medicines', 'sales', 'beds', 'admissions', 'emergencies', 'payroll', 'users', 'videos', 'shares', 'visits', 'images', 'estimates', 'consents', 'expenses', 'labwork', 'ipdnotes', 'deposits', 'ot', 'claims', 'materials']
 const EMPTY = () => Object.fromEntries(COLLS.map((c) => [c, []]))
 
 function load() {
@@ -99,7 +99,7 @@ export function useSession() {
   return session
 }
 
-const PREFIX = { estimates: 'EST', consents: 'CN', expenses: 'EXP', notes: 'NT', visits: 'VS', images: 'IMG',  patients: 'P', appointments: 'A', prescriptions: 'RX', reports: 'LAB', bills: 'INV', medicines: 'M', sales: 'SL', beds: 'BED', admissions: 'IPD', emergencies: 'ER', payroll: 'PAY', staff: 'S', users: 'U', videos: 'V', shares: 'SH' }
+const PREFIX = { labwork: 'LW', ipdnotes: 'IN', deposits: 'DEP', ot: 'OT', claims: 'CL', materials: 'MAT', estimates: 'EST', consents: 'CN', expenses: 'EXP', notes: 'NT', visits: 'VS', images: 'IMG',  patients: 'P', appointments: 'A', prescriptions: 'RX', reports: 'LAB', bills: 'INV', medicines: 'M', sales: 'SL', beds: 'BED', admissions: 'IPD', emergencies: 'ER', payroll: 'PAY', staff: 'S', users: 'U', videos: 'V', shares: 'SH' }
 
 // Names typed in small letters show as proper names: "himanshu namdeo" -> "Himanshu Namdeo".
 // Only the first letter of each word changes, so "McDonald" or "D'Souza" stay as typed.

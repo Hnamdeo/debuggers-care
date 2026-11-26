@@ -5,8 +5,9 @@ import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, 
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
   Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles, BarChart3, PiggyBank, Globe, Sun, Moon,
-  Briefcase,
+  Briefcase, FlaskRound, Boxes,
 } from 'lucide-react'
+import { LabWorkPage, MaterialsPage } from './components/dentalplus'
 import { AppBar } from './components/appbar'
 import { useLook } from './lib/look'
 import { db, auth, useDb, server } from './lib/store'
@@ -159,6 +160,7 @@ function Shell() {
   const canSettings = role === 'admin' || (tenant.live && role === 'doctor')
   // The AI Smile preview is for dental clinics, for whoever treats patients.
   const smile = /dental/i.test(tenant.kind || '') && (role === 'doctor' || role === 'admin')
+  const dentalStaff = /dental/i.test(tenant.kind || '') && !isPatient && role !== 'pharmacist'
   const home = isPatient ? 'me' : role === 'pharmacist' ? 'pharmacy' : 'dashboard'
 
   const guard = (mod, el) => (mods.includes(mod) ? (hasModule(tenant, mod) ? el : <Locked mod={mod} />) : <Navigate to={`${base}/${home}`} replace />)
@@ -201,6 +203,8 @@ function Shell() {
               })}
               {(boss || role === 'doctor') && <NavItem to={`${base}/analytics`} icon={BarChart3} label="Practice analytics" />}
               {(boss || role === 'doctor') && <NavItem to={`${base}/expenses`} icon={PiggyBank} label="Expenses" />}
+              {dentalStaff && <NavItem to={`${base}/labwork`} icon={FlaskRound} label="Lab work" />}
+              {dentalStaff && <NavItem to={`${base}/materials`} icon={Boxes} label="Materials stock" />}
               {smile && <NavItem to={`${base}/smile`} icon={Sparkles} label="AI Smile preview" fresh />}
               {SITES[tenant.slug] && <NavItem to={`${base}/home`} icon={Globe} label="Clinic home page" />}
               {canSettings && <NavItem to={`${base}/settings`} icon={SettingsIcon} label="Plan & settings" />}
@@ -239,6 +243,8 @@ function Shell() {
               <Route path="reports" element={guard('reports', <Reports />)} />
               <Route path="analytics" element={boss || role === 'doctor' ? <Analytics /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="expenses" element={boss || role === 'doctor' ? <Expenses /> : <Navigate to={`${base}/${home}`} replace />} />
+              <Route path="labwork" element={dentalStaff ? <LabWorkPage /> : <Navigate to={`${base}/${home}`} replace />} />
+              <Route path="materials" element={dentalStaff ? <MaterialsPage /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="smile" element={smile ? <Smile /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="education" element={guard('education', <Education />)} />
               <Route path="ipd" element={guard('ipd', <IPD />)} />

@@ -1,3 +1,4 @@
+import { PayoutsCard } from '../components/dentalplus'
 // Practice analytics: how the clinic is doing over a chosen period, and a report to download.
 import { useState } from 'react'
 import { CalendarDays, FileHeart, UserPlus, IndianRupee, CheckCircle2, UserX, Download, Printer } from 'lucide-react'
@@ -137,6 +138,7 @@ export default function Analytics() {
           ))}
         </div>
       </Card>
+      <PayoutsCard />
       <div className="grid g2">
         <Card title="Top treatments by billing"><HBars rows={topTreat} fmt={money} /></Card>
         <Card title="Where patients come from"><HBars rows={topAreas} /></Card>

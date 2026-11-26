@@ -6,7 +6,7 @@ import { MODULES, hasModule, ROLE_LABEL } from '../lib/plans'
 
 // Enterprise top bar (Pro look): where you are, one search for every patient, a "+ New" menu
 // for the everyday jobs, and the AI assistant on demand instead of always open.
-const EXTRA = { analytics: 'Practice analytics', expenses: 'Expenses', smile: 'AI Smile preview', settings: 'Plan & settings', consult: 'Consultation', home: 'Clinic home page' }
+const EXTRA = { labwork: 'Lab work', materials: 'Materials stock', ot: 'OT schedule', claims: 'Insurance claims', analytics: 'Practice analytics', expenses: 'Expenses', smile: 'AI Smile preview', settings: 'Plan & settings', consult: 'Consultation', home: 'Clinic home page' }
 
 export function AppBar({ mods, lookSwitch, onLogout, canSettings }) {
   const { tenant, list, base, me, user } = useTenant()

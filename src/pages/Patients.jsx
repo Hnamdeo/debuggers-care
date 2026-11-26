@@ -1,3 +1,4 @@
+import { LabWorkTab, GumChart, SittingsCard, CaseSheetButton, ReviewButton } from '../components/dentalplus'
 import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QrCode, FileUp, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse, ScanLine, KeyRound } from 'lucide-react'
@@ -86,6 +87,8 @@ export function PatientProfile() {
         <button className="btn" onClick={() => setModal('pin')}><KeyRound /> Patient login</button>
         {can('ipd') && <button className="btn" onClick={() => setModal('admit')}><BedDouble /> Admit</button>}
         {canBill && <button className="btn" onClick={() => setModal('bill')}><Receipt /> New bill</button>}
+        {staffView && /dental/i.test(tenant.kind || '') && <CaseSheetButton p={p} />}
+        {staffView && <ReviewButton p={p} />}
       </PatientHeader>
       <PatientRecord p={p} canCollect={staffView && canBill} onBook={() => setModal('book')} onBill={canBill ? () => setModal('bill') : null} />
       {modal === 'pin' && <PinModal p={p} onClose={() => setModal(null)} />}
@@ -153,6 +156,7 @@ export function PatientRecord({ p, canCollect, onBook, onBill }) {
     { id: 'prescriptions', label: 'Prescriptions', count: rxs.length },
     { id: 'reports', label: 'Reports', count: reps.length },
     { id: 'bills', label: 'Bills', count: bills.length },
+    ...(dental && user.role !== 'patient' ? [{ id: 'lab', label: 'Lab work', count: mine('labwork').length }, { id: 'gums', label: 'Gum chart' }] : []),
     ...(user.role !== 'patient' || list('images').some((i) => i.patientId === p.id) ? [{ id: 'images', label: 'X-rays & photos', count: list('images').filter((i) => i.patientId === p.id).length }] : []),
     ...(user.role !== 'patient' || mine('estimates').length ? [{ id: 'estimates', label: 'Estimates', count: mine('estimates').length }] : []),
     ...(user.role !== 'patient' || mine('consents').length ? [{ id: 'consents', label: 'Consent', count: mine('consents').length }] : []),
@@ -185,7 +189,9 @@ export function PatientRecord({ p, canCollect, onBook, onBill }) {
       {tab === 'overview' && <PatientSummary p={p} staffView={user.role !== 'patient'} onOpenDoc={setDoc} onBook={onBook} onBill={onBill} />}
       {tab === 'images' && <ImagesTab p={p} staffView={user.role !== 'patient'} />}
       {tab === 'days' && <VisitDays p={p} />}
-      {tab === 'teeth' && <DentalChart p={p} />}
+      {tab === 'teeth' && <><DentalChart p={p} />{user.role !== 'patient' && <SittingsCard p={p} />}</>}
+      {tab === 'lab' && <LabWorkTab p={p} />}
+      {tab === 'gums' && <GumChart p={p} />}
       {tab === 'estimates' && <EstimatesTab p={p} />}
       {tab === 'consents' && <ConsentTab p={p} />}
       {tab === 'appointments' && (
