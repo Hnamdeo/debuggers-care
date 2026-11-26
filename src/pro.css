@@ -171,3 +171,26 @@
 @media (max-width: 1099px) { :root[data-look='pro'] body:is(.ai-docked, .ai-shown) .appbar { margin-right: 0; } }
 .ab-ai.on { background: #f5f3ff; border-color: #ddd6fe; color: #5b21b6; }
 .ab-ai.on svg { color: #5b21b6; }
+
+/* Who is signed in: top right, with look, settings and log out in its menu (25-26 Nov).
+   The same block at the bottom of the left menu is hidden while the top bar is showing. */
+.ab-me { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 8px 0 4px; border: 1px solid transparent; border-radius: 8px; background: none; cursor: pointer; color: var(--fg); text-align: left; }
+.ab-me:hover, .ab-me[aria-expanded='true'] { background: #f2f4f7; border-color: var(--line); }
+.ab-me .avatar { width: 32px; height: 32px; font-size: 12px; }
+.ab-me-t { display: grid; line-height: 1.2; max-width: 170px; }
+.ab-me-t b { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ab-me-t small { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ab-me > svg { width: 15px; height: 15px; color: var(--faint); }
+@media (max-width: 1280px) { .ab-me-t { display: none; } }
+.ab-who { min-width: 260px; }
+.ab-who-head { display: flex; gap: 10px; align-items: center; padding: 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.ab-who-head span { display: grid; min-width: 0; }
+.ab-who-head b { font-size: 13.5px; }
+.ab-who-head small { color: var(--muted); font-size: 12px; }
+.ab-who-sec { display: grid; gap: 6px; padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.ab-who-sec > small { color: var(--muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.ab-who .look-seg { background: #f2f4f7; border-color: var(--line); }
+.ab-who .look-seg button { color: var(--muted); }
+:root[data-look='pro'] .ab-who .look-seg button.on { background: var(--brand); color: #fff; }
+@media (min-width: 861px) { :root[data-look='pro'] .shell.has-appbar .rail .rail-foot { display: none; } }
+:root[data-look='pro'] .ab-who .look-seg button.on svg { color: #fff; }

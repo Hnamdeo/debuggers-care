@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Search, Plus, Sparkles, Bell, ChevronRight, CalendarPlus, UserPlus, Pill, Receipt, BedDouble, PanelRightClose } from 'lucide-react'
+import { Search, Plus, Sparkles, ChevronRight, ChevronDown, LogOut, Settings as SettingsIcon, CalendarPlus, UserPlus, Pill, Receipt, BedDouble, PanelRightClose } from 'lucide-react'
 import { useTenant, Avatar } from './ui'
-import { MODULES, hasModule } from '../lib/plans'
+import { MODULES, hasModule, ROLE_LABEL } from '../lib/plans'
 
 // Enterprise top bar (Pro look): where you are, one search for every patient, a "+ New" menu
 // for the everyday jobs, and the AI assistant on demand instead of always open.
 const EXTRA = { analytics: 'Practice analytics', expenses: 'Expenses', smile: 'AI Smile preview', settings: 'Plan & settings', consult: 'Consultation', home: 'Clinic home page' }
 
-export function AppBar({ mods }) {
+export function AppBar({ mods, lookSwitch, onLogout, canSettings }) {
   const { tenant, list, base, me, user } = useTenant()
   const nav = useNavigate()
   const loc = useLocation()
   const [q, setQ] = useState('')
   const [hi, setHi] = useState(0)
   const [menu, setMenu] = useState(false)
+  const [who, setWho] = useState(false)
   const box = useRef(null)
   const [aiOn, setAiOn] = useState(() => document.body.classList.contains('ai-shown'))
   useEffect(() => {
@@ -39,7 +40,7 @@ export function AppBar({ mods }) {
     const key = (e) => {
       if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement?.tagName || '')) { e.preventDefault(); input.current?.focus() }
     }
-    const away = (e) => { if (!box.current?.contains(e.target)) { setQ(''); setMenu(false) } }
+    const away = (e) => { if (!box.current?.contains(e.target)) { setQ(''); setMenu(false); setWho(false) } }
     window.addEventListener('keydown', key)
     window.addEventListener('mousedown', away)
     return () => { window.removeEventListener('keydown', key); window.removeEventListener('mousedown', away) }
@@ -89,7 +90,7 @@ export function AppBar({ mods }) {
       <div className="ab-actions">
         {news.length > 0 && (
           <div className="ab-new">
-            <button className="btn primary" onClick={() => setMenu((m) => !m)} aria-expanded={menu}><Plus /> New</button>
+            <button className="btn primary" onClick={() => { setMenu((m) => !m); setWho(false) }} aria-expanded={menu}><Plus /> New</button>
             {menu && (
               <div className="ab-menu" role="menu">
                 {news.map(([Icon, label, to]) => (
@@ -100,8 +101,21 @@ export function AppBar({ mods }) {
           </div>
         )}
         <button className={`btn ab-ai ${aiOn ? 'on' : ''}`} onClick={() => window.dispatchEvent(new Event('ai-toggle'))} aria-pressed={aiOn} title={`${aiOn ? 'Hide' : 'Show'} the AI assistant (Ctrl+K)`}>{aiOn ? <PanelRightClose /> : <Sparkles />} {aiOn ? 'Hide AI' : 'Show AI'}</button>
-        <button className="ab-icon" title="Notifications" aria-label="Notifications"><Bell /></button>
-        <span className="ab-me" title={`${me?.name || ''} · ${user.role}`}><Avatar name={me?.name} /></span>
+        <div className="ab-new">
+          <button className="ab-me" onClick={() => { setWho((w) => !w); setMenu(false) }} aria-expanded={who} aria-haspopup="menu">
+            <Avatar name={me?.name} />
+            <span className="ab-me-t"><b>{me?.name}</b><small>{ROLE_LABEL[user.role]}{me?.dept && user.role === 'doctor' ? ` · ${me.dept}` : ''}</small></span>
+            <ChevronDown />
+          </button>
+          {who && (
+            <div className="ab-menu ab-who" role="menu">
+              <div className="ab-who-head"><Avatar name={me?.name} /><span><b>{me?.name}</b><small>{ROLE_LABEL[user.role]} · {tenant.name}</small></span></div>
+              <div className="ab-who-sec"><small>Screen look</small>{lookSwitch}</div>
+              {canSettings && <button role="menuitem" onClick={() => { setWho(false); nav(`${base}/settings`) }}><SettingsIcon /> Plan &amp; settings</button>}
+              <button role="menuitem" onClick={() => { setWho(false); onLogout() }}><LogOut /> Log out</button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

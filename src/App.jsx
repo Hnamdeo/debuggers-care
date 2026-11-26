@@ -165,7 +165,7 @@ function Shell() {
 
   return (
     <>
-      <div className="shell" style={{ flex: 1 }}>
+      <div className={`shell ${look === 'pro' && !isPatient ? 'has-appbar' : ''}`} style={{ flex: 1 }}>
         {open && <div className="scrim" onClick={() => setOpen(false)} />}
         <aside className={`rail ${open ? 'open' : ''}`} onClick={(e) => e.target.closest('a') && setOpen(false)}>
           <div className="brand-block">
@@ -225,7 +225,7 @@ function Shell() {
             <BrandMark tenant={tenant} size={28} />
             <strong style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tenant.short}</strong>
           </div>
-          {look === 'pro' && !isPatient && <AppBar mods={mods} />}
+          {look === 'pro' && !isPatient && <AppBar mods={mods} canSettings={canSettings} lookSwitch={<LookSwitch />} onLogout={() => { auth.logout(ctx.tid); nav(base) }} />}
           <main className="main" key={loc.pathname}>
             <RouteScan path={loc.pathname} />
             <Routes>
