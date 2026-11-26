@@ -2347,3 +2347,22 @@ body:has(.chat-page) { background: #070b17; }
 .ai-chip { font-size: .78rem; font-weight: 700; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
 .ai-chip.warn { background: #fef3c7; color: #92400e; } .ai-chip.ok { background: #dcfce7; color: #166534; }
 .count-dot { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 2px; border-radius: 99px; background: #dc2626; color: #fff; font: 700 10.5px var(--font-body); }
+
+/* Dental extras: treatment sittings, gum chart, case sheet headings */
+.course { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; }
+.course-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+.course-dots { display: flex; gap: 5px; }
+.course-dots i { flex: 1; max-width: 60px; height: 6px; border-radius: 3px; background: var(--line); }
+.course-dots i.on { background: var(--brand); }
+.perio-wrap { overflow-x: auto; padding: 0 16px 14px; display: grid; gap: 10px; }
+.perio-row { display: grid; grid-template-columns: repeat(16, minmax(46px, 1fr)); gap: 4px; min-width: 760px; }
+.perio-row:first-child { padding-bottom: 10px; border-bottom: 2px dashed var(--line); }
+.perio-t { display: grid; gap: 3px; justify-items: center; padding: 5px 2px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); font-size: 11px; }
+.perio-t b { font-size: 11px; color: var(--muted); }
+.perio-t input { width: 34px; text-align: center; border: 1px solid var(--line-strong); border-radius: 4px; padding: 2px; font: 600 13px var(--font-body); }
+.perio-t button { width: 34px; border: 1px solid var(--line-strong); border-radius: 4px; background: none; font: 700 10px var(--font-body); color: var(--faint); cursor: pointer; padding: 1px; }
+.perio-t button.on { background: #dc2626; border-color: #dc2626; color: #fff; }
+.perio-t select { width: 40px; font-size: 10.5px; border: 1px solid var(--line); border-radius: 4px; padding: 1px; background: none; }
+.perio-t.mid { background: #fff7ed; border-color: #fed7aa; }
+.perio-t.deep { background: #fef2f2; border-color: #fca5a5; }
+.sheet .sheet-h { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--brand); }

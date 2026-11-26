@@ -1,3 +1,4 @@
+import { BirthdaysCard } from '../components/dentalplus'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { CalendarDays, Users, IndianRupee, BedDouble, Siren, PackageX, FlaskConical, Clock, QrCode, Receipt, UserPlus, Stethoscope, Sparkles } from 'lucide-react'
@@ -185,6 +186,7 @@ function AdminDash() {
         )}
       </div>
       <TodayTimings />
+      <BirthdaysCard />
       <InsightsCard />
       <NotesCard />
       <ReminderCard />
@@ -267,6 +269,7 @@ function DoctorDash() {
       ]} />
       <AskBar />
       <DoctorTrends appts={mine} rxs={list('prescriptions').filter((r) => shared || r.doctorId === me.id)} patients={list('patients')} />
+      <BirthdaysCard />
       <InsightsCard doctorId={shared ? undefined : me.id} />
       <NotesCard />
       <TodayTimings doctorId={shared ? undefined : me.id} />

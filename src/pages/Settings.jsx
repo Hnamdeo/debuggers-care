@@ -61,6 +61,7 @@ export default function Settings() {
           <dt>Phone</dt><dd>{tenant.phone}</dd>
           <dt>GSTIN</dt><dd>{tenant.gstin}</dd>
           <dt>Registration</dt><dd>{tenant.regNo}</dd>
+          <dt>Google review link</dt><dd><ReviewLinkField tenant={tenant} tid={tid} /></dd>
           <dt>Tenant ID</dt><dd className="tabular">{tenant.id}</dd>
         </dl>
       </Card>
@@ -308,5 +309,17 @@ function ThemeCard({ tenant, tid }) {
         <span className="small" style={{ position: 'relative', zIndex: 1, opacity: 0.85 }}>This is how your dashboard welcome band will look.</span>
       </div>
     </Card>
+  )
+}
+
+// The clinic's Google review link, sent to happy patients from their record ("Ask for review").
+function ReviewLinkField({ tenant, tid }) {
+  const [v, setV] = useState(tenant.reviewUrl || '')
+  const save = () => { const u = v.trim(); if (u && !/^https:\/\//.test(u)) return toast('Paste the full link, starting with https://'); db.updateTenant(tid, { reviewUrl: u }); toast(u ? 'Review link saved' : 'Review link removed') }
+  return (
+    <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+      <input className="input" value={v} onChange={(e) => setV(e.target.value)} placeholder="https://g.page/r/…/review" style={{ minWidth: 0 }} />
+      <button className="btn sm" onClick={save}>Save</button>
+    </div>
   )
 }
