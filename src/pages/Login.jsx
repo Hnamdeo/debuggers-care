@@ -1,6 +1,7 @@
 import { tenantHost } from '../lib/plans'
 import { useEffect, useState } from 'react'
 import { PatientSignIn } from '../components/patientlogin'
+import { InstallStrip } from '../components/install'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, Cpu, Wifi, ShieldCheck, Stethoscope, Store, User, ClipboardList, ArrowLeft, Lock, Clock, MapPin, Phone, GraduationCap, Building2, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
 import { auth, db, server } from '../lib/store'
@@ -134,6 +135,7 @@ export default function Login() {
             )}
           </div>
           {ptMode && <PatientSignIn />}
+          <InstallStrip who="this phone or computer" />
           {tenant.live && pick && (
             <form className="stack" style={{ gap: 10 }} onSubmit={liveSubmit}>
               <span className="eyebrow"><Lock size={12} style={{ verticalAlign: '-1px' }} /> {needsSetup ? `Set a password for ${who(pick)}` : `Password for ${who(pick)}`}</span>

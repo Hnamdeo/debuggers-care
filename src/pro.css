@@ -49,7 +49,7 @@
 :root[data-look='pro'] .input:focus { outline: 3px solid color-mix(in srgb, var(--brand) 18%, transparent); }
 
 /* Left menu: solid navy, compact */
-:root[data-look='pro'] .shell { grid-template-columns: 232px minmax(0, 1fr); }
+@media (min-width: 861px) { :root[data-look='pro'] .shell { grid-template-columns: 232px minmax(0, 1fr); } }
 :root[data-look='pro'] .rail { --surface: #0d1b33; --surface-2: #14264a; --line: rgb(255 255 255 / 9%); --fg: #f1f5fb; --muted: #9fb0c8; --faint: #6b7d99;
   background: #0d1b33; border-right: 0; padding: 14px 10px; }
 :root[data-look='pro'] .rail .brand-block { padding: 2px 6px 14px; }

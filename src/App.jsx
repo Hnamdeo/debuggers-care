@@ -5,8 +5,10 @@ import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, 
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
   Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles, BarChart3, PiggyBank, Globe, Sun, Moon,
-  Briefcase, FlaskRound, Boxes, Scissors, ShieldCheck,
+  Briefcase, FlaskRound, Boxes, Scissors, ShieldCheck, Pill as Pills, Home as HomeIcon,
 } from 'lucide-react'
+import { useClinicManifest, standalone, lastClinic } from './lib/install'
+import { InstallButton } from './components/install'
 import { LabWorkPage, MaterialsPage } from './components/dentalplus'
 import { OTPage, ClaimsPage } from './components/hospitalplus'
 import { AppBar } from './components/appbar'
@@ -29,7 +31,7 @@ import Billing from './pages/Billing'
 import Staff from './pages/Staff'
 import Payroll from './pages/Payroll'
 import Settings from './pages/Settings'
-import { PatientHome, PatientBook, PatientAppointments, PatientBills } from './pages/PatientPortal'
+import { PatientHome, PatientBook, PatientAppointments, PatientBills, PatientMedicines } from './pages/PatientPortal'
 import Locked from './pages/Locked'
 import Leads from './pages/Leads'
 import Education from './pages/Education'
@@ -74,7 +76,8 @@ function hostTenantSlug() {
   return null
 }
 function Home() {
-  const slug = hostTenantSlug()
+  // The installed app opens the clinic it was last used for.
+  const slug = hostTenantSlug() || (standalone() && lastClinic() && db.tenantBySlug(lastClinic()) ? lastClinic() : null)
   return slug ? <Navigate to={`/t/${slug}`} replace /> : <Landing />
 }
 
@@ -105,6 +108,7 @@ function TenantApp() {
   const { slug } = useParams()
   const ctx = useTenantValue(slug)
   const loc = useLocation()
+  useClinicManifest(ctx?.tenant)
   if (!ctx) return <Navigate to="/" replace />
   // An old address (alias) moves to the clinic's current one, keeping the rest of the path.
   if (ctx.tenant.slug !== slug) return <Navigate to={loc.pathname.replace(`/t/${slug}`, `/t/${ctx.tenant.slug}`)} replace />
@@ -182,6 +186,7 @@ function Shell() {
           {isPatient ? (
             <>
               <NavItem to={`${base}/me`} icon={FileHeart} label="My health record" />
+              <NavItem to={`${base}/my-medicines`} icon={Pills} label="My medicines" />
               <NavItem to={`${base}/book`} icon={CalendarPlus} label="Book appointment" />
               <NavItem to={`${base}/my-appointments`} icon={CalendarDays} label="My appointments" />
               <NavItem to={`${base}/my-bills`} icon={Receipt} label="My bills" />
@@ -223,6 +228,7 @@ function Shell() {
               </div>
             </div>
             <LookSwitch />
+            <InstallButton className="nav-item" />
             <button className="nav-item" onClick={() => { auth.logout(ctx.tid); nav(base) }}><LogOut /> Log out</button>
           </div>
         </aside>
@@ -264,10 +270,18 @@ function Shell() {
               <Route path="book" element={isPatient ? <PatientBook /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="my-appointments" element={isPatient ? <PatientAppointments /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="my-bills" element={isPatient ? <PatientBills /> : <Navigate to={`${base}/${home}`} replace />} />
+              <Route path="my-medicines" element={isPatient ? <PatientMedicines /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="*" element={<Navigate to={`${base}/${home}`} replace />} />
             </Routes>
             <SiteFooter className="app-footer" />
           </main>
+          {isPatient && (
+            <nav className="pt-tabs" aria-label="Patient menu">
+              {[['me', HomeIcon, 'Home'], ['my-medicines', Pills, 'Medicines'], ['book', CalendarPlus, 'Book'], ['my-appointments', CalendarDays, 'Visits'], ['my-bills', Receipt, 'Bills']].map(([to, Icon, label]) => (
+                <NavLink key={to} to={`${base}/${to}`} className={({ isActive }) => (isActive ? 'on' : '')}><Icon /><span>{label}</span></NavLink>
+              ))}
+            </nav>
+          )}
           {!isPatient && <NotesFab />}
           {!isPatient && <Assistant />}
         </div>

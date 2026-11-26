@@ -2374,3 +2374,40 @@ body:has(.chat-page) { background: #070b17; }
 .ipd-notes { display: grid; gap: 6px; margin-top: 10px; max-height: 260px; overflow-y: auto; }
 .ipd-note { padding: 8px 10px; border-left: 3px solid var(--brand); background: var(--surface-2); border-radius: 0 6px 6px 0; font-size: 13px; }
 .ipd-note.given { border-left-color: #16a34a; }
+
+/* Installable app + patient app */
+.install-strip { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--line)); background: color-mix(in srgb, var(--brand) 7%, var(--surface)); border-radius: 12px; font-size: 13.5px; }
+.install-strip > svg { width: 20px; height: 20px; color: var(--brand); flex: none; }
+.install-strip > span { flex: 1; min-width: 0; }
+.install-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.install-steps li { display: flex; gap: 10px; align-items: center; }
+.install-steps svg { width: 20px; height: 20px; color: var(--brand); flex: none; }
+.pt-tabs { display: none; }
+@media (max-width: 860px) {
+  .pt-tabs { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--line); padding: 4px max(6px, env(safe-area-inset-right, 0px)) max(6px, env(safe-area-inset-bottom, 0px)) max(6px, env(safe-area-inset-left, 0px)); box-shadow: 0 -4px 16px rgb(0 0 0 / 6%); }
+  .pt-tabs a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; font-size: 11px; font-weight: 600; color: var(--muted); text-decoration: none; border-radius: 10px; }
+  .pt-tabs a svg { width: 20px; height: 20px; }
+  .pt-tabs a.on { color: var(--brand); background: color-mix(in srgb, var(--brand) 9%, transparent); }
+  .shell:has(.pt-tabs) .main { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+}
+.rx-meds { display: grid; gap: 8px; }
+.rx-med { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.rx-med > div { flex: 1; min-width: 0; }
+.rx-med .rx-buy { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.get-meds { margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--surface-2); display: grid; gap: 10px; }
+.get-meds h4 { margin: 0; font-size: 14px; }
+.get-meds .row { gap: 8px; flex-wrap: wrap; }
+.order-steps { display: flex; gap: 4px; flex-wrap: wrap; font-size: 12px; }
+.order-steps span { padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.order-steps span.done { background: color-mix(in srgb, var(--ok, #16a34a) 15%, transparent); color: var(--ok, #16a34a); font-weight: 600; }
+.code-input { font-size: 22px; letter-spacing: 8px; text-align: center; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) {
+  .rx-mini, .rx-mini tbody { display: block; }
+  .rx-mini tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; border-top: 1px solid var(--line); padding: 5px 0; }
+  .rx-mini td { border: 0; padding: 1px 0; overflow-wrap: anywhere; }
+  .rx-mini td:nth-child(3) { grid-column: 1 / -1; color: var(--muted); }
+  .sum-card { min-width: 0; }
+  .install-strip { flex-wrap: wrap; }
+  .rx-med { flex-wrap: wrap; }
+  .rx-med .rx-buy { width: 100%; justify-content: flex-start; padding-left: 28px; }
+}

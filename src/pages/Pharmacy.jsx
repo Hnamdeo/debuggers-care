@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ShoppingCart, PackagePlus, Trash2, Plus } from 'lucide-react'
+import { ShoppingCart, PackagePlus, Trash2, Plus, Truck, Store, Phone } from 'lucide-react'
+import { OrderSteps, orderText } from './PatientPortal'
 import { useTenant, PageHead, Card, Table, Pill, Tabs, Modal, Input, Select, SearchBox, Stat, toast } from '../components/ui'
 import { db } from '../lib/store'
 import { fmtDate, money, today, daysBetween } from '../lib/utils'
@@ -16,6 +17,8 @@ export default function Pharmacy() {
   const queue = list('prescriptions').filter((r) => !r.dispensed).sort((a, b) => b.date.localeCompare(a.date))
   const sales = list('sales').sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id))
   const todaySales = sales.filter((s) => s.date === today()).reduce((t, s) => t + s.items.reduce((x, i) => x + i.qty * i.price, 0), 0)
+  const orders = list('medorders').sort((a, b) => b.id.localeCompare(a.id))
+  const openOrders = orders.filter((o) => !['done', 'cancelled'].includes(o.status))
   const low = meds.filter((m) => stockState(m) === 'low')
   const exp = meds.filter((m) => stockState(m) === 'expiring')
 
@@ -46,6 +49,7 @@ export default function Pharmacy() {
       </div>
       <Tabs value={tab} onChange={setTab} tabs={[
         { id: 'queue', label: 'Dispense queue', count: queue.length },
+        { id: 'orders', label: 'Patient orders', count: openOrders.length },
         { id: 'stock', label: 'Stock', count: meds.length },
         { id: 'sales', label: 'Sales', count: sales.length },
       ]} />
@@ -60,6 +64,18 @@ export default function Pharmacy() {
             })}</div> },
             { label: 'Amount', num: true, render: (r) => money(r.items.reduce((s, i) => { const m = meds.find((x) => x.id === i.medicineId); return s + (m ? Math.min(i.qty, m.stock) * m.mrp : 0) }, 0)) },
             { label: '', render: (r) => <button className="btn sm primary" onClick={() => dispense(r)}>Dispense & bill</button> },
+          ]} />
+        </Card>
+      )}
+      {tab === 'orders' && (
+        <Card title="Orders from the patient app" actions={<span className="small muted">Patients order from My medicines; pick up or home delivery</span>}>
+          <Table rows={orders.slice(0, 150)} empty="No orders yet. Patients can order their prescribed medicines from their own login." cols={[
+            { label: 'Order', render: (o) => <><div className="cell-main">{o.id}</div><div className="cell-sub">{fmtDate(o.date)}{o.at ? ` · ${o.at}` : ''} · {o.prescriptionId}</div></> },
+            { label: 'Patient', render: (o) => <><div>{patient(o.patientId)?.name}</div><div className="cell-sub"><a href={`tel:${o.phone}`}><Phone size={11} /> {o.phone}</a></div></> },
+            { label: 'Medicines', render: (o) => <div className="small">{o.items.map((i) => <div key={i.name}>{i.name} × {i.qty}</div>)}{o.note && <div className="muted">“{o.note}”</div>}</div> },
+            { label: 'How', render: (o) => o.mode === 'delivery' ? <span className="small"><Truck size={13} /> Deliver to<div className="cell-sub" style={{ whiteSpace: 'normal' }}>{o.address}</div></span> : <span className="small"><Store size={13} /> Pick up</span> },
+            { label: 'Status', render: (o) => <OrderSteps o={o} /> },
+            { label: '', render: (o) => <OrderActions o={o} dispense={dispense} /> },
           ]} />
         </Card>
       )}
@@ -146,5 +162,22 @@ function CounterSale({ onClose }) {
       ))}
       <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setItems([...items, { medicineId: meds[1].id, qty: 1 }])}><Plus /> Add item</button>
     </Modal>
+  )
+}
+
+function OrderActions({ o, dispense }) {
+  const { tid, list } = useTenant()
+  const set = (status, msg) => { db.update(tid, 'medorders', o.id, { status, [`${status}At`]: today() }); toast(msg || `${o.id}: ${orderText(o, status)}`) }
+  if (['done', 'cancelled'].includes(o.status)) return null
+  const found = list('prescriptions').find((r) => r.id === o.prescriptionId)
+  // Only medicines kept in this pharmacy's stock can be dispensed and billed here.
+  const rx = found?.items?.some((i) => i.medicineId) ? found : null
+  return (
+    <div className="row" style={{ gap: 6, justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+      {o.status === 'new' && <button className="btn sm primary" onClick={() => { if (rx && !rx.dispensed) dispense(rx); set('ready', o.mode === 'delivery' ? 'Packed and billed. Send it out next.' : 'Packed and billed. The patient sees “Ready to collect”.') }}>{rx && !rx.dispensed ? 'Pack & bill' : 'Packed'}</button>}
+      {o.status === 'ready' && o.mode === 'delivery' && <button className="btn sm primary" onClick={() => set('out')}>Out for delivery</button>}
+      {(o.status === 'out' || (o.status === 'ready' && o.mode === 'pickup')) && <button className="btn sm primary" onClick={() => set('done')}>{o.mode === 'delivery' ? 'Delivered' : 'Collected'}</button>}
+      {o.status === 'new' && <button className="btn sm ghost danger" onClick={() => set('cancelled', `${o.id} cancelled`)}>Cancel</button>}
+    </div>
   )
 }

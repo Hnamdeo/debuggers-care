@@ -20,6 +20,8 @@
 //   password  admin    change the staff password
 //   setpin    staff    make a 6-digit login PIN for a patient (shown once, to hand over)
 //   plogin    public   patient: mobile number + PIN -> session that sees only their own records
+//   pcode     public   patient: mobile number + email on file -> 6-digit code sent to that email
+//   pverify   public   patient: mobile + email + emailed code -> session (like plogin)
 //   wa        admin    automatic WhatsApp settings: read (token hidden) or save
 //   watest    admin    send one test template message to a number
 //   wasend    staff    send the WhatsApp reminder now to chosen appointments (clinic's own number)
@@ -29,7 +31,7 @@ date_default_timezone_set('Asia/Kolkata');
 
 const DATA_DIR = __DIR__ . '/data';
 const SESSION_DAYS = 30;
-const PREFIX = ['notes' => 'NT', 'patients' => 'P', 'appointments' => 'A', 'prescriptions' => 'RX', 'reports' => 'LAB', 'bills' => 'INV', 'medicines' => 'M', 'sales' => 'SL', 'beds' => 'BED', 'admissions' => 'IPD', 'emergencies' => 'ER', 'payroll' => 'PAY', 'staff' => 'S', 'users' => 'U', 'videos' => 'V', 'shares' => 'SH', 'visits' => 'VS', 'images' => 'IMG', 'estimates' => 'EST', 'consents' => 'CN', 'expenses' => 'EXP', 'labwork' => 'LW', 'ipdnotes' => 'IN', 'deposits' => 'DEP', 'ot' => 'OT', 'claims' => 'CL', 'materials' => 'MAT'];
+const PREFIX = ['notes' => 'NT', 'patients' => 'P', 'appointments' => 'A', 'prescriptions' => 'RX', 'reports' => 'LAB', 'bills' => 'INV', 'medicines' => 'M', 'sales' => 'SL', 'beds' => 'BED', 'admissions' => 'IPD', 'emergencies' => 'ER', 'payroll' => 'PAY', 'staff' => 'S', 'users' => 'U', 'videos' => 'V', 'shares' => 'SH', 'visits' => 'VS', 'images' => 'IMG', 'estimates' => 'EST', 'consents' => 'CN', 'expenses' => 'EXP', 'labwork' => 'LW', 'ipdnotes' => 'IN', 'deposits' => 'DEP', 'ot' => 'OT', 'claims' => 'CL', 'materials' => 'MAT', 'medorders' => 'MO'];
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -64,7 +66,8 @@ $pdo->exec('CREATE TABLE IF NOT EXISTS records (coll TEXT NOT NULL, id TEXT NOT 
   CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires INTEGER NOT NULL);
   CREATE TABLE IF NOT EXISTS hits (ip TEXT NOT NULL, at INTEGER NOT NULL);
   CREATE TABLE IF NOT EXISTS audit (at INTEGER NOT NULL, user_id TEXT, action TEXT NOT NULL, coll TEXT, rec_id TEXT);
-  CREATE TABLE IF NOT EXISTS pins (patient_id TEXT PRIMARY KEY, hash TEXT NOT NULL, set_at INTEGER NOT NULL);');
+  CREATE TABLE IF NOT EXISTS pins (patient_id TEXT PRIMARY KEY, hash TEXT NOT NULL, set_at INTEGER NOT NULL);
+  CREATE TABLE IF NOT EXISTS codes (phone TEXT NOT NULL, email TEXT NOT NULL, hash TEXT NOT NULL, expires INTEGER NOT NULL, tries INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (phone, email));');
 
 // Daily backup: the first request of each day (India time) saves a clean copy of this
 // clinic's database in data/backups/, kept for 30 days. A GitHub job copies them off the
@@ -182,7 +185,7 @@ function staffOnly(): array {
   return $u;
 }
 // What a signed-in patient may see: their own records, the doctors' public details and the videos.
-const PATIENT_COLLS = ['appointments', 'prescriptions', 'reports', 'bills', 'visits', 'images', 'admissions', 'shares', 'estimates', 'consents', 'labwork', 'deposits'];
+const PATIENT_COLLS = ['appointments', 'prescriptions', 'reports', 'bills', 'visits', 'images', 'admissions', 'shares', 'estimates', 'consents', 'labwork', 'deposits', 'medorders'];
 function patientView(string $coll, array $row, string $pid): ?array {
   if ($coll === 'patients') return ($row['id'] ?? '') === $pid ? $row : null;
   if (in_array($coll, PATIENT_COLLS, true)) return ($row['patientId'] ?? '') === $pid ? $row : null;
@@ -209,6 +212,39 @@ function ensureFrontDesk(): void {
   putRec('users', ['id' => 'U-front', 'role' => 'receptionist', 'refId' => 'S-FD', 'email' => 'frontdesk@clinic.in'], $rev);
   audit(null, 'front desk added');
   $pdo->commit();
+}
+// Patients whose file has this mobile number and this email (a family can share both).
+function patientsByContact(string $phone, string $email): array {
+  global $pdo;
+  $found = [];
+  foreach ($pdo->query("SELECT data FROM records WHERE coll = 'patients'")->fetchAll() as $r) {
+    $p = json_decode($r['data'], true);
+    if (!is_array($p) || !empty($p['deleted'])) continue;
+    if (($p['phone'] ?? '') === $phone && strtolower(trim((string)($p['email'] ?? ''))) === $email) $found[] = $p;
+  }
+  return $found;
+}
+function maskEmail(string $e): string {
+  [$u, $d] = explode('@', $e, 2);
+  return mb_substr($u, 0, 2) . str_repeat('•', max(2, mb_strlen($u) - 2)) . '@' . $d;
+}
+function patientSession(array $p, string $how): void {
+  global $pdo;
+  $tok = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+  $pdo->prepare('INSERT INTO sessions (token_hash, user_id, expires) VALUES (?, ?, ?)')->execute([hash('sha256', $tok), "PT:{$p['id']}", time() + SESSION_DAYS * 86400]);
+  audit("PT:{$p['id']}", $how);
+  out(['token' => $tok, 'user' => patientUser($p['id'])]);
+}
+// The login code goes out from the server's own mail (Hostinger). The sender can be set
+// in config.php as 'mail_from'; it should be a mailbox that exists on the domain.
+function sendCode(string $to, string $clinic, string $first, string $code): bool {
+  global $config;
+  $from = (string)($config['mail_from'] ?? 'no-reply@debuggersspace.com');
+  $clinic = trim(preg_replace('/[\r\n<>"]+/', ' ', $clinic));
+  $enc = fn($t) => function_exists('mb_encode_mimeheader') ? mb_encode_mimeheader($t, 'UTF-8', 'B') : $t;
+  $body = "Hello $first,\r\n\r\nYour code to open your records at $clinic is:\r\n\r\n    $code\r\n\r\nIt works for 10 minutes. Do not share it with anyone; the clinic will never ask for it.\r\nIf you did not ask for this code, you can ignore this email.\r\n\r\n$clinic\r\n";
+  $headers = ['From' => $enc($clinic) . " <$from>", 'Reply-To' => $from, 'MIME-Version' => '1.0', 'Content-Type' => 'text/plain; charset=UTF-8'];
+  return @mail($to, $enc("$code is your $clinic login code"), $body, $headers, "-f$from");
 }
 function initialised(): bool { return meta('tenant') !== null; }
 function tenantOut(): array { return json_decode(meta('tenant') ?? '{}', true); }
@@ -279,10 +315,22 @@ switch ($action) {
     if ($coll === 'users') fail('Staff logins are managed by the admin.');
     $data = clean($in['data'] ?? null);
     if (($u['role'] ?? '') === 'patient') {
-      if ($coll !== 'appointments') fail('Only clinic staff can do that.', 403);
+      // A patient may book an appointment or order medicines, always for themselves.
+      if (!in_array($coll, ['appointments', 'medorders'], true)) fail('Only clinic staff can do that.', 403);
       $data['patientId'] = $u['refId'];
-      $data['status'] = 'scheduled';
-      $data['bookedOnline'] = true;
+      if ($coll === 'appointments') {
+        $data['status'] = 'scheduled';
+        $data['bookedOnline'] = true;
+      } else {
+        $rx = getRec('prescriptions', (string)($data['prescriptionId'] ?? ''));
+        if (!$rx || ($rx['patientId'] ?? '') !== $u['refId']) fail('That prescription is not yours.', 403);
+        $data['status'] = 'new';
+        $data['date'] = date('Y-m-d');
+        $data['at'] = date('H:i');
+        $data['mode'] = ($data['mode'] ?? '') === 'delivery' ? 'delivery' : 'pickup';
+        // The medicines always come from the prescription itself.
+        $data['items'] = array_map(fn($i) => ['medicineId' => (string)($i['medicineId'] ?? ''), 'name' => (string)($i['name'] ?? ''), 'qty' => (int)($i['qty'] ?? 1)], $rx['items'] ?? []);
+      }
     }
     $pdo->beginTransaction();
     $row = ['id' => nextId($coll)] + $data;
@@ -545,6 +593,49 @@ switch ($action) {
     $pdo->prepare('INSERT INTO sessions (token_hash, user_id, expires) VALUES (?, ?, ?)')->execute([hash('sha256', $tok), "PT:{$match['id']}", time() + SESSION_DAYS * 86400]);
     audit("PT:{$match['id']}", 'plogin');
     out(['token' => $tok, 'user' => patientUser($match['id'])]);
+  }
+
+  case 'pcode': {
+    rateLimit(6, 900);
+    if (!initialised()) fail('This clinic is not set up yet.', 409);
+    $phone = substr(preg_replace('/\D/', '', (string)($in['phone'] ?? '')), -10);
+    $email = strtolower(trim((string)($in['email'] ?? '')));
+    if (strlen($phone) !== 10 || !filter_var($email, FILTER_VALIDATE_EMAIL)) fail('Type your 10-digit mobile number and the email you gave the clinic.');
+    $found = patientsByContact($phone, $email);
+    if (!$found) { sleep(1); fail('This mobile number and email are not in the clinic’s records together. Ask the front desk to add your email to your file, or sign in with the PIN.', 403); }
+    $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $pdo->prepare('DELETE FROM codes WHERE expires < ?')->execute([time()]);
+    $pdo->prepare('INSERT INTO codes (phone, email, hash, expires, tries) VALUES (?, ?, ?, ?, 0) ON CONFLICT(phone, email) DO UPDATE SET hash = excluded.hash, expires = excluded.expires, tries = 0')->execute([$phone, $email, password_hash($code, PASSWORD_DEFAULT), time() + 600]);
+    $t = tenantOut();
+    if (!sendCode($email, (string)($t['name'] ?? 'Your clinic'), preg_split("/\\s+/u", trim((string)($found[0]["name"] ?? "")))[0], $code)) fail('We could not send the email just now. Please try again in a minute, or sign in with the PIN from the clinic.', 502);
+    audit(null, 'pcode', 'patients', $found[0]['id']);
+    out(['sentTo' => maskEmail($email)]);
+  }
+
+  case 'pverify': {
+    rateLimit(20, 900);
+    $phone = substr(preg_replace('/\D/', '', (string)($in['phone'] ?? '')), -10);
+    $email = strtolower(trim((string)($in['email'] ?? '')));
+    $code = preg_replace('/\D/', '', (string)($in['code'] ?? ''));
+    $s = $pdo->prepare('SELECT hash, expires, tries FROM codes WHERE phone = ? AND email = ?');
+    $s->execute([$phone, $email]);
+    $row = $s->fetch();
+    if (!$row || $row['expires'] < time()) fail('That code has expired. Tap “Send a new code”.', 403);
+    if ($row['tries'] >= 5) fail('Too many wrong tries. Tap “Send a new code”.', 403);
+    if (strlen($code) !== 6 || !password_verify($code, $row['hash'])) {
+      $pdo->prepare('UPDATE codes SET tries = tries + 1 WHERE phone = ? AND email = ?')->execute([$phone, $email]);
+      sleep(1);
+      fail('That code is not right. Check the latest email and try again.', 403);
+    }
+    $found = patientsByContact($phone, $email);
+    if (!$found) fail('Your file was changed. Please ask the clinic.', 403);
+    $pid = (string)($in['patientId'] ?? '');
+    // One mobile and email can belong to several family members: ask whose records to open.
+    if (count($found) > 1 && $pid === '') out(['choose' => array_map(fn($p) => ['id' => $p['id'], 'name' => $p['name'] ?? $p['id']], $found)]);
+    $match = $pid === '' ? $found[0] : (array_values(array_filter($found, fn($p) => $p['id'] === $pid))[0] ?? null);
+    if (!$match) fail('Pick one of the names shown.');
+    $pdo->prepare('DELETE FROM codes WHERE phone = ? AND email = ?')->execute([$phone, $email]);
+    patientSession($match, 'pverify');
   }
 }
 fail('Unknown action.', 404);
