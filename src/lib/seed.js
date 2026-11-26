@@ -334,6 +334,8 @@ function buildTenant(def, seedNum) {
   data.users.push({ id: 'U-pat', role: 'patient', refId: demoPatient.id, email: demoPatient.email, password: 'demo123' })
 
   const consult = (doc) => doc.fee
+  // The last few patients were last seen months ago: they fill the check-up recall list.
+  const active = data.patients.length > 16 ? data.patients.slice(0, -8) : data.patients
   // Past visits (completed) with prescriptions, reports and bills; plus upcoming bookings
   for (let d = -45; d <= 7; d++) {
     const date = addDays(T, d)
@@ -345,7 +347,7 @@ function buildTenant(def, seedNum) {
       let time = pick(HOURS)
       while (usedSlots.has(doc.id + time)) time = pick(HOURS)
       usedSlots.add(doc.id + time)
-      const pat = k === 0 && (d === -20 || d === -6 || d === 2) ? demoPatient : pick(data.patients)
+      const pat = k === 0 && (d === -20 || d === -6 || d === 2) ? demoPatient : pick(active)
       let status = 'scheduled'
       if (d < 0) status = r() < 0.9 ? 'completed' : 'cancelled'
       if (d === 0) status = time < '12:00' ? (r() < 0.8 ? 'completed' : 'checked-in') : 'scheduled'
@@ -398,6 +400,15 @@ function buildTenant(def, seedNum) {
     }
   }
 
+  // Older visits (7 to 14 months ago) for patients not seen recently, so the check-up recall list has people in it
+  const recent = new Set(data.appointments.map((a) => a.patientId))
+  data.patients.filter((p) => !recent.has(p.id)).forEach((pat, i) => {
+    const date = addDays(T, -int(190, 420))
+    if (new Date(date + 'T00:00:00').getDay() === 0) return
+    const doc = pick(doctors)
+    data.appointments.push({ id: nextId('A'), patientId: pat.id, doctorId: doc.id, date, time: pick(HOURS), reason: pick(def.reasons), status: 'completed', type: 'OPD' })
+  })
+
   // Make sure every doctor has a live queue today, whatever time the demo is opened
   doctors.forEach((doc) => {
     const used = new Set(data.appointments.filter((a) => a.date === T && a.doctorId === doc.id).map((a) => a.time))
@@ -406,7 +417,7 @@ function buildTenant(def, seedNum) {
       const time = free[Math.min(free.length - 1, Math.floor((free.length / 3) * i + r() * 2))]
       if (!time || used.has(time)) return
       used.add(time)
-      const pat = doc === doctors[0] && i === 2 ? demoPatient : pick(data.patients)
+      const pat = doc === doctors[0] && i === 2 ? demoPatient : pick(active)
       data.appointments.push({ id: nextId('A'), patientId: pat.id, doctorId: doc.id, date: T, time, reason: pick(def.reasons), status, type: 'OPD' })
     })
   })

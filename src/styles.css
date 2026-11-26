@@ -2346,3 +2346,4 @@ body:has(.chat-page) { background: #070b17; }
 .ai-safe { display: flex; align-items: center; gap: 5px; }
 .ai-chip { font-size: .78rem; font-weight: 700; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
 .ai-chip.warn { background: #fef3c7; color: #92400e; } .ai-chip.ok { background: #dcfce7; color: #166534; }
+.count-dot { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 2px; border-radius: 99px; background: #dc2626; color: #fff; font: 700 10.5px var(--font-body); }
