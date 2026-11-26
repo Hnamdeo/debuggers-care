@@ -2366,3 +2366,11 @@ body:has(.chat-page) { background: #070b17; }
 .perio-t.mid { background: #fff7ed; border-color: #fed7aa; }
 .perio-t.deep { background: #fef2f2; border-color: #fca5a5; }
 .sheet .sheet-h { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--brand); }
+/* Hospital extras: running bill, notes */
+.mini-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.mini-table th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.mini-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.mini-table tr.muted td { color: var(--muted); }
+.ipd-notes { display: grid; gap: 6px; margin-top: 10px; max-height: 260px; overflow-y: auto; }
+.ipd-note { padding: 8px 10px; border-left: 3px solid var(--brand); background: var(--surface-2); border-radius: 0 6px 6px 0; font-size: 13px; }
+.ipd-note.given { border-left-color: #16a34a; }

@@ -1,7 +1,8 @@
+import { DischargeSummaryDoc } from '../components/hospitalplus'
 import { LabWorkTab, GumChart, SittingsCard, CaseSheetButton, ReviewButton } from '../components/dentalplus'
 import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { QrCode, FileUp, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse, ScanLine, KeyRound } from 'lucide-react'
+import { QrCode, FileUp, UserPlus, CalendarPlus, BedDouble, Receipt, Pencil, ArrowLeft, AlertTriangle, HeartPulse, ScanLine, KeyRound, FileText } from 'lucide-react'
 import { useTenant, PageHead, Card, Table, Pill, SearchBox, Avatar, Tabs, Stat, toast } from '../components/ui'
 import RegisterQR from '../components/RegisterQR'
 import { ImportPatients } from '../components/importpatients'
@@ -136,6 +137,7 @@ export function PatientRecord({ p, canCollect, onBook, onBill }) {
   const dental = /dental/i.test(tenant.kind || '')
   const [doc, setDoc] = useState(null)
   const [play, setPlay] = useState(null)
+  const [dsum, setDsum] = useState(null)
   const mine = (c) => list(c).filter((r) => r.patientId === p.id)
   const appts = mine('appointments').sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
   const rxs = mine('prescriptions').sort((a, b) => b.date.localeCompare(a.date))
@@ -212,8 +214,10 @@ export function PatientRecord({ p, canCollect, onBook, onBill }) {
           { label: 'Reason', key: 'reason' },
           { label: 'Consultant', render: (a) => staff(a.doctorId)?.name },
           { label: 'Status', render: (a) => <Pill status={a.status} /> },
+          { label: '', render: (a) => (a.summary ? <button className="btn sm" onClick={() => setDsum(a)}><FileText /> Discharge summary</button> : null) },
         ]} /></Card>
       )}
+      {dsum && <DischargeSummaryDoc adm={dsum} onClose={() => setDsum(null)} />}
       {tab === 'videos' && (
         <Card title="Videos from your doctor">
           {shared.map((x) => (

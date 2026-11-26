@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BedDouble } from 'lucide-react'
-import { useTenant, PageHead, Stat, Modal, Pill, Input, toast } from '../components/ui'
+import { useTenant, PageHead, Stat, Modal, Input, Tabs, toast } from '../components/ui'
+import { ipdLines, depositsFor, NotesAndMeds, RunningBill, DischargeForm, DischargeSummaryDoc } from '../components/hospitalplus'
 import { AdmitForm } from '../components/forms'
 import { db } from '../lib/store'
 import { fmtDate, money, today, daysBetween } from '../lib/utils'
@@ -65,29 +66,19 @@ function AdmissionModal({ adm, onClose }) {
   const p = patient(adm.patientId)
   const bed = list('beds').find((b) => b.id === adm.bedId)
   const [v, setV] = useState({ bp: '', pulse: '', spo2: '', temp: '', ...adm.vitals })
-  const [step, setStep] = useState('view')
+  const [tab, setTab] = useState('care')
+  const [done, setDone] = useState(null)
   const days = Math.max(1, daysBetween(adm.admitDate, today()))
-  const lines = [
-    { desc: `${bed.ward} bed charges (${bed.number})`, qty: days, rate: bed.rate },
-    { desc: 'Doctor visits', qty: days, rate: bed.ward === 'ICU' ? 1500 : 800 },
-    { desc: 'Nursing care', qty: days, rate: bed.ward === 'ICU' ? 1200 : 600 },
-  ]
-  const total = lines.reduce((s, l) => s + l.qty * l.rate, 0)
+  const lines = ipdLines(adm, bed)
+  const paid = depositsFor(list, adm).reduce((s, d) => s + d.amount, 0)
   const saveVitals = () => {
     db.update(tid, 'admissions', adm.id, { vitals: { bp: v.bp, pulse: +v.pulse, spo2: +v.spo2, temp: v.temp } })
     toast('Vitals updated')
   }
-  const discharge = () => {
-    db.update(tid, 'admissions', adm.id, { status: 'discharged', dischargeDate: today() })
-    const b = db.add(tid, 'bills', { patientId: p.id, date: today(), source: 'IPD', ref: adm.id, items: lines, discount: 0, paid: 0, mode: 'Card' })
-    toast(`${p.name} discharged. Final bill ${b.id} for ${money(total)} raised.`)
-    onClose()
-  }
+  if (done) return <DischargeSummaryDoc adm={done} onClose={onClose} />
   return (
-    <Modal title={`${bed.number} · ${p.name}`} onClose={onClose} footer={step === 'view' ? (
-      <><button className="btn" onClick={() => nav(`${base}/patients/${p.id}`)}>Open patient record</button><button className="btn" onClick={saveVitals}>Save vitals</button><button className="btn primary" onClick={() => setStep('confirm')}>Discharge</button></>
-    ) : (
-      <><button className="btn" onClick={() => setStep('view')}>Back</button><button className="btn primary" onClick={discharge}>Discharge and raise bill</button></>
+    <Modal wide title={`${bed.number} · ${p.name}`} onClose={onClose} footer={tab !== 'discharge' && (
+      <><button className="btn" onClick={() => nav(`${base}/patients/${p.id}`)}>Open patient record</button><button className="btn primary" onClick={() => setTab('discharge')}>Discharge</button></>
     )}>
       <dl className="kv">
         <dt>Admitted</dt><dd>{fmtDate(adm.admitDate)} · day {days}</dd>
@@ -95,25 +86,21 @@ function AdmissionModal({ adm, onClose }) {
         <dt>Consultant</dt><dd>{staff(adm.doctorId)?.name} · {staff(adm.doctorId)?.dept}</dd>
         <dt>Allergies</dt><dd>{p.allergies || 'None known'}</dd>
       </dl>
-      {step === 'view' ? (
+      <Tabs value={tab} onChange={setTab} tabs={[{ id: 'care', label: 'Vitals' }, { id: 'notes', label: 'Notes & medicines' }, { id: 'bill', label: 'Bill & advance' }, { id: 'discharge', label: 'Discharge' }]} />
+      {tab === 'care' && (
         <>
-          <h3>Vitals</h3>
           <div className="grid g4">
             <Input id="v-bp" label="BP (mmHg)" value={v.bp} onChange={(e) => setV({ ...v, bp: e.target.value })} />
             <Input id="v-pulse" label="Pulse (/min)" type="number" value={v.pulse} onChange={(e) => setV({ ...v, pulse: e.target.value })} />
             <Input id="v-spo2" label="SpO₂ (%)" type="number" value={v.spo2} onChange={(e) => setV({ ...v, spo2: e.target.value })} />
             <Input id="v-temp" label="Temp (°F)" value={v.temp} onChange={(e) => setV({ ...v, temp: e.target.value })} />
           </div>
+          <div><button className="btn" onClick={saveVitals}>Save vitals</button></div>
         </>
-      ) : (
-        <div className="stack" style={{ gap: 6 }}>
-          <h3>Final bill preview</h3>
-          {lines.map((l) => <div key={l.desc} className="row between"><span>{l.desc} × {l.qty}</span><span className="tabular">{money(l.qty * l.rate)}</span></div>)}
-          <div className="row between" style={{ fontWeight: 700 }}><span>Total</span><span className="tabular">{money(total)}</span></div>
-          <span className="muted small">Pharmacy and lab charges are billed separately on their own invoices.</span>
-        </div>
       )}
-      <Pill status="admitted">Admitted</Pill>
+      {tab === 'notes' && <NotesAndMeds adm={adm} />}
+      {tab === 'bill' && <RunningBill adm={adm} bed={bed} />}
+      {tab === 'discharge' && <DischargeForm adm={adm} lines={lines} paid={paid} onCancel={() => setTab('care')} onDone={setDone} />}
     </Modal>
   )
 }

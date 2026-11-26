@@ -5,9 +5,10 @@ import { HashRouter, MemoryRouter, Routes, Route, Navigate, NavLink, useParams, 
 import {
   LayoutDashboard, Users, CalendarDays, Pill as PillIcon, FlaskConical, BedDouble, Siren, Store, Receipt, IdCard, Wallet, Settings as SettingsIcon,
   Lock, LogOut, Menu, MonitorPlay, Stethoscope, CalendarPlus, FileHeart, Sparkles, BarChart3, PiggyBank, Globe, Sun, Moon,
-  Briefcase, FlaskRound, Boxes,
+  Briefcase, FlaskRound, Boxes, Scissors, ShieldCheck,
 } from 'lucide-react'
 import { LabWorkPage, MaterialsPage } from './components/dentalplus'
+import { OTPage, ClaimsPage } from './components/hospitalplus'
 import { AppBar } from './components/appbar'
 import { useLook } from './lib/look'
 import { db, auth, useDb, server } from './lib/store'
@@ -160,6 +161,7 @@ function Shell() {
   const canSettings = role === 'admin' || (tenant.live && role === 'doctor')
   // The AI Smile preview is for dental clinics, for whoever treats patients.
   const smile = /dental/i.test(tenant.kind || '') && (role === 'doctor' || role === 'admin')
+  const hospStaff = hasModule(tenant, 'ipd') && ['admin', 'doctor', 'receptionist'].includes(role)
   const dentalStaff = /dental/i.test(tenant.kind || '') && !isPatient && role !== 'pharmacist'
   const home = isPatient ? 'me' : role === 'pharmacist' ? 'pharmacy' : 'dashboard'
 
@@ -203,6 +205,8 @@ function Shell() {
               })}
               {(boss || role === 'doctor') && <NavItem to={`${base}/analytics`} icon={BarChart3} label="Practice analytics" />}
               {(boss || role === 'doctor') && <NavItem to={`${base}/expenses`} icon={PiggyBank} label="Expenses" />}
+              {hospStaff && <NavItem to={`${base}/ot`} icon={Scissors} label="OT schedule" />}
+              {hospStaff && <NavItem to={`${base}/claims`} icon={ShieldCheck} label="Insurance claims" />}
               {dentalStaff && <NavItem to={`${base}/labwork`} icon={FlaskRound} label="Lab work" />}
               {dentalStaff && <NavItem to={`${base}/materials`} icon={Boxes} label="Materials stock" />}
               {smile && <NavItem to={`${base}/smile`} icon={Sparkles} label="AI Smile preview" fresh />}
@@ -245,6 +249,8 @@ function Shell() {
               <Route path="expenses" element={boss || role === 'doctor' ? <Expenses /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="labwork" element={dentalStaff ? <LabWorkPage /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="materials" element={dentalStaff ? <MaterialsPage /> : <Navigate to={`${base}/${home}`} replace />} />
+              <Route path="ot" element={hospStaff ? <OTPage /> : <Navigate to={`${base}/${home}`} replace />} />
+              <Route path="claims" element={hospStaff ? <ClaimsPage /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="smile" element={smile ? <Smile /> : <Navigate to={`${base}/${home}`} replace />} />
               <Route path="education" element={guard('education', <Education />)} />
               <Route path="ipd" element={guard('ipd', <IPD />)} />
