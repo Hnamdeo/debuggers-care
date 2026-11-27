@@ -672,7 +672,7 @@ export default function ClinicSite({ site, page = 'home' }) {
           </button>
           <nav className={`cw-links ${menu ? 'open' : ''}`} aria-label="Website">
             {PAGES.map(([k, label]) => <button key={k} className={cur === k ? 'on' : ''} onClick={() => go(k)}>{label}</button>)}
-            <button className="cw-staff" onClick={() => { setMenu(false); nav(x.user ? x.base : `${x.base}/login`) }}><LogIn size={15} /> {x.user ? 'Dashboard' : 'Staff sign in'}</button>
+            <button className="cw-staff" onClick={() => { setMenu(false); nav(x.user ? x.base : `${x.base}/login`) }}><LogIn size={15} /> {x.user ? 'Dashboard' : 'Sign in'}</button>
           </nav>
           <div className="cw-nav-cta">
             <button className="cs-btn primary sm" onClick={() => go('book')}><CalendarCheck /> <span className="cw-hide-s">Book appointment</span><span className="cw-show-s">Book</span></button>
