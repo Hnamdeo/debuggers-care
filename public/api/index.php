@@ -67,6 +67,7 @@ $pdo->exec('CREATE TABLE IF NOT EXISTS records (coll TEXT NOT NULL, id TEXT NOT 
   CREATE TABLE IF NOT EXISTS hits (ip TEXT NOT NULL, at INTEGER NOT NULL);
   CREATE TABLE IF NOT EXISTS audit (at INTEGER NOT NULL, user_id TEXT, action TEXT NOT NULL, coll TEXT, rec_id TEXT);
   CREATE TABLE IF NOT EXISTS pins (patient_id TEXT PRIMARY KEY, hash TEXT NOT NULL, set_at INTEGER NOT NULL);
+  CREATE TABLE IF NOT EXISTS cids (cid TEXT PRIMARY KEY, coll TEXT NOT NULL, id TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS codes (phone TEXT NOT NULL, email TEXT NOT NULL, hash TEXT NOT NULL, expires INTEGER NOT NULL, tries INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (phone, email));');
 
 // Daily backup: the first request of each day (India time) saves a clean copy of this
@@ -333,12 +334,45 @@ switch ($action) {
       }
     }
     $pdo->beginTransaction();
+    // A record made while the internet was down carries the browser's own id (cid). Sending
+    // it again after a dropped connection returns the record already saved, never a second one.
+    $cid = (string)($in['cid'] ?? '');
+    if ($cid !== '' && !preg_match('/^[A-Z]{1,4}-X[0-9A-Z]{6,16}$/', $cid)) $cid = '';
+    if ($cid !== '') {
+      $s = $pdo->prepare('SELECT coll, id FROM cids WHERE cid = ?');
+      $s->execute([$cid]);
+      if ($had = $s->fetch()) {
+        $pdo->commit();
+        out(['row' => getRec($had['coll'], $had['id']), 'rev' => (int)(meta('rev') ?? '0'), 'cid' => $cid, 'again' => true]);
+      }
+    }
     $row = ['id' => nextId($coll)] + $data;
     $rev = nextRev();
     putRec($coll, $row, $rev);
+    if ($cid !== '') $pdo->prepare('INSERT INTO cids (cid, coll, id) VALUES (?, ?, ?)')->execute([$cid, $coll, $row['id']]);
     audit($u['id'], 'add', $coll, $row['id']);
     $pdo->commit();
-    out(['row' => $row, 'rev' => $rev]);
+    out(['row' => $row, 'rev' => $rev] + ($cid !== '' ? ['cid' => $cid] : []));
+  }
+
+  case 'addmany': {
+    // Many patients at once, from a spreadsheet or another clinic software's export.
+    $u = staffOnly();
+    $coll = (string)($in['coll'] ?? '');
+    if ($coll !== 'patients') fail('Only patients can be imported this way.');
+    $rows = $in['rows'] ?? null;
+    if (!is_array($rows) || count($rows) > 500) fail('Send up to 500 patients at a time.');
+    $pdo->beginTransaction();
+    $rev = nextRev();
+    $made = [];
+    foreach ($rows as $r) {
+      $row = ['id' => nextId($coll)] + clean($r);
+      putRec($coll, $row, $rev);
+      $made[] = $row;
+    }
+    audit($u['id'], 'import ' . count($made), $coll);
+    $pdo->commit();
+    out(['rows' => $made, 'rev' => $rev]);
   }
 
   case 'update': {

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useClinicManifest, standalone, lastClinic } from './lib/install'
 import { InstallButton } from './components/install'
+import { SyncBadge } from './components/syncbadge'
 import { LabWorkPage, MaterialsPage } from './components/dentalplus'
 import { OTPage, ClaimsPage } from './components/hospitalplus'
 import { AppBar } from './components/appbar'
@@ -131,6 +132,7 @@ function TenantApp() {
           <Route path="*" element={waiting ? <ServerWait info={srv} /> : ctx.user ? <Shell /> : <Login />} />
         </Routes>
         {onServer && <ServerStart tid={ctx.tid} />}
+        {ctx.user && <SyncBadge tid={ctx.tid} />}
       </div>
     </TenantCtx.Provider>
   )

@@ -11,7 +11,7 @@ import { TodayVisits, sendToDoctor } from '../components/visits'
 import { PatientFinder } from '../components/summary'
 import { AskBar, callName } from '../components/assistant'
 import { useTenant, PageHead, Stat, Card, Table, Pill, toast } from '../components/ui'
-import { db } from '../lib/store'
+import { db, offline } from '../lib/store'
 import { today, addDays, fmtTime, money, billTotal, fmtDate, nowTime } from '../lib/utils'
 
 export default function Dashboard() {
@@ -39,7 +39,7 @@ function Hero({ title, sub, actions }) {
           <p>{sub}</p>
         </div>
         <div className="hb-chips">
-          <span className="hb-chip"><i className="hb-dot" /> {tenant.server ? 'Server online' : 'Saved on this computer'}</span>
+          <span className="hb-chip"><i className="hb-dot" /> {tenant.server ? (offline.info(tenant.id).offline ? 'Offline · saving on this computer' : 'Server online') : 'Saved on this computer'}</span>
           <span className="hb-chip">✦ AI ready</span>
           <IstClock />
         </div>

@@ -2411,3 +2411,26 @@ body:has(.chat-page) { background: #070b17; }
   .rx-med { flex-wrap: wrap; }
   .rx-med .rx-buy { width: 100%; justify-content: flex-start; padding-left: 28px; }
 }
+
+/* Offline / sync status pill */
+.sync-wrap { position: fixed; top: calc(68px + env(safe-area-inset-top, 0px)); right: 16px; z-index: 70; max-width: min(460px, calc(100% - 32px)); display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.sync-pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; border-radius: 99px; padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: default; box-shadow: var(--shadow); text-align: left; }
+.sync-pill .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.sync-pill.off { background: #fff4e0; color: #8a4b00; border-color: #f3c77a; }
+.sync-pill.busy { background: #e8f0ff; color: #1d4ed8; border-color: #b9cdfb; }
+.sync-pill.busy .sync-dot { animation: sync-blink 1s infinite; }
+.sync-pill.ok { background: #e7f7ee; color: #146c3a; border-color: #a9dfbf; }
+.sync-pill.bad { background: #fdecec; color: #a11a1a; border-color: #f3b4b4; cursor: pointer; }
+.sync-pop { padding: 12px 14px; max-width: 420px; text-align: left; }
+.sync-pop ul { margin: 8px 0 10px; padding-left: 18px; }
+@keyframes sync-blink { 50% { opacity: 0.3; } }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .sync-pill.off { background: #3a2a10; color: #ffd28a; border-color: #6b4a14; }
+  :root:not([data-theme='light']) .sync-pill.busy { background: #142447; color: #a9c2ff; border-color: #2a4380; }
+  :root:not([data-theme='light']) .sync-pill.ok { background: #0f3020; color: #8fe0b0; border-color: #1f5a3a; }
+  :root:not([data-theme='light']) .sync-pill.bad { background: #3d1414; color: #ffb3b3; border-color: #6e2525; }
+}
+:root[data-theme='dark'] .sync-pill.off { background: #3a2a10; color: #ffd28a; border-color: #6b4a14; }
+:root[data-theme='dark'] .sync-pill.busy { background: #142447; color: #a9c2ff; border-color: #2a4380; }
+:root[data-theme='dark'] .sync-pill.ok { background: #0f3020; color: #8fe0b0; border-color: #1f5a3a; }
+:root[data-theme='dark'] .sync-pill.bad { background: #3d1414; color: #ffb3b3; border-color: #6e2525; }

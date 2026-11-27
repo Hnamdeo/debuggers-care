@@ -120,11 +120,15 @@ export const db = {
   tenantBySlug: (slug) => state.tenants.find((t) => t.slug === slug || t.aliases?.includes(slug)),
   list: (tid, coll) => tidyList(coll, state.data[tid]?.[coll] || []),
   onServer: (tid) => !!tenantById(tid)?.server,
-  get: (tid, coll, id) => db.list(tid, coll).find((r) => r.id === id),
+  // A record made offline keeps answering to its temporary number after it syncs.
+  get: (tid, coll, id) => db.list(tid, coll).find((r) => r.id === id) || (sync.alias[tid]?.[id] ? db.list(tid, coll).find((r) => r.id === sync.alias[tid][id]) : undefined),
   add(tid, coll, rec) {
     rec = tidy(coll, rec)
     if (db.onServer(tid)) {
-      const { row } = call(tid, 'add', { coll, data: rec })
+      // With no internet the record gets a temporary number and waits on this computer.
+      const cid = `${PREFIX[coll]}-X${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+      const res = write(tid, 'add', { coll, data: rec, cid })
+      const row = res ? res.row : { id: cid, ...rec }
       applyRow(tid, coll, row)
       emit()
       return row
@@ -141,8 +145,8 @@ export const db = {
     if (db.onServer(tid)) {
       const cur = db.get(tid, coll, id)
       const p = tidy(coll, typeof patch === 'function' ? patch(cur || {}) : patch)
-      const { row } = call(tid, 'update', { coll, id, patch: p })
-      applyRow(tid, coll, row)
+      const res = write(tid, 'update', { coll, id, patch: p })
+      applyRow(tid, coll, res ? res.row : { ...cur, ...p, id })
       emit()
       return
     }
@@ -153,7 +157,7 @@ export const db = {
     emit()
   },
   updateTenant(tid, patch) {
-    if (db.onServer(tid)) call(tid, 'tenant', { patch })
+    if (db.onServer(tid)) write(tid, 'tenant', { patch })
     state.tenants = state.tenants.map((t) => (t.id === tid ? { ...t, ...patch } : t))
     emit()
   },
@@ -196,6 +200,9 @@ export const auth = {
       fetch(apiUrl(tid, 'logout'), { method: 'POST', headers: { Authorization: `Bearer ${tok}` }, body: '{}' }).catch(() => {})
       const { [tid]: __, ...others } = tokens
       tokens = others
+      cacheDrop(tid)
+      if (remote[tid]) { remote[tid].loaded = false; remote[tid].rev = 0 }
+      if (sync.q[tid]?.length) toast(`${sync.q[tid].length} changes are still waiting for the internet. They will go to the server after the next sign-in.`)
     }
     const { [tid]: _, ...rest } = session
     session = rest
@@ -241,6 +248,8 @@ function signedOut(tid, msg) {
   session = s
   if (remote[tid]) { remote[tid].loaded = false; clearInterval(remote[tid].timer) }
   state.data[tid] = EMPTY()
+  cacheDrop(tid)
+  if (remote[tid]) remote[tid].rev = 0
   if (msg) toast(msg)
   emit()
   status(tid)
@@ -248,15 +257,17 @@ function signedOut(tid, msg) {
 
 // Writes wait for the server (a fraction of a second) so the screens can keep
 // using the new record straight away, exactly as before.
-function call(tid, action, body) {
+function call(tid, action, body, quiet = false) {
   const x = new XMLHttpRequest()
   try {
     x.open('POST', apiUrl(tid, action), false)
     x.setRequestHeader('Content-Type', 'application/json')
     if (tokens[tid]) x.setRequestHeader('Authorization', `Bearer ${tokens[tid]}`)
     x.send(JSON.stringify(body))
+    // A proxy or captive page with no real connection behind it counts as offline too.
+    if (x.status === 0 || x.status === 502 || x.status === 503 || x.status === 504) throw new Error('offline')
   } catch {
-    toast('Not saved: no internet connection. Please try again.')
+    if (!quiet) toast('Not saved: no internet connection. Please try again.')
     throw new Error('offline')
   }
   let res = {}
@@ -287,7 +298,10 @@ async function pull(tid) {
   if (!tokens[tid] || r.busy) return
   r.busy = true
   try {
+    // Changes made offline go up first; the server copy is only read once they are all in.
+    if (sync.q[tid]?.length) { await flush(tid); if (sync.q[tid]?.length) return }
     const res = await post(tid, 'pull', { since: r.rev || 0 })
+    setOffline(tid, false)
     if (res.reset || !r.rev) state.data[tid] = EMPTY()
     res.changes.forEach(({ coll, row }) => applyRow(tid, coll, row))
     if (res.tenant && (res.tenantRev !== r.tenantRev || !r.loaded)) {
@@ -299,8 +313,10 @@ async function pull(tid) {
     r.loaded = true
     r.error = ''
     emit()
+    cacheSoon(tid)
   } catch (e) {
-    if (tokens[tid]) { r.error = e.message; emit() }
+    if (e instanceof TypeError) setOffline(tid, true)
+    if (tokens[tid]) { r.error = e instanceof TypeError ? 'no internet connection' : e.message; emit() }
   } finally {
     r.busy = false
   }
@@ -321,6 +337,185 @@ async function status(tid) {
   emit()
 }
 
+// ---------------------------------------------------------------------------
+// Working offline. When the internet drops, every save still happens on this
+// computer and waits in an outbox (kept across reloads). When the connection is
+// back the outbox goes to the server in order, then the screens refresh. Records
+// made offline carry a temporary number (P-X...) that the server swaps for the
+// next real one; sending the same record twice never makes two.
+
+const OUTBOX_KEY = 'debuggers-care-hms:outbox'
+const sync = (() => {
+  try {
+    const s = JSON.parse(localStorage.getItem(OUTBOX_KEY)) || {}
+    return { q: s.q || {}, failed: s.failed || {}, alias: s.alias || {}, offline: {}, busy: {}, done: {} }
+  } catch {
+    return { q: {}, failed: {}, alias: {}, offline: {}, busy: {}, done: {} }
+  }
+})()
+function saveOutbox() {
+  try { localStorage.setItem(OUTBOX_KEY, JSON.stringify({ q: sync.q, failed: sync.failed, alias: sync.alias })) } catch {}
+}
+function setOffline(tid, v) {
+  if (!!sync.offline[tid] === v) return
+  sync.offline[tid] = v
+  emit()
+}
+const isOffline = (tid) => sync.offline[tid] || (typeof navigator !== 'undefined' && navigator.onLine === false)
+
+// Save to the server now when we can; otherwise keep it in the outbox. Returns the
+// server's answer, or null when the change is waiting.
+function write(tid, action, body) {
+  if (!sync.q[tid]?.length && !isOffline(tid)) {
+    try {
+      return call(tid, action, body, true)
+    } catch (e) {
+      if (e.message !== 'offline') throw e
+      sync.offline[tid] = true
+    }
+  }
+  const first = !sync.q[tid]?.length
+  ;(sync.q[tid] ||= []).push({ action, body, at: new Date().toISOString() })
+  saveOutbox()
+  cacheSoon(tid)
+  if (first) toast('No internet. Saved on this computer; it goes to the clinic server when the internet is back.')
+  return null
+}
+
+// Swap temporary numbers for the real ones the server gave.
+function realIds(tid, v) {
+  const a = sync.alias[tid]
+  if (!a || !Object.keys(a).length) return v
+  let t = JSON.stringify(v)
+  for (const [tmp, id] of Object.entries(a)) t = t.split(`"${tmp}"`).join(`"${id}"`)
+  return JSON.parse(t)
+}
+
+async function flush(tid) {
+  if (sync.busy[tid] || !tokens[tid]) return
+  sync.busy[tid] = true
+  emit()
+  let sent = 0
+  try {
+    while (sync.q[tid]?.length && tokens[tid]) {
+      const item = sync.q[tid][0]
+      const body = realIds(tid, item.body)
+      let res
+      try {
+        res = await post(tid, item.action, body)
+      } catch (e) {
+        if (e instanceof TypeError) { sync.offline[tid] = true; break }
+        if (!tokens[tid]) break // signed out: keep the change for the next sign-in
+        // The server turned this one down (for example, the record was deleted meanwhile).
+        sync.q[tid].shift()
+        ;(sync.failed[tid] ||= []).push({ ...item, error: e.message })
+        saveOutbox()
+        toast(`One change could not be saved: ${e.message}`)
+        continue
+      }
+      sync.offline[tid] = false
+      sync.q[tid].shift()
+      sent++
+      if (item.action === 'add' && res.row) {
+        const { coll, cid } = item.body
+        const d = state.data[tid]
+        if (cid && d?.[coll]) d[coll] = d[coll].filter((r) => r.id !== cid)
+        if (cid && cid !== res.row.id) (sync.alias[tid] ||= {})[cid] = res.row.id
+        applyRow(tid, coll, res.row)
+      } else if (item.action === 'update' && res.row) applyRow(tid, item.body.coll, res.row)
+      saveOutbox()
+      emit()
+    }
+  } finally {
+    sync.busy[tid] = false
+    if (!sync.q[tid]?.length) {
+      delete sync.q[tid]
+      saveOutbox()
+      if (sent) {
+        sync.done[tid] = Date.now()
+        toast(`Back online: ${sent} saved ${sent === 1 ? 'change' : 'changes'} sent to the clinic server.`)
+        setTimeout(() => { delete sync.done[tid]; emit() }, 4000)
+      }
+    }
+    emit()
+  }
+}
+
+export const offline = {
+  // What the sync badge shows for a clinic.
+  info(tid) {
+    return {
+      server: db.onServer(tid),
+      offline: isOffline(tid),
+      pending: sync.q[tid]?.length || 0,
+      failed: sync.failed[tid] || [],
+      busy: !!sync.busy[tid],
+      done: !!sync.done[tid],
+    }
+  },
+  retry(tid) {
+    const f = sync.failed[tid] || []
+    sync.q[tid] = [...(sync.q[tid] || []), ...f.map(({ error, ...i }) => i)]
+    delete sync.failed[tid]
+    saveOutbox()
+    emit()
+    if (remote[tid]) pull(tid)
+  },
+  discard(tid) {
+    delete sync.failed[tid]
+    saveOutbox()
+    emit()
+  },
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => emit())
+  window.addEventListener('offline', () => emit())
+}
+
+// A copy of a live clinic's records on this computer (IndexedDB), so the app opens
+// and works with no internet. It is removed when the user signs out.
+function idb() {
+  return new Promise((ok, no) => {
+    if (typeof indexedDB === 'undefined') return no(new Error('no indexedDB'))
+    const r = indexedDB.open('clinic-cache', 1)
+    r.onupgradeneeded = () => r.result.createObjectStore('c')
+    r.onsuccess = () => ok(r.result)
+    r.onerror = () => no(r.error)
+  })
+}
+async function idbDo(mode, fn) {
+  const d = await idb()
+  return new Promise((ok, no) => {
+    const tx = d.transaction('c', mode)
+    const req = fn(tx.objectStore('c'))
+    tx.oncomplete = () => { ok(req?.result); d.close() }
+    tx.onerror = () => { no(tx.error); d.close() }
+  })
+}
+const cacheTimers = {}
+function cacheSoon(tid) {
+  clearTimeout(cacheTimers[tid])
+  cacheTimers[tid] = setTimeout(() => {
+    const r = remote[tid]
+    if (!tokens[tid] || !r?.loaded) return
+    const t = tenantById(tid)
+    const rec = { data: state.data[tid], rev: r.rev, tenantRev: r.tenantRev, tenant: t, user: session[tid] }
+    idbDo('readwrite', (s) => s.put(rec, tid)).catch(() => {})
+  }, 800)
+}
+async function cacheLoad(tid) {
+  try {
+    const c = await idbDo('readonly', (s) => s.get(tid))
+    return c && c.user === session[tid] ? c : null
+  } catch {
+    return null
+  }
+}
+function cacheDrop(tid) {
+  clearTimeout(cacheTimers[tid])
+  idbDo('readwrite', (s) => s.delete(tid)).catch(() => {})
+}
+
 export const server = {
   // Called when a server clinic opens: check it, then keep this device in step.
   start(tid) {
@@ -329,10 +524,24 @@ export const server = {
     r.started = true
     if (tokens[tid]) {
       state.data[tid] = EMPTY()
-      pull(tid)
+      // Open straight away from the copy kept on this computer (works with no internet),
+      // then fetch only what changed since.
+      cacheLoad(tid).then((c) => {
+        if (c && tokens[tid] && !r.loaded) {
+          state.data[tid] = { ...EMPTY(), ...c.data }
+          r.rev = c.rev
+          r.tenantRev = c.tenantRev
+          if (c.tenant) state.tenants = state.tenants.map((t) => (t.id === tid ? { ...t, ...c.tenant, id: t.id, slug: t.slug, aliases: t.aliases, server: true, live: true } : t))
+          r.ready = true
+          r.loaded = true
+          emit()
+        }
+      }).finally(() => pull(tid))
     } else status(tid)
     r.timer = setInterval(() => tokens[tid] && pull(tid), POLL_MS)
     window.addEventListener('focus', () => tokens[tid] && pull(tid))
+    window.addEventListener('online', () => { setOffline(tid, false); tokens[tid] && pull(tid) })
+    window.addEventListener('offline', () => setOffline(tid, true))
   },
   info: (tid) => remote[tid] || {},
   // The sign-in screen asks again for the staff list when it has none (after sign-out or an expired session).
@@ -382,6 +591,17 @@ export const server = {
     await pull(tid)
     clearInterval(r.timer)
     r.timer = setInterval(() => tokens[tid] && pull(tid), POLL_MS)
+  },
+  // Many patients at once (import). Goes in batches so a big list never freezes the screen.
+  async addMany(tid, coll, recs, onProgress) {
+    const out = []
+    for (let i = 0; i < recs.length; i += 200) {
+      const res = await post(tid, 'addmany', { coll, rows: recs.slice(i, i + 200).map((r) => tidy(coll, r)) })
+      res.rows.forEach((row) => { applyRow(tid, coll, row); out.push(row) })
+      emit()
+      onProgress?.(out.length)
+    }
+    return out
   },
   async setPin(tid, patientId) {
     return (await post(tid, 'setpin', { patientId })).pin
