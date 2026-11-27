@@ -4,12 +4,13 @@ import { useTenant, PageHead, Modal, Input, SearchBox, toast } from '../componen
 import { VideoPlayer, youtubeId } from '../components/videos'
 import { db } from '../lib/store'
 import { today } from '../lib/utils'
-import { HEALTH_CHANNEL, groupByLanguage } from '../lib/healthvideos'
+import { HEALTH_CHANNEL, groupByLanguage, SECTIONS } from '../lib/healthvideos'
 
 export default function Education() {
   const { list } = useTenant()
   const [q, setQ] = useState('')
   const [spec, setSpec] = useState('All')
+  const [sec, setSec] = useState('All')
   const [play, setPlay] = useState(null)
   const [adding, setAdding] = useState(false)
   const videos = list('videos')
@@ -17,7 +18,12 @@ export default function Education() {
   const shares = list('shares')
   const rows = videos
     .filter((v) => spec === 'All' || v.speciality === spec)
-    .filter((v) => !q || `${v.title} ${v.procedure}`.toLowerCase().includes(q.toLowerCase()))
+    .filter((v) => !q || `${v.title} ${v.procedure} ${v.section || ''}`.toLowerCase().includes(q.toLowerCase()))
+  // Section-wise: one heading per treatment (Root canal, Implants...), the clinic's own videos at the end.
+  const secOf = (v) => v.section || (v.speciality === 'Dental' ? 'More videos' : v.speciality)
+  const present = [...new Set(rows.map(secOf))]
+  const order = [...SECTIONS.filter((x) => present.includes(x)), ...present.filter((x) => !SECTIONS.includes(x))]
+  const shown = order.filter((x) => sec === 'All' || x === sec)
 
   return (
     <>
@@ -25,11 +31,19 @@ export default function Education() {
         <SearchBox value={q} onChange={setQ} placeholder="Treatment or topic" />
         <button className="btn primary" onClick={() => setAdding(true)}><Plus /> Add video</button>
       </PageHead>
-      <div className="row" style={{ gap: 6 }}>
+      {specs.length > 2 && <div className="row" style={{ gap: 6 }}>
         {specs.map((s) => <button key={s} className={`btn sm ${spec === s ? 'primary' : ''}`} onClick={() => setSpec(s)}>{s}</button>)}
-      </div>
-      <div className="video-grid">
-        {groupByLanguage(rows).map((g) => {
+      </div>}
+      {order.length > 1 && (
+        <div className="row sec-chips" style={{ gap: 6 }}>
+          {['All', ...order].map((x) => <button key={x} className={`btn sm ${sec === x ? 'primary' : 'ghost'}`} onClick={() => setSec(x)}>{x}</button>)}
+        </div>
+      )}
+      {shown.map((section) => (
+        <section key={section} className="edu-sec">
+          <h3 className="edu-sec-h">{section} <span className="small muted">{groupByLanguage(rows.filter((v) => secOf(v) === section)).length}</span></h3>
+          <div className="video-grid">
+            {groupByLanguage(rows.filter((v) => secOf(v) === section)).map((g) => {
           const v = g.main
           const id = youtubeId(v.url)
           const n = shares.filter((s) => g.items.some((x) => x.id === s.videoId)).length
@@ -37,12 +51,13 @@ export default function Education() {
             <div key={v.id} className="video-card" role="button" tabIndex={0} onClick={() => setPlay(v)} onKeyDown={(e) => e.key === 'Enter' && setPlay(v)}>
               <div className="thumb" style={id ? { backgroundImage: `url(https://i.ytimg.com/vi/${id}/mqdefault.jpg)` } : undefined}>
                 <PlayCircle size={34} />
-                <span className="dur">{v.minutes} min</span>
+                {v.minutes ? <span className="dur">{v.minutes} min</span> : null}
               </div>
               <div className="stack" style={{ gap: 2, padding: '10px 12px' }}>
-                <strong style={{ lineHeight: 1.3 }}>{v.procedure && v.builtIn ? v.procedure : v.title}</strong>
+                <strong style={{ lineHeight: 1.3 }}>{v.curated ? v.procedure : v.procedure && v.builtIn ? v.procedure : v.title}</strong>
+                {v.curated && <span className="small" style={{ lineHeight: 1.3 }}>{v.title}</span>}
                 <span className="small muted">{[v.speciality, v.topic || (v.builtIn ? '' : v.procedure)].filter(Boolean).join(' · ')}</span>
-                {v.builtIn && <span className="small" style={{ color: 'var(--brand)' }}>Debuggers Space</span>}
+                {v.builtIn && <span className="small" style={{ color: 'var(--brand)' }}>{v.curated ? `YouTube · ${v.source}` : 'Debuggers Space'}</span>}
                 <span className="small faint">{n ? `Shared with ${n} ${n === 1 ? 'patient' : 'patients'}` : 'Not shared yet'}</span>
                 {g.items.length > 1 && (
                   <div className="row lang-btns" style={{ gap: 6, marginTop: 6 }}>
@@ -57,7 +72,9 @@ export default function Education() {
             </div>
           )
         })}
-      </div>
+          </div>
+        </section>
+      ))}
       {!rows.length && <div className="empty">No videos match. Add one with “Add video”.</div>}
       <a className="small muted" href={HEALTH_CHANNEL} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><TvMinimalPlay size={15} /> More explainers in our Patient Education playlist on YouTube</a>
       {play && <VideoPlayer video={play} onClose={() => setPlay(null)} />}
