@@ -129,6 +129,8 @@ function TenantApp() {
           {site && !ctx.user && <Route index element={<ClinicSite site={site} />} />}
           {/* Signed-in staff can still open their clinic's public home page */}
           {site && <Route path="home" element={<ClinicSite site={site} />} />}
+          {/* The website's other pages: About, Services, Smile check, Contact */}
+          {site && <Route path="site/:page" element={<SitePage site={site} />} />}
           <Route path="*" element={waiting ? <ServerWait info={srv} /> : ctx.user ? <Shell /> : <Login />} />
         </Routes>
         {onServer && <ServerStart tid={ctx.tid} />}
@@ -136,6 +138,11 @@ function TenantApp() {
       </div>
     </TenantCtx.Provider>
   )
+}
+
+function SitePage({ site }) {
+  const { page } = useParams()
+  return <ClinicSite site={site} page={page} />
 }
 
 function ServerStart({ tid }) {
