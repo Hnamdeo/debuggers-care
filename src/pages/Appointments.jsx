@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { BellRing, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react'
+import { Video, BellRing, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react'
 import { CalendarView } from '../components/calendar'
 import { RecallBoard, useRecall } from '../components/recall'
 import { useTenant, PageHead, Card, Table, Pill, Select, toast } from '../components/ui'
@@ -76,12 +76,13 @@ export default function Appointments() {
           cols={[
             { label: 'Time', render: (a) => <span className="tabular cell-main">{fmtTime(a.time)}</span> },
             { label: 'Patient', render: (a) => <><a href="#" onClick={(e) => { e.preventDefault(); nav(`${base}/patients/${a.patientId}`) }} className="cell-main">{patient(a.patientId)?.name}</a><div className="cell-sub">{a.patientId} · {patient(a.patientId)?.phone}</div></> },
-            { label: 'Reason', render: (a) => <>{a.procedure && a.procedure !== 'Consultation' && <span className="proc-tag">{a.procedure} · {apptMins(a, tenant)} min</span>}<div>{a.reason !== a.procedure ? a.reason : ''}</div></> },
+            { label: 'Reason', render: (a) => <>{a.procedure && a.procedure !== 'Consultation' && <span className="proc-tag">{a.procedure} · {apptMins(a, tenant)} min</span>}{a.room && <span className="proc-tag">Video</span>}<div>{a.reason !== a.procedure ? a.reason : ''}</div></> },
             ...(isDoc ? [] : [{ label: 'Doctor', render: (a) => <><div>{staff(a.doctorId)?.name}</div><div className="cell-sub">{staff(a.doctorId)?.dept}</div></> }]),
             { label: 'Status', render: (a) => <Pill status={a.status} /> },
             {
               label: '', render: (a) => (
                 <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
+                  {a.room && ['scheduled', 'checked-in'].includes(a.status) && <a className="btn sm" href={a.room} target="_blank" rel="noopener noreferrer"><Video /> Join video</a>}
                   {a.status === 'scheduled' && a.date >= today() && <NotifyButtons a={a} />}
                   {a.status === 'scheduled' && a.date === today() && <button className="btn sm" onClick={() => setStatus(a, 'checked-in')}>Check in</button>}
                   {a.status === 'scheduled' && <button className="btn sm" onClick={() => setMove(a)}>Move</button>}

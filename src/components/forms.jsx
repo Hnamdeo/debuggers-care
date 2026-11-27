@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Modal, Input, Select, Textarea, useTenant, toast, celebrate } from './ui'
 import { db } from '../lib/store'
-import { today, addDays, fmtTime, fmtDate, money } from '../lib/utils'
+import { today, addDays, fmtTime, fmtDate, money, videoRoom } from '../lib/utils'
 
 
 export function PatientForm({ onClose, onSaved, initial }) {
@@ -89,7 +89,7 @@ export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fi
     if (!f.patientId || !f.time) return setErr('Choose a patient and a free time slot.')
     const a = move
       ? db.update(tid, 'appointments', move.id, { doctorId: f.doctorId, date: f.date, time: f.time, reason: f.reason || move.reason, procedure: f.procedure, mins: f.mins, status: 'scheduled', remindedAt: null, movedFrom: `${move.date} ${move.time}` }) || { ...move, ...f, status: 'scheduled' }
-      : db.add(tid, 'appointments', { ...f, reason: f.reason || f.procedure || 'Consultation', status: 'scheduled', type: 'OPD' })
+      : db.add(tid, 'appointments', { ...f, reason: f.reason || f.procedure || 'Consultation', status: 'scheduled', type: 'OPD', ...(f.video ? { room: videoRoom(tenant) } : {}) })
     toast(`${move ? 'Moved' : 'Booked'} ${patient(f.patientId).name} with ${doc.name}, ${fmtDate(f.date)} at ${fmtTime(f.time)}`)
     if (/^\d{10}$/.test(patient(f.patientId)?.phone || '')) setDone(a)
     else onClose(a)
@@ -137,6 +137,12 @@ export function BookAppointment({ onClose, patientId: fixedPatient, doctorId: fi
           {procs.map(([n, m]) => <button key={n} type="button" className={`btn sm ${f.procedure === n ? 'primary' : ''}`} onClick={() => pickProc(n, m)}>{n} <span className="proc-min">{m} min</span></button>)}
         </div>
       </div>
+      {!move && (
+        <label className="row small" style={{ gap: 8, cursor: 'pointer' }}>
+          <input type="checkbox" checked={!!f.video} onChange={(e) => setF({ ...f, video: e.target.checked })} />
+          <span><strong>Video consult</strong> · the patient joins from their phone; the link goes with the booking message</span>
+        </label>
+      )}
       <div className="field">
         <span>Free start times ({free.length}) for {f.procedure} · {f.mins} min{f.procedure === 'Consultation' ? ` · fee ${money(doc.fee)}` : ''}{short ? ' · can fit while a procedure is on' : ''}</span>
         <div className="row" style={{ gap: 6 }}>

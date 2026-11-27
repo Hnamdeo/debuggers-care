@@ -73,3 +73,6 @@ export const payslip = (basic, allowances = 0) => {
   const tds = gross > 60000 ? Math.round((gross - 60000) * 0.1) : 0
   return { basic, hra, allowances, gross, pf, pt, tds, net: gross - pf - pt - tds }
 }
+
+// Video consult: a private Jitsi Meet room per appointment (free, opens in any browser or the Jitsi app).
+export const videoRoom = (tenant) => `https://meet.jit.si/${String(tenant.slug || 'clinic').replace(/[^a-z0-9]/gi, '')}-${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36).slice(-4)}`

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarPlus, Pill as Pills, Store, Truck, MessageCircle, FileText, ExternalLink } from 'lucide-react'
+import { Video, CalendarPlus, Pill as Pills, Store, Truck, MessageCircle, FileText, ExternalLink } from 'lucide-react'
 import { useTenant, PageHead, Card, Table, Pill, Modal, Textarea, Input, toast } from '../components/ui'
 import { InstallStrip } from '../components/install'
 import { PrescriptionDoc } from '../components/docs'
@@ -59,7 +59,7 @@ export function PatientAppointments() {
           { label: 'Doctor', render: (a) => <><div>{staff(a.doctorId)?.name}</div><div className="cell-sub">{staff(a.doctorId)?.dept}</div></> },
           { label: 'Reason', key: 'reason' },
           { label: 'Status', render: (a) => <Pill status={a.status} /> },
-          { label: '', render: (a) => a.status === 'scheduled' && a.date >= today() && <button className="btn sm ghost danger" onClick={() => { db.update(tid, 'appointments', a.id, { status: 'cancelled' }); toast('Appointment cancelled') }}>Cancel</button> },
+          { label: '', render: (a) => a.room && a.status === 'scheduled' && a.date >= today() ? <a className="btn sm primary" href={a.room} target="_blank" rel="noopener noreferrer"><Video /> Join video call</a> : a.status === 'scheduled' && a.date >= today() && <button className="btn sm ghost danger" onClick={() => { db.update(tid, 'appointments', a.id, { status: 'cancelled' }); toast('Appointment cancelled') }}>Cancel</button> },
         ]} />
       </Card>
     </>

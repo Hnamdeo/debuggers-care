@@ -28,7 +28,8 @@ export function reminderText(tenant, p, a, doctor, kind = 'reminder') {
     ? `नमस्ते ${first}, ${clinic} में आपका अपॉइंटमेंट ${dayHindi(a.date)} ${fmtTime(a.time)} बजे बुक हो गया है।`
     : `नमस्ते ${first}, याद दिला दें: ${clinic} में आपका अपॉइंटमेंट ${dayHindi(a.date)} ${fmtTime(a.time)} बजे है।`
   const tail = [
-    site?.address ? `📍 ${site.address}` : '',
+    a.room ? `🎥 Video consult: join here at the time / इस लिंक से वीडियो कॉल पर जुड़ें:\n${a.room}` : '',
+    !a.room && site?.address ? `📍 ${site.address}` : '',
     site?.phone ? `📞 ${site.phone}` : '',
     'Please reply if you need to change the time. समय बदलना हो तो जवाब दें।',
   ].filter(Boolean).join('\n')
