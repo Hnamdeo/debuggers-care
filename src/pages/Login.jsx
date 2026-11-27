@@ -1,9 +1,9 @@
 import { tenantHost } from '../lib/plans'
 import { useEffect, useState } from 'react'
 import { PatientSignIn } from '../components/patientlogin'
-import { InstallStrip } from '../components/install'
+import { InstallButton } from '../components/install'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Cpu, Wifi, ShieldCheck, Stethoscope, Store, User, ClipboardList, ArrowLeft, Lock, Clock, MapPin, Phone, GraduationCap, Building2, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt, Sparkles } from 'lucide-react'
+import { ChevronRight, ShieldCheck, Stethoscope, Store, User, ClipboardList, ArrowLeft, Lock, Clock, MapPin, Phone, CalendarCheck, FileHeart, QrCode, MonitorPlay, Receipt } from 'lucide-react'
 import { auth, db, server } from '../lib/store'
 import { useTenant, Input, PasswordInput, BrandMark, CompanyLink, SiteFooter } from '../components/ui'
 import { DemoBand } from '../App'
@@ -88,73 +88,74 @@ export default function Login() {
     go(pick)
   }
 
+  const site = SITES[tenant.slug]
+  const pwForm = tenant.live && pick && (
+    <form className="stack ls-pw" style={{ gap: 10 }} onSubmit={liveSubmit}>
+      {needsSetup && <div className="small muted">First time on this computer. Choose a password; it will be asked every time you sign in.</div>}
+      <PasswordInput id="live-pw" label={needsSetup ? "New password" : "Password"} autoFocus autoComplete={needsSetup ? 'new-password' : 'current-password'} value={pw} onChange={(e) => setPw(e.target.value)} />
+      {needsSetup && <PasswordInput id="live-pw2" label="Type it again" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />}
+      {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
+      <button className="btn primary" type="submit" disabled={busy} style={{ justifyContent: 'center' }}><Lock /> {busy ? 'Signing in…' : needsSetup ? 'Save password and sign in' : 'Sign in'}</button>
+    </form>
+  )
+
   return (
-    <div className="login-page hx">
+    <div className="login-page ls">
       <DemoBand />
-      <div className="hx-bg" aria-hidden="true"><i className="hx-grid" /><i className="hx-orb a" /><i className="hx-orb b" /><i className="hx-scan" /></div>
-      <div className="login-wrap login-split">
-        {SITES[tenant.slug] ? <ClinicPanel site={SITES[tenant.slug]} /> : <AboutPanel tenant={tenant} />}
-        <div className="card login-card">
-          <div className="row">
+      <div className="ls-wrap">
+        {site ? <ClinicPanel site={site} /> : <AboutPanel tenant={tenant} />}
+        <div className="ls-card">
+          <div className="ls-head">
             <BrandMark tenant={tenant} />
-            <div>
-              <h2>{SITES[tenant.slug]?.name || tenant.name}</h2>
-              <div className="small muted">{tenantHost(tenant)}</div>
+            <div style={{ minWidth: 0 }}>
+              <h2>{site?.name || tenant.name}</h2>
+              <div className="small muted">{tenant.live ? 'Sign in to continue' : 'Demo · one-click sign in, sample data only'}</div>
             </div>
           </div>
           <div className="stack" style={{ gap: 8 }}>
-            <span className="eyebrow">{tenant.live ? 'Who is signing in?' : 'One-click demo login'}</span>
-            <div className="hx-sys">
-              <span><i className="hx-dot" /> {tenant.server ? 'Secure server online' : 'Ready'}</span>
-              <span><ShieldCheck /> Encrypted</span>
-              <span><Sparkles /> AI assistant ready</span>
-            </div>
+            <span className="ls-label">Sign in as</span>
             {quick.map((q) => {
               const u = users.find((x) => x.role === q.role)
               if (!u) return null
+              const on = pick?.id === u.id
               return (
-                <button key={q.role} className={`role-btn ${pick?.id === u.id ? 'picked' : ''}`} onClick={() => (tenant.live ? choose(u) : go(u))}>
-                  <span className="hx-tile"><q.icon /></span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <strong>{q.label}</strong> <span className="muted small">· {who(u)}</span>
-                    <div className="small muted">{q.sub}</div>
-                  </div>
-                  <ChevronRight className="hx-go" />
-                </button>
+                <div key={q.role} className="stack" style={{ gap: 8 }}>
+                  <button className={`role-btn ls-role ${on ? 'picked' : ''}`} onClick={() => (tenant.live ? choose(u) : go(u))}>
+                    <q.icon />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <strong>{q.label}</strong>
+                      <div className="small muted">{who(u)}</div>
+                    </div>
+                    <ChevronRight className="ls-go" />
+                  </button>
+                  {on && pwForm}
+                </div>
               )
             })}
             {tenant.server && (
-              <button className={`role-btn ${ptMode ? 'picked' : ''}`} onClick={() => { setPtMode(true); setPick(null); setErr('') }}>
-                <span className="hx-tile"><User /></span>
+              <button className={`role-btn ls-role ${ptMode ? 'picked' : ''}`} onClick={() => { setPtMode(true); setPick(null); setErr('') }}>
+                <User />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <strong>I am a patient</strong>
+                  <strong>Patient</strong>
                   <div className="small muted">My prescriptions, reports and bills</div>
                 </div>
-                <ChevronRight className="hx-go" />
+                <ChevronRight className="ls-go" />
               </button>
             )}
+            {ptMode && <PatientSignIn />}
           </div>
-          {ptMode && <PatientSignIn />}
-          <InstallStrip who="this phone or computer" />
-          {tenant.live && pick && (
-            <form className="stack" style={{ gap: 10 }} onSubmit={liveSubmit}>
-              <span className="eyebrow"><Lock size={12} style={{ verticalAlign: '-1px' }} /> {needsSetup ? `Set a password for ${who(pick)}` : `Password for ${who(pick)}`}</span>
-              {needsSetup && <div className="small muted">First time on this computer. Choose a password; it will be asked every time you sign in.</div>}
-              <PasswordInput id="live-pw" label={needsSetup ? 'New password' : 'Password'} autoFocus autoComplete={needsSetup ? 'new-password' : 'current-password'} value={pw} onChange={(e) => setPw(e.target.value)} />
-              {needsSetup && <PasswordInput id="live-pw2" label="Type it again" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />}
-              {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
-              <button className="btn primary" type="submit" disabled={busy} style={{ justifyContent: 'center' }}>{busy ? 'Signing in…' : needsSetup ? 'Save password and sign in' : 'Sign in'}</button>
-            </form>
-          )}
           {!tenant.live && <form className="stack" style={{ gap: 10 }} onSubmit={submit}>
-            <span className="eyebrow">Or sign in with email</span>
+            <span className="ls-label">Or sign in with email</span>
             <Input id="login-email" type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={users[0].email} />
             <PasswordInput id="login-pw" label="Password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="demo123" />
             {err && <div className="small" style={{ color: 'var(--bad)' }}>{err}</div>}
             <button className="btn primary" type="submit" style={{ justifyContent: 'center' }}>Sign in</button>
           </form>}
-          {SITES[tenant.slug] && <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav(`/t/${tenant.slug}`)}><ArrowLeft /> Clinic home page</button>}
-          {!tenant.prospect && <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => nav('/')}><ArrowLeft /> All demo clinics</button>}
+          <div className="ls-links">
+            {site && <button className="btn ghost sm" onClick={() => nav(`/t/${tenant.slug}`)}><ArrowLeft /> Clinic home page</button>}
+            {!tenant.prospect && <button className="btn ghost sm" onClick={() => nav('/')}><ArrowLeft /> All demo clinics</button>}
+            <InstallButton className="btn ghost sm" />
+          </div>
         </div>
       </div>
       <SiteFooter className="login-footer" />
@@ -181,74 +182,37 @@ const FEATURES = [
 function ClinicPanel({ site }) {
   const status = useOpenNow(site.hours)
   const today = site.hours.find(([d]) => d === status.day)?.[1]
-  const h = new Date(Date.now() + (330 + new Date().getTimezoneOffset()) * 60000).getHours()
-  const hello = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
   const docs = site.doctors || [site.doctor]
-  const d = docs[0]
   const rows = [
-    [Clock, status.text, today ? `Today: ${slots(today)}` : 'Closed today'],
-    ...(docs.length > 1
-      ? [[Stethoscope, docs.map((x) => x.name).join(' & '), `${d.title}s`]]
-      : [[Stethoscope, d.name, `${d.title}${d.years ? ` · ${d.years}+ years` : ''}`],
-        [GraduationCap, d.quals[0].replace(/ \(.*\)$/, ''), d.quals.slice(1).join(' · ')]]),
+    [Stethoscope, docs.map((x) => x.name).join(' & '), docs.length > 1 ? `${docs[0].title}s` : docs[0].title],
+    [Clock, today ? `Today ${slots(today)}` : 'Closed today', status.text],
     [MapPin, site.addrLines?.[0] || site.address, site.addrLines?.[1] || site.area],
     [Phone, site.phone, 'Clinic phone'],
   ]
   return (
-    <section className="about-panel" aria-label={`About ${site.name}`}>
-      <div className="about-brand hx-top">
-        <span className="about-chip"><Building2 size={13} /> {site.name}</span>
-        <span className="about-chip hx-ai"><Cpu size={13} /> AI powered clinical management</span>
-      </div>
-      <LiveClock />
-      <h1>{hello},<br /><span className="hx-grad">welcome to the clinic.</span></h1>
-      <p>Sign in to see today’s patients, appointments and bills. Your AI assistant is ready to book, register and write prescriptions.</p>
-      <ul className="about-list">
-        {rows.map(([Icon, title, sub], i) => (
-          <li key={title} style={{ animationDelay: `${0.15 + i * 0.08}s` }}>
-            <span className="about-ic"><Icon /></span>
-            <span><strong>{title}</strong><span className="small">{sub}</span></span>
-          </li>
+    <section className="ls-panel" aria-label={`About ${site.name}`}>
+      <h1>{site.name}</h1>
+      <ul className="ls-list">
+        {rows.filter(([, t]) => t).map(([Icon, title, sub]) => (
+          <li key={title}><Icon /><span><strong>{title}</strong>{sub && <span>{sub}</span>}</span></li>
         ))}
       </ul>
+      <span className="ls-note">Clinic management · patients, appointments, prescriptions and bills</span>
     </section>
   )
 }
 
 function AboutPanel({ tenant }) {
   return (
-    <section className="about-panel" aria-label="About this app">
-      <div className="about-brand">
-        <span className="about-chip"><Sparkles size={13} /> Clinic and Hospital Management System</span>
-        <span className="about-by small">by <CompanyLink /></span>
-      </div>
-      <LiveClock />
-      <h1>Your whole clinic,<br /><span className="hx-grad">on one AI powered screen.</span></h1>
-      <p>Everything {tenant.name} needs, in one place. Made simple for doctors.</p>
-      <ul className="about-list">
-        {FEATURES.map(([Icon, title, sub], i) => (
-          <li key={title} style={{ animationDelay: `${0.15 + i * 0.08}s` }}>
-            <span className="about-ic"><Icon /></span>
-            <span><strong>{title}</strong><span className="small">{sub}</span></span>
-          </li>
+    <section className="ls-panel" aria-label="About this app">
+      <h1>{tenant.name}</h1>
+      <p>Clinic and Hospital Management System</p>
+      <ul className="ls-list">
+        {FEATURES.map(([Icon, title, sub]) => (
+          <li key={title}><Icon /><span><strong>{title}</strong><span>{sub}</span></span></li>
         ))}
       </ul>
-      <span className="about-foot small">Secure sign-in · Works on any computer, tablet or phone</span>
+      <span className="ls-note">by <CompanyLink /></span>
     </section>
-  )
-}
-
-// India time, ticking, for the high-tech sign-in screen.
-function LiveClock() {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t) }, [])
-  const opt = { timeZone: 'Asia/Kolkata' }
-  const time = now.toLocaleTimeString('en-IN', { ...opt, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
-  const date = now.toLocaleDateString('en-IN', { ...opt, weekday: 'long', day: 'numeric', month: 'long' })
-  return (
-    <div className="hx-clock" aria-label={`${date}, ${time}`}>
-      <strong>{time}</strong>
-      <span><Wifi size={13} /> {date} · IST</span>
-    </div>
   )
 }

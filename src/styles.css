@@ -2435,3 +2435,32 @@ body:has(.chat-page) { background: #070b17; }
 :root[data-theme='dark'] .sync-pill.ok { background: #0f3020; color: #8fe0b0; border-color: #1f5a3a; }
 :root[data-theme='dark'] .sync-pill.bad { background: #3d1414; color: #ffb3b3; border-color: #6e2525; }
 .pad-meds li span.hi { color: #222; font-size: 12px; font-weight: 600; }
+
+/* Simple, professional sign-in page */
+.login-page.ls { background: var(--bg); min-height: 100dvh; display: flex; flex-direction: column; }
+.ls-wrap { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: clamp(20px, 4vw, 48px); align-items: center; max-width: 1040px; width: 100%; margin: 0 auto; padding: clamp(16px, 4vh, 40px) 16px; }
+.ls-panel { background: var(--brand); color: #fff; border-radius: 16px; padding: clamp(22px, 4vw, 36px); display: flex; flex-direction: column; gap: 14px; }
+.ls-panel h1 { color: #fff; margin: 0; font-size: clamp(1.4rem, 2.6vw, 1.9rem); line-height: 1.2; }
+.ls-panel p { margin: 0; color: rgb(255 255 255 / 85%); }
+.ls-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 14px; }
+.ls-list li { display: flex; gap: 12px; align-items: flex-start; }
+.ls-list li > svg { width: 18px; height: 18px; flex: none; margin-top: 2px; opacity: .9; }
+.ls-list li > span { display: flex; flex-direction: column; min-width: 0; }
+.ls-list li > span > span { font-size: 13px; color: rgb(255 255 255 / 78%); }
+.ls-note { font-size: 12.5px; color: rgb(255 255 255 / 70%); border-top: 1px solid rgb(255 255 255 / 20%); padding-top: 12px; }
+.ls-note a, .ls-note .company-link { color: #fff; }
+.ls-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 1px 2px rgb(0 0 0 / 4%), 0 8px 24px -12px rgb(0 0 0 / 12%); }
+.ls-head { display: flex; gap: 12px; align-items: center; }
+.ls-head h2 { margin: 0; font-size: 1.15rem; }
+.ls-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.ls .role-btn.ls-role, .ls .role-btn.ls-role:hover { transform: none; box-shadow: none; }
+.ls .role-btn.ls-role.picked { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent); }
+.ls-go { color: var(--muted) !important; width: 16px !important; height: 16px !important; }
+.ls-pw { padding: 4px 2px 6px; }
+.ls-links { display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px solid var(--line); padding-top: 12px; }
+.ls .login-footer { padding: 10px 16px 14px; }
+@media (max-width: 860px) {
+  .ls-wrap { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .ls-card { order: -1; }
+  .ls-list li:nth-child(n+3), .ls-note { display: none; }
+}
