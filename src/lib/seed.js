@@ -267,6 +267,45 @@ const TENANT_DEFS = [
     ],
     beds: [],
   },
+  {
+    id: 't_shanti',
+    slug: 'shantidental',
+    name: 'Shanti Multispeciality Dental Care',
+    short: 'Shanti Dental',
+    kind: 'Dental clinic',
+    plan: 'clinic',
+    // Trial space for a prospect (27 Nov 2026): empty clinic on the server database.
+    prospect: true,
+    live: true,
+    server: true,
+    address: 'Near Gurudwara, Main Road, Dayalband, Bilaspur, Chhattisgarh 495001',
+    phone: '+91 81095 18000',
+    email: 'clinic@shantidental.example',
+    gstin: '',
+    regNo: '',
+    color: '#0f766e',
+    doctors: [
+      ['Dr. Satish Chhugani', 'M', 'Dental Surgery', 'BDS, MDS (Oral Medicine & Radiology)', 150, 0],
+      ['Dr. Gunjan Chhugani', 'F', 'Dental Surgery', 'BDS', 150, 0],
+    ],
+    otherStaff: [
+      ['Front desk (sample)', 'F', 'receptionist', 'Front desk', 15000],
+      ['Dental assistant (sample)', 'F', 'nurse', 'Chairside assistant', 14000],
+    ],
+    admin: ['Clinic admin', 'F', 'Clinic manager', 0],
+    patients: 24,
+    reasons: ['Tooth pain', 'General dental check-up', 'Scaling & polishing', 'Root canal follow-up', 'Wisdom tooth pain', 'Braces consultation', 'Implant consultation', 'Smile design consultation', 'Bleeding gums', 'Tooth sensitivity'],
+    services: [['Consultation', 150], ['Digital X-ray (IOPA)', 200], ['Scaling & polishing', 800], ['Composite filling', 1000], ['GIC filling', 700], ['Root canal treatment', 4000], ['Tooth extraction', 500], ['Impacted tooth extraction', 3500], ['Crown (ceramic)', 5000], ['Dental implant', 25000], ['Teeth whitening', 5000], ['Braces adjustment', 1000], ['Complete denture', 12000]],
+    diagnoses: ['Dental caries', 'Irreversible pulpitis (36)', 'Chronic gingivitis', 'Impacted 48', 'Malocclusion, Class II', 'Missing tooth (46)', 'Discoloured teeth', 'Dentine hypersensitivity'],
+    tests: ['IOPA X-ray', 'OPG (dental panoramic X-ray)', 'CBCT scan', 'Blood sugar (fasting)'],
+    rxSets: [
+      [['Amoxicillin 500 mg', '1 cap', 'Three times a day', 5], ['Ketorolac 10 mg', '1 tab', 'When needed for pain', 3]],
+      [['Chlorhexidine mouthwash', '10 ml', 'Twice a day', 14]],
+      [['Metronidazole 400 mg', '1 tab', 'Three times a day', 5], ['Ibuprofen 400 mg', '1 tab', 'Twice a day after food', 3]],
+      [['Sensitivity toothpaste', 'Apply', 'Twice a day', 30]],
+    ],
+    beds: [],
+  },
 ]
 
 const PLATFORM_EXTRA = [
