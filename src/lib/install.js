@@ -16,7 +16,7 @@ export function startInstall() {
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); offer = e; tell() })
   window.addEventListener('appinstalled', () => { offer = null; tell() })
   // The single-file demo build has no service worker file next to it.
-  if ('serviceWorker' in navigator && import.meta.env.PROD && import.meta.env.MODE !== 'single' && location.protocol === 'https:') {
+  if ('serviceWorker' in navigator && import.meta.env.PROD && import.meta.env.MODE !== 'single' && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}))
   }
 }

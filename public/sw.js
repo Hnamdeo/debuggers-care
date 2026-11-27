@@ -2,11 +2,20 @@
 // Pages always come from the network first (so a new version shows at once); the
 // built files in /assets/ never change once published, so they are kept on the device.
 // Patient data (/api/) is never stored here.
-const CACHE = 'care-v1'
+// At install it also keeps every file the app needs, so the app still opens with the internet down.
+const CACHE = 'care-v2'
 
 self.addEventListener('install', (e) => {
   self.skipWaiting()
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/icons/icon-192.png']).catch(() => {})))
+  e.waitUntil(caches.open(CACHE).then(async (c) => {
+    try {
+      const res = await fetch('/', { cache: 'no-store' })
+      const html = await res.clone().text()
+      await c.put('/', res)
+      const files = [...new Set([...html.matchAll(/(?:src|href)="(\/(?:assets|icons)\/[^"]+)"/g)].map((m) => m[1]))]
+      await c.addAll([...files, '/icons/icon-192.png'])
+    } catch {}
+  }))
 })
 
 self.addEventListener('activate', (e) => {
