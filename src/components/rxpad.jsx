@@ -3,6 +3,7 @@
 import { useTenant } from './ui'
 import { SITES } from '../lib/sites'
 import { fmtDate, age } from '../lib/utils'
+import { hiMed, hiAdvice } from '../lib/hindi'
 
 export const HISTORY = ['Diabetes', 'Hypertension', 'Drug allergy', 'Pregnancy', 'Asthma', 'Thyroid', 'Others']
 
@@ -68,6 +69,8 @@ export function RxPad({ rx, p, doctor }) {
   const history = rx.history || historyFor(p)
   const others = rx.historyNote || ''
   const sex = { M: 'M', F: 'F', O: 'O' }[p?.gender] || ''
+  // Hindi under each medicine and the advice, unless the clinic turned it off in settings.
+  const hindi = tenant.rxHindi !== false
   return (
     <div className="sheet pad-sheet">
       <header className="pad-head">
@@ -117,12 +120,12 @@ export function RxPad({ rx, p, doctor }) {
               <>
                 <div className="rx">℞</div>
                 <ol className="pad-meds">
-                  {rx.items.map((it, i) => <li key={i}><b>{it.name}</b><span>{[it.dose, it.freq, it.days ? `${it.days} days` : ''].filter(Boolean).join(' · ')}</span></li>)}
+                  {rx.items.map((it, i) => <li key={i}><b>{it.name}</b><span>{[it.dose, it.freq, it.days ? `${it.days} days` : ''].filter(Boolean).join(' · ')}</span>{hindi && hiMed(it) && <span className="hi">{hiMed(it)}</span>}</li>)}
                 </ol>
               </>
             )}
             {rx.tests?.length > 0 && <p><b>Investigations:</b> {rx.tests.join(', ')}</p>}
-            {rx.notes && <p><b>Advice:</b> {rx.notes}</p>}
+            {rx.notes && <p><b>Advice:</b> {rx.notes}{hindi && hiAdvice(rx.notes) && <><br /><span className="hi">सलाह: {hiAdvice(rx.notes)}</span></>}</p>}
             {rx.nextVisit && <p><b>Next visit:</b> {fmtDate(rx.nextVisit)}</p>}
           </div>
           <div className="pad-sign"><div className="sig">{doctor?.name}</div><div>{doctor?.qualification}</div></div>

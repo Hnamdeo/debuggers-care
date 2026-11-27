@@ -2434,3 +2434,4 @@ body:has(.chat-page) { background: #070b17; }
 :root[data-theme='dark'] .sync-pill.busy { background: #142447; color: #a9c2ff; border-color: #2a4380; }
 :root[data-theme='dark'] .sync-pill.ok { background: #0f3020; color: #8fe0b0; border-color: #1f5a3a; }
 :root[data-theme='dark'] .sync-pill.bad { background: #3d1414; color: #ffb3b3; border-color: #6e2525; }
+.pad-meds li span.hi { color: #222; font-size: 12px; font-weight: 600; }
