@@ -27,7 +27,8 @@ function withNewTenants(saved) {
   // A clinic that has just switched from sample data to a clean live space is reseeded once.
   const missing = fresh.tenants.filter((t) => {
     const old = saved.tenants.find((s) => s.id === t.id)
-    return !old || (t.live && !old.live)
+    // A demo clinic whose sample set changed (its v went up) is reseeded too.
+    return !old || (t.live && !old.live) || (t.v || 0) !== (old.v || 0)
   })
   // Demo clinics that were renamed keep their records but take the new name and address.
   const NAME_FIELDS = ['slug', 'aliases', 'name', 'short']
