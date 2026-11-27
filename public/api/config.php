@@ -7,6 +7,7 @@ return [
   'leads_key_hash' => '$2y$10$kO87sbhzgb3b243T8ZrKeuPOfj85GRmBiwDlUk7hVCN.qhNQQFxeC',
   'clinics' => [
     'vedantadental' => ['initial_password_hash' => '$2y$10$za59TJwgUlfhIABWLYHjYOEMQAJpi7GOX5y1P41ByalEeEwo0Dgu2'],
+    'shantidental' => ['initial_password_hash' => '$2y$10$BgJvB/Bgvai6zeHVD8Ibv.nCUtbg1YEyWrOfUYY1BHc2LfTTFRl8W'],
     'drmourya' => ['initial_password_hash' => '$2y$10$R.xE9uuatT3j5mIEaKJZq.LynkKqvLPGQJ9BdBmOWU2G/N/wus2Hq'],
   ],
 ];
