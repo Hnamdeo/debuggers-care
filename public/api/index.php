@@ -15,6 +15,8 @@
 //   update    staff    change fields of a record
 //   tenant    staff    change clinic settings
 //   register  public   patient self-registration from the QR code (name + mobile required)
+//   slots     public   times already taken on a day (no patient details), for online booking
+//   book      public   website booking request: registers the patient, appointment waits as 'requested'
 //   export    staff    whole clinic as one backup file
 //   import    admin    replace the clinic with a backup file
 //   password  admin    change the staff password
@@ -180,6 +182,30 @@ function session(): array {
   return $u + ['_token_hash' => hash('sha256', $tok)];
 }
 function patientUser(string $pid): array { return ['id' => "PT:$pid", 'role' => 'patient', 'refId' => $pid]; }
+// A patient registering or booking from the website: same mobile and same first name is the same person
+// (families can share one mobile), so their file is updated instead of a second one being made.
+function upsertSelfPatient(array $p, string $name, string $phone, int $rev): array {
+  global $pdo;
+  $allowed = ['name', 'phone', 'email', 'dob', 'ageYears', 'dobApprox', 'gender', 'blood', 'allergies', 'conditions', 'address', 'emergencyContact', 'visitReason'];
+  $rec = array_intersect_key($p, array_flip($allowed));
+  foreach ($rec as $k => $v) $rec[$k] = is_scalar($v) ? mb_substr(trim((string)$v), 0, 300) : '';
+  $rec['name'] = $name;
+  $rec['phone'] = $phone;
+  $rec['selfRegistered'] = true;
+  $rec['consentOn'] = date('Y-m-d');
+  $existing = null;
+  foreach ($pdo->query("SELECT data FROM records WHERE coll = 'patients'")->fetchAll() as $r) {
+    $d = json_decode($r['data'], true);
+    if (($d['phone'] ?? '') === $phone && empty($d['mergedInto']) && firstName((string)($d['name'] ?? '')) === firstName($name)) { $existing = $d; break; }
+  }
+  if ($existing) {
+    $row = array_merge($existing, array_filter($rec, fn($v) => $v !== ''));
+    if (mb_strlen(trim((string)($existing['name'] ?? ''))) > mb_strlen($name)) $row['name'] = $existing['name'];
+  }
+  else $row = ['id' => nextId('patients')] + $rec + ['regDate' => date('Y-m-d')];
+  putRec('patients', $row, $rev);
+  return [$row, $existing];
+}
 function staffOnly(): array {
   $u = session();
   if (($u['role'] ?? '') === 'patient') fail('Only clinic staff can do that.', 403);
@@ -413,27 +439,9 @@ switch ($action) {
     $phone = substr(preg_replace('/\D/', '', (string)($p['phone'] ?? '')), -10);
     if (mb_strlen($name) < 2) fail('Please type your full name.');
     if (!preg_match('/^[6-9]\d{9}$/', $phone)) fail('Please give a 10-digit mobile number.');
-    $allowed = ['name', 'phone', 'email', 'dob', 'ageYears', 'dobApprox', 'gender', 'blood', 'allergies', 'conditions', 'address', 'emergencyContact', 'visitReason'];
-    $rec = array_intersect_key($p, array_flip($allowed));
-    foreach ($rec as $k => $v) $rec[$k] = is_scalar($v) ? mb_substr(trim((string)$v), 0, 300) : '';
-    $rec['name'] = $name;
-    $rec['phone'] = $phone;
-    $rec['selfRegistered'] = true;
-    $rec['consentOn'] = date('Y-m-d');
     $pdo->beginTransaction();
-    $existing = null;
-    foreach ($pdo->query("SELECT data FROM records WHERE coll = 'patients'")->fetchAll() as $r) {
-      $d = json_decode($r['data'], true);
-      // Same mobile and same first name is the same person (families can share one mobile).
-      if (($d['phone'] ?? '') === $phone && empty($d['mergedInto']) && firstName((string)($d['name'] ?? '')) === firstName($name)) { $existing = $d; break; }
-    }
     $rev = nextRev();
-    if ($existing) {
-      $row = array_merge($existing, array_filter($rec, fn($v) => $v !== ''));
-      if (mb_strlen(trim((string)($existing['name'] ?? ''))) > mb_strlen($name)) $row['name'] = $existing['name'];
-    }
-    else $row = ['id' => nextId('patients')] + $rec + ['regDate' => date('Y-m-d')];
-    putRec('patients', $row, $rev);
+    [$row, $existing] = upsertSelfPatient($p, $name, $phone, $rev);
     audit(null, 'register', 'patients', $row['id']);
     // Scanning the QR at the clinic means the patient is here today: put them in today's waiting list once.
     $today = date('Y-m-d');
@@ -443,11 +451,66 @@ switch ($action) {
       if (($d['patientId'] ?? '') === $row['id'] && ($d['date'] ?? '') === $today) { $visit = $d; break; }
     }
     if (!$visit) {
-      $visit = ['id' => nextId('visits'), 'patientId' => $row['id'], 'date' => $today, 'time' => date('H:i'), 'status' => 'waiting', 'source' => 'qr', 'complaint' => $rec['visitReason'] ?? '', 'vitals' => new stdClass()];
+      $visit = ['id' => nextId('visits'), 'patientId' => $row['id'], 'date' => $today, 'time' => date('H:i'), 'status' => 'waiting', 'source' => 'qr', 'complaint' => mb_substr(trim((string)($p['visitReason'] ?? '')), 0, 300), 'vitals' => new stdClass()];
       putRec('visits', $visit, $rev);
     }
     $pdo->commit();
     out(['id' => $row['id'], 'existing' => (bool)$existing, 'visitId' => $visit['id']]);
+  }
+
+  case 'slots': {
+    // Public, read-only: which times are already taken on a day (no patient details), for online booking.
+    if (!initialised()) fail('This clinic is not taking online bookings yet.', 409);
+    $date = (string)($in['date'] ?? '');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) fail('Pick a date.');
+    $busy = [];
+    foreach ($pdo->query("SELECT data FROM records WHERE coll = 'appointments'")->fetchAll() as $r) {
+      $d = json_decode($r['data'], true);
+      if (($d['date'] ?? '') !== $date || in_array($d['status'] ?? '', ['cancelled', 'no-show', 'declined'], true)) continue;
+      $busy[] = ['doctorId' => (string)($d['doctorId'] ?? ''), 'time' => (string)($d['time'] ?? ''), 'mins' => (int)($d['mins'] ?? 0), 'status' => 'busy'];
+    }
+    $docs = [];
+    foreach ($pdo->query("SELECT data FROM records WHERE coll = 'staff'")->fetchAll() as $r) {
+      $s = json_decode($r['data'], true);
+      if (($s['role'] ?? '') === 'doctor' && empty($s['left']) && empty($s['inactive'])) $docs[] = ['id' => (string)$s['id'], 'name' => (string)($s['name'] ?? ''), 'title' => (string)($s['title'] ?? $s['dept'] ?? '')];
+    }
+    out(['busy' => $busy, 'doctors' => $docs]);
+  }
+
+  case 'book': {
+    // A patient asks for a time from the clinic's website. It waits as "requested" until the clinic confirms.
+    rateLimit(10, 3600);
+    if (!initialised()) fail('This clinic is not taking online bookings yet. Please call the clinic.', 409);
+    $p = $in['patient'] ?? null;
+    $a = $in['appt'] ?? null;
+    if (!is_array($p) || !is_array($a)) fail('Please fill in your details.');
+    $name = trim((string)($p['name'] ?? ''));
+    $phone = substr(preg_replace('/\D/', '', (string)($p['phone'] ?? '')), -10);
+    if (mb_strlen($name) < 2) fail('Please type your full name.');
+    if (!preg_match('/^[6-9]\d{9}$/', $phone)) fail('Please give a 10-digit mobile number.');
+    $date = (string)($a['date'] ?? '');
+    $time = (string)($a['time'] ?? '');
+    $doctorId = (string)($a['doctorId'] ?? '');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $date < date('Y-m-d') || $date > date('Y-m-d', time() + 90 * 86400)) fail('Pick a date in the next three months.');
+    if (!preg_match('/^\d{2}:\d{2}$/', $time)) fail('Pick a time.');
+    $doc = getRec('staff', $doctorId);
+    if (!$doc || ($doc['role'] ?? '') !== 'doctor') fail('Pick a doctor.');
+    $pdo->beginTransaction();
+    foreach ($pdo->query("SELECT data FROM records WHERE coll = 'appointments'")->fetchAll() as $r) {
+      $d = json_decode($r['data'], true);
+      if (($d['date'] ?? '') === $date && ($d['time'] ?? '') === $time && ($d['doctorId'] ?? '') === $doctorId && !in_array($d['status'] ?? '', ['cancelled', 'no-show', 'declined'], true)) {
+        $pdo->rollBack();
+        fail('Someone just took that time. Please pick another time.', 409);
+      }
+    }
+    $rev = nextRev();
+    [$row, $existing] = upsertSelfPatient($p, $name, $phone, $rev);
+    $appt = ['id' => nextId('appointments'), 'patientId' => $row['id'], 'doctorId' => $doctorId, 'date' => $date, 'time' => $time,
+      'reason' => mb_substr(trim((string)($a['reason'] ?? '')), 0, 200), 'procedure' => 'Consultation', 'status' => 'requested', 'source' => 'website', 'requestedAt' => date('c')];
+    putRec('appointments', $appt, $rev);
+    audit(null, 'book', 'appointments', $appt['id']);
+    $pdo->commit();
+    out(['id' => $appt['id'], 'patientId' => $row['id'], 'existing' => (bool)$existing]);
   }
 
   case 'export': {

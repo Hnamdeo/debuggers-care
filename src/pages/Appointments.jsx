@@ -7,6 +7,7 @@ import { useTenant, PageHead, Card, Table, Pill, Select, toast } from '../compon
 import { BookAppointment } from '../components/forms'
 import { db } from '../lib/store'
 import { today, addDays, fmtDate, fmtTime } from '../lib/utils'
+import { BookingRequests, respond } from '../components/bookingrequests'
 import { slotsOn, slotMinutes, hoursOn, busyMap, endTime, apptMins } from '../lib/slots'
 import { BookAppointment as Book } from '../components/forms'
 import { NotifyButtons, RemindModal } from '../components/reminders'
@@ -32,7 +33,7 @@ export default function Appointments() {
     db.update(tid, 'appointments', a.id, { status })
     toast(`${patient(a.patientId).name}: ${status === 'checked-in' ? 'checked in' : status === 'no-show' ? 'marked as didn’t come' : status}`)
   }
-  const counts = ['scheduled', 'checked-in', 'completed', 'no-show', 'cancelled'].filter((s) => s !== 'no-show' || rows.some((r) => r.status === s)).map((s) => [s, rows.filter((r) => r.status === s).length])
+  const counts = ['requested', 'scheduled', 'checked-in', 'completed', 'no-show', 'cancelled'].filter((s) => !['no-show', 'requested'].includes(s) || rows.some((r) => r.status === s)).map((s) => [s, rows.filter((r) => r.status === s).length])
 
   return (
     <>
@@ -40,6 +41,7 @@ export default function Appointments() {
         {date >= today() && <button className="btn" onClick={() => setRemind({ title: `Send reminders · ${fmtDate(date)}`, ids: null })}><BellRing /> Remind all patients{(() => { const n = rows.filter((a) => a.status === 'scheduled' && !a.remindedAt).length; return n ? ` (${n})` : '' })()}</button>}
         <button className="btn primary" onClick={() => setParams({ new: '1' })}><CalendarPlus /> Book appointment</button>
       </PageHead>
+      <BookingRequests doctorId={doc === 'all' ? undefined : doc} />
       <AiReadingLine key={date} steps={['is reading the appointments', 'is matching each patient’s record', 'is checking free slots and reminders']}
         done={`read ${rows.length} appointment${rows.length === 1 ? '' : 's'} and matched every patient`} />
       <div className="row" style={{ gap: 6 }}>
@@ -83,6 +85,9 @@ export default function Appointments() {
               label: '', render: (a) => (
                 <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
                   {a.room && ['scheduled', 'checked-in'].includes(a.status) && <a className="btn sm" href={a.room} target="_blank" rel="noopener noreferrer"><Video /> Join video</a>}
+                  {a.status === 'requested' && <button className="btn sm primary" onClick={() => respond(tid, a, patient(a.patientId), list('staff').find((x) => x.id === a.doctorId), tenant, true)}>Confirm</button>}
+                  {a.status === 'requested' && <button className="btn sm" onClick={() => setMove(a)}>Other time</button>}
+                  {a.status === 'requested' && <button className="btn sm ghost danger" onClick={() => respond(tid, a, patient(a.patientId), list('staff').find((x) => x.id === a.doctorId), tenant, false)}>Decline</button>}
                   {a.status === 'scheduled' && a.date >= today() && <NotifyButtons a={a} />}
                   {a.status === 'scheduled' && a.date === today() && <button className="btn sm" onClick={() => setStatus(a, 'checked-in')}>Check in</button>}
                   {a.status === 'scheduled' && <button className="btn sm" onClick={() => setMove(a)}>Move</button>}
