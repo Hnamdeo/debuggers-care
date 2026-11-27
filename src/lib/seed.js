@@ -149,14 +149,17 @@ const TENANT_DEFS = [
     beds: [['ICU', 8, 9000], ['HDU', 4, 6000], ['General ward', 16, 1800], ['Private room', 6, 4500]],
   },
   {
-    // A doctor's clinic (MBBS / MD, 1 to 3 doctors), not dental and not a hospital: the Clinic Plus plan.
+    // A doctor's own consultation clinic (many also work at a big hospital), 1 or 2 doctors,
+    // until now run from a paper register: patient register, queue, prescription pad, fees.
+    // Not dental and not a hospital: the simple Clinic plan.
     id: 't_family',
+    v: 2,
     slug: 'clinic',
     aliases: ['doctor', 'family'],
-    name: 'Family Health Clinic',
-    short: 'Family Clinic',
+    name: 'Dr. Joshi’s Clinic',
+    short: 'Dr. Joshi’s Clinic',
     kind: 'General clinic',
-    plan: 'plus',
+    plan: 'clinic',
     address: 'First floor, Shanti Complex, Aundh Road, Pune 411007',
     phone: '+91 20 4100 2233',
     email: 'hello@familyclinic.example',
@@ -164,19 +167,16 @@ const TENANT_DEFS = [
     regNo: 'BNH/PMC/2020/0733',
     color: '#4f46e5',
     doctors: [
-      ['Dr. Sameer Joshi', 'M', 'General Medicine', 'MBBS, MD (Medicine)', 500, 180000],
-      ['Dr. Priya Kulkarni', 'F', 'Paediatrics', 'MBBS, DCH', 500, 150000],
-      ['Dr. Anjali Verma', 'F', 'Obstetrics & Gynaecology', 'MBBS, DGO', 600, 160000],
+      ['Dr. Sameer Joshi', 'M', 'General Medicine', 'MBBS, MD (Medicine)', 600, 0],
+      ['Dr. Priya Joshi', 'F', 'Paediatrics', 'MBBS, MD (Paediatrics)', 600, 0],
     ],
     otherStaff: [
-      ['Pooja Shinde', 'F', 'receptionist', 'Front desk', 20000],
-      ['Sneha More', 'F', 'nurse', 'Clinic nurse', 22000],
-      ['Akash Pawar', 'M', 'pharmacist', 'Pharmacy', 24000],
+      ['Pooja Shinde', 'F', 'receptionist', 'Front desk', 15000],
     ],
-    admin: ['Nikhil Joshi', 'M', 'Clinic manager', 40000],
-    patients: 34,
-    reasons: ['Fever and body ache', 'Cough and cold', 'Diabetes follow-up', 'High BP review', 'Child vaccination', 'Child fever', 'Pregnancy check-up', 'Period problems', 'Stomach pain', 'Thyroid follow-up', 'Allergy and rash', 'Health check-up'],
-    services: [['Consultation', 500], ['Follow-up visit', 300], ['Injection', 150], ['Nebulisation', 250], ['Dressing', 200], ['Vaccination (child)', 900], ['ECG', 400]],
+    admin: ['Rohit Joshi', 'M', 'Clinic manager', 25000],
+    patients: 30,
+    reasons: ['Fever and body ache', 'Cough and cold', 'Diabetes follow-up', 'High BP review', 'Child fever', 'Child vaccination', 'Stomach pain', 'Thyroid follow-up', 'Allergy and rash', 'Health check-up', 'Report review'],
+    services: [['Consultation', 600], ['Follow-up visit (within 7 days)', 300], ['Injection', 150], ['Nebulisation', 250], ['Dressing', 200], ['ECG', 400]],
     diagnoses: ['Viral fever', 'Acute upper respiratory infection', 'Type 2 diabetes mellitus', 'Essential hypertension', 'Hypothyroidism', 'Acute gastroenteritis', 'Allergic rhinitis', 'Iron deficiency anaemia', 'Urinary tract infection', 'Acute bronchitis'],
     tests: ['Complete blood count', 'Blood sugar (fasting)', 'HbA1c', 'Lipid profile', 'Thyroid profile (T3 T4 TSH)', 'ECG'],
     rxSets: [
