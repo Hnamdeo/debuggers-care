@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Phone, MapPin, Navigation, Star, Clock, LogIn, Stethoscope, Sparkles, Crown, Smile, GraduationCap, BadgeCheck, MessageCircle, ShieldCheck, HeartHandshake, Heart,
+  Phone, MapPin, Navigation, Star, Clock, LogIn, Stethoscope, Sparkles, Crown, Smile, GraduationCap, BadgeCheck, MessageCircle, ShieldCheck, HeartHandshake, Heart, CalendarCheck, ScanLine, ClipboardList, BellRing, FileText, Languages, Wallet, PlayCircle, ChevronDown,
 } from 'lucide-react'
+import { HEALTH_VIDEOS } from '../lib/healthvideos'
 import { useTenant, BrandMark, SiteFooter } from '../components/ui'
 import { DentalScreen } from '../components/dentalscreen'
 
@@ -59,6 +60,50 @@ export function useOpenNow(hours) {
     return () => clearInterval(id)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return s
+}
+
+// General facts about each treatment, shown under the clinic's own list. Typical ranges only:
+// the dentist confirms the plan for each patient.
+const DETAILS = {
+  tooth: { visits: 'Usually 1–3 visits', points: ['Saves your own tooth instead of removing it', 'Done under local anaesthesia, so you feel pressure, not pain', 'A crown is often advised afterwards to protect the tooth'] },
+  implant: { visits: 'Usually 3–6 months, in stages', points: ['A titanium post replaces the lost root', 'The bone heals around it before the final tooth is fixed', 'Looks, feels and chews like a natural tooth'] },
+  smile: { visits: 'Usually 1–2 visits', points: ['Whitening, bonding or laminates for a brighter smile', 'Shade chosen with you before starting', 'Advice on keeping the result longer'] },
+  crown: { visits: 'Filling 1 visit · crown 2 visits', points: ['Tooth-coloured fillings that match your teeth', 'Metal-free (zirconia) or metal-ceramic crowns', 'Restores chewing and protects weak teeth'] },
+  sparkles: { visits: 'Usually 12–24 months', points: ['Fixed braces or clear aligners for children and adults', 'Check-ups every 4–6 weeks to adjust', 'A retainer keeps teeth straight afterwards'] },
+  stethoscope: { visits: 'Usually 1 visit', points: ['Gentle removal under local anaesthesia', 'Wisdom tooth surgery when a tooth is stuck', 'Clear aftercare instructions for quick healing'] },
+  shield: { visits: '1 visit · every 6 months', points: ['Removes tartar that brushing cannot', 'Helps bleeding gums and bad breath', 'Polishing for smooth, clean teeth'] },
+  heart: { visits: 'Usually 4–5 visits', points: ['Complete or partial dentures', 'Measured and tried in before the final set', 'Helps you chew and speak with confidence'] },
+}
+
+// Match by the treatment's name, so each clinic's own list gets the right facts.
+const KEYS = [[/root canal|rct|endo/i, 'tooth'], [/implant/i, 'implant'], [/whiten|smile|cosmetic|veneer|laminate/i, 'smile'], [/crown|filling|cap|bridge/i, 'crown'], [/brace|aligner|ortho/i, 'sparkles'], [/extract|surgery|wisdom/i, 'stethoscope'], [/clean|scal|gum|perio/i, 'shield'], [/denture/i, 'heart']]
+const detailFor = (title) => DETAILS[KEYS.find(([re]) => re.test(title))?.[1]]
+
+const STEPS = [
+  [CalendarCheck, 'Book', 'Call or WhatsApp us, or walk in during clinic hours.'],
+  [ScanLine, 'Check-up', 'The dentist examines your teeth and takes an X-ray if needed.'],
+  [ClipboardList, 'Clear plan', 'You hear the options, number of visits and cost before anything starts.'],
+  [Stethoscope, 'Treatment', 'Done gently, with your comfort checked at every step.'],
+  [BellRing, 'Follow-up', 'You get reminders for your next visit on WhatsApp.'],
+]
+
+const FAQ = [
+  ['Is root canal treatment painful?', 'It is done under local anaesthesia, so most patients feel only pressure. Mild soreness for a day or two afterwards is normal and settles with the medicines your dentist advises.'],
+  ['How long does a dental implant take?', 'Usually 3 to 6 months from start to the final tooth, because the bone needs time to heal around the implant. Your dentist will tell you the exact plan after an X-ray.'],
+  ['Does scaling (cleaning) weaken teeth?', 'No. Scaling removes tartar, not tooth. Teeth may feel a little sensitive for a few days because the tartar that covered them is gone.'],
+  ['What should I bring to my first visit?', 'Any old X-rays or dental reports, and a list of the medicines you take, especially for blood pressure, diabetes or blood thinners.'],
+  ['Can I get my prescription and reports on my phone?', 'Yes. Your prescription, bills and reports are saved to your file, and you can see them by signing in as a patient with your mobile number.'],
+  ['How do I book an appointment?', 'Call or WhatsApp the clinic number on this page. You will get a confirmation and a reminder before your visit.'],
+]
+
+function Faq({ q, a }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className={`cs-faq ${open ? 'open' : ''}`}>
+      <button onClick={() => setOpen(!open)} aria-expanded={open}><span>{q}</span><ChevronDown /></button>
+      {open && <p>{a}</p>}
+    </div>
+  )
 }
 
 const initials = (n) => n.replace(/^Dr\.?\s*/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
@@ -157,11 +202,45 @@ export default function ClinicSite({ site }) {
                 <span className="cs-svc-ic"><Icon /></span>
                 <strong>{title}</strong>
                 <span className="small">{sub}</span>
+                {detailFor(title) && <>
+                  <ul className="cs-svc-pts">{detailFor(title).points.map((t) => <li key={t}>{t}</li>)}</ul>
+                  <span className="cs-svc-visits"><Clock size={14} /> {detailFor(title).visits}</span>
+                </>}
               </div>
             )
           })}
         </div>
       </section>
+
+      <section className="cs-in cs-sec">
+        <div className="cs-head">
+          <span className="cs-eyebrow">Your visit</span>
+          <h2>What to expect, step by step</h2>
+        </div>
+        <ol className="cs-steps">
+          {STEPS.map(([Icon, t, sub], i) => (
+            <li key={t}><span className="cs-step-n">{i + 1}</span><Icon /><strong>{t}</strong><span className="small">{sub}</span></li>
+          ))}
+        </ol>
+      </section>
+
+      {/dental/i.test(tenant.kind || '') && (
+        <section className="cs-in cs-sec">
+          <div className="cs-head">
+            <span className="cs-eyebrow">Patient videos</span>
+            <h2>See how treatments are done</h2>
+            <p className="cs-sub">Short animations in English and Hindi. Watch before your visit, and ask the dentist anything.</p>
+          </div>
+          <div className="cs-vids">
+            {HEALTH_VIDEOS.map((v) => (
+              <a key={v.id} className="cs-vid" href={v.url} target="_blank" rel="noopener noreferrer">
+                <PlayCircle />
+                <span><strong>{v.procedure}</strong><span className="small">{v.lang === 'Hindi' ? 'हिंदी' : 'English'} · {Math.max(1, Math.round(v.minutes))} min</span></span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="cs-in cs-sec cs-visit">
         <div className="cs-card">
@@ -189,11 +268,27 @@ export default function ClinicSite({ site }) {
       </section>
 
       <section className="cs-in cs-sec">
-        <div className="cs-trust">
+        <div className="cs-head">
+          <span className="cs-eyebrow">Why patients choose us</span>
+          <h2>Care you can trust</h2>
+        </div>
+        <div className="cs-trust cs-trust6">
           <div><ShieldCheck /><span><strong>{d.years ? `${d.years}+ years of practice` : docs.length > 1 ? `${docs.length} dental surgeons` : 'Qualified dentist'}</strong><span className="small">Experienced, qualified dental {docs.length > 1 ? 'team' : 'surgeon'}</span></span></div>
           <div><Star /><span><strong>{site.rating} on {src}</strong><span className="small">{site.reviews ? `Trusted by ${site.reviews}+ reviewers` : 'Loved by local patients'}</span></span></div>
-          <div><Smile /><span><strong>Affordable care</strong><span className="small">Quality treatment at a fair cost</span></span></div>
+          <div><Wallet /><span><strong>Cost explained first</strong><span className="small">Options and cost shared before treatment starts</span></span></div>
+          <div><FileText /><span><strong>Records on your phone</strong><span className="small">Prescriptions, bills and reports in your patient login</span></span></div>
+          <div><BellRing /><span><strong>Visit reminders</strong><span className="small">WhatsApp confirmations and reminders</span></span></div>
+          <div><Languages /><span><strong>Hindi and English</strong><span className="small">Prescriptions and advice you can read</span></span></div>
         </div>
+      </section>
+
+      <section className="cs-in cs-sec">
+        <div className="cs-head">
+          <span className="cs-eyebrow">Questions</span>
+          <h2>Frequently asked questions</h2>
+        </div>
+        <div className="cs-faqs">{FAQ.map(([q, a]) => <Faq key={q} q={q} a={a} />)}</div>
+        <p className="small muted cs-disclaim">General information only. Your dentist will advise what is right for you.</p>
       </section>
 
       <div className="cs-callbar">
