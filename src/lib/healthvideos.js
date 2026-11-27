@@ -8,7 +8,7 @@ const SOURCE = 'Debuggers Space'
 
 // Sections on the Education page, in this order.
 export const SECTIONS = ['Root canal', 'Implants', 'Extraction & wisdom teeth', 'Fillings', 'Crowns & bridges', 'Braces & aligners', 'Dentures', 'Cleaning & gum care', 'Smile & cosmetic', 'Children', 'Brushing & prevention']
-const SECTION_OF = { 'Root canal treatment': 'Root canal', 'Scaling & polishing': 'Cleaning & gum care', 'Tooth extraction': 'Extraction & wisdom teeth', 'Composite filling': 'Fillings' }
+const SECTION_OF = { 'Root canal treatment': 'Root canal', 'Scaling & polishing': 'Cleaning & gum care', 'Tooth extraction': 'Extraction & wisdom teeth', 'Composite filling': 'Fillings', 'Dental implant': 'Implants', 'Crown (ceramic)': 'Crowns & bridges', 'Braces': 'Braces & aligners', 'Wisdom tooth removal': 'Extraction & wisdom teeth' }
 
 export const HEALTH_VIDEOS = [
   { id: 'DSH-XVVuat6kkdM', title: 'How a Root Canal Is Done, Step by Step', procedure: 'Root canal treatment', speciality: 'Dental', topic: 'Endodontics', lang: 'English', minutes: 1, url: 'https://youtu.be/_oknDnN66a8', checked: false },
@@ -19,6 +19,15 @@ export const HEALTH_VIDEOS = [
   { id: 'DSH-w48i7IReCzQ', title: 'दाँत कैसे निकाला जाता है? स्टेप बाय स्टेप', procedure: 'Tooth extraction', speciality: 'Dental', topic: 'Oral surgery', lang: 'Hindi', minutes: 1.1, url: 'https://youtu.be/w48i7IReCzQ', checked: false },
   { id: 'DSH-kT8ptNI9_eQ', title: 'How a Dental Filling Is Done, Step by Step', procedure: 'Composite filling', speciality: 'Dental', topic: 'Restorative', lang: 'English', minutes: 0.6, url: 'https://youtu.be/kT8ptNI9_eQ', checked: false },
   { id: 'DSH-eaUZaY3hPkk', title: 'दाँत की फ़िलिंग कैसे होती है? स्टेप बाय स्टेप', procedure: 'Composite filling', speciality: 'Dental', topic: 'Restorative', lang: 'Hindi', minutes: 0.8, url: 'https://youtu.be/eaUZaY3hPkk', checked: false },
+  // 27 Nov 2026: our own videos replace the other channels' ones for these treatments.
+  { id: 'DSH-vF9qqc0ysMM', title: 'How a Dental Implant Is Placed, Step by Step', procedure: 'Dental implant', speciality: 'Dental', topic: 'Implantology', lang: 'English', minutes: 0.9, url: 'https://youtu.be/vF9qqc0ysMM', checked: false },
+  { id: 'DSH-yHxjH-E7rTE', title: 'डेंटल इम्प्लांट कैसे लगता है? स्टेप बाय स्टेप', procedure: 'Dental implant', speciality: 'Dental', topic: 'Implantology', lang: 'Hindi', minutes: 1.2, url: 'https://youtu.be/yHxjH-E7rTE', checked: false },
+  { id: 'DSH-0UsdEhgNemo', title: 'How a Dental Crown (Cap) Is Done, Step by Step', procedure: 'Crown (ceramic)', speciality: 'Dental', topic: 'Prosthodontics', lang: 'English', minutes: 0.7, url: 'https://youtu.be/0UsdEhgNemo', checked: false },
+  { id: 'DSH-pS3YIiMRlK4', title: 'दाँत पर कैप (क्राउन) कैसे लगती है? स्टेप बाय स्टेप', procedure: 'Crown (ceramic)', speciality: 'Dental', topic: 'Prosthodontics', lang: 'Hindi', minutes: 0.9, url: 'https://youtu.be/pS3YIiMRlK4', checked: false },
+  { id: 'DSH-PUv4Cq8wlro', title: 'How Braces Straighten Teeth, Step by Step', procedure: 'Braces', speciality: 'Dental', topic: 'Orthodontics', lang: 'English', minutes: 0.8, url: 'https://youtu.be/PUv4Cq8wlro', checked: false },
+  { id: 'DSH-mJTR-GxGJyA', title: 'ब्रेसेस से दाँत सीधे कैसे होते हैं? स्टेप बाय स्टेप', procedure: 'Braces', speciality: 'Dental', topic: 'Orthodontics', lang: 'Hindi', minutes: 1, url: 'https://youtu.be/mJTR-GxGJyA', checked: false },
+  { id: 'DSH-4jN2r8RtHPE', title: 'How a Wisdom Tooth Is Removed, Step by Step', procedure: 'Wisdom tooth removal', speciality: 'Dental', topic: 'Oral surgery', lang: 'English', minutes: 0.8, url: 'https://youtu.be/4jN2r8RtHPE', checked: false },
+  { id: 'DSH-V-s0mBVVc2k', title: 'अक्कल दाढ़ कैसे निकाली जाती है? स्टेप बाय स्टेप', procedure: 'Wisdom tooth removal', speciality: 'Dental', topic: 'Oral surgery', lang: 'Hindi', minutes: 1, url: 'https://youtu.be/V-s0mBVVc2k', checked: false },
 ].map((v) => ({ ...v, source: SOURCE, builtIn: true, section: SECTION_OF[v.procedure] }))
 
 // Older what/why explainers, replaced above. Kept so videos already shared with patients still open.
