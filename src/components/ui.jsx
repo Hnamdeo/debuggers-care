@@ -124,7 +124,7 @@ export function Stat({ label, value, sub, icon: Icon }) {
 }
 
 const STATUS_TONE = {
-  scheduled: 'info', 'checked-in': 'warn', completed: 'ok', cancelled: 'plain', 'no-show': 'bad',
+  requested: 'warn', declined: 'plain', scheduled: 'info', 'checked-in': 'warn', completed: 'ok', cancelled: 'plain', 'no-show': 'bad',
   paid: 'ok', unpaid: 'bad', partial: 'warn',
   ordered: 'warn', admitted: 'info', discharged: 'ok',
   waiting: 'warn', 'in-treatment': 'info',

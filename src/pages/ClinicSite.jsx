@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Phone, MapPin, Navigation, Star, Clock, LogIn, Stethoscope, Sparkles, Crown, Smile, GraduationCap, BadgeCheck, MessageCircle, ShieldCheck, HeartHandshake, Heart, CalendarCheck, ScanLine, ClipboardList, BellRing, FileText, Languages, Wallet, PlayCircle, ChevronDown, ChevronLeft, ChevronRight, Menu, X, Mail, Award, Users, CheckCircle2, AlertTriangle, Send,
@@ -7,6 +7,10 @@ import { Tooth3D } from '../components/tooth3d'
 import { HEALTH_VIDEOS } from '../lib/healthvideos'
 import { useTenant, BrandMark, SiteFooter } from '../components/ui'
 import { DentalScreen } from '../components/dentalscreen'
+import { db, server } from '../lib/store'
+import { slotsOn, busyMap, hoursOn } from '../lib/slots'
+import { today, addDays, fmtDate, fmtTime } from '../lib/utils'
+import { samePerson, longerName } from '../lib/patients'
 
 // A simple tooth outline (lucide has none). Drawn in currentColor like the other icons.
 function Tooth({ implant }) {
@@ -128,7 +132,7 @@ const SYMPTOMS = [
 const PAGES = [['home', 'Home'], ['about', 'About'], ['services', 'Services'], ['diagnosis', 'Smile check'], ['contact', 'Contact']]
 
 function useSite(site) {
-  const { tenant, base, user } = useTenant()
+  const { tenant, tid, base, user } = useTenant()
   const tel = `tel:${site.phone.replace(/\s/g, '')}`
   const waText = (t) => `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(t)}`
   const wa = waText(`Hello ${site.name}, I would like to book an appointment.`)
@@ -137,7 +141,7 @@ function useSite(site) {
   const docs = site.doctors || [site.doctor]
   const href = (page) => (page === 'home' ? (user ? `${base}/home` : base) : `${base}/site/${page}`)
   const dental = /dental/i.test(tenant.kind || '') || /dental/i.test(site.name)
-  return { tenant, base, user, tel, wa, waText, maps, embed, docs, href, dental, src: site.reviewSource || 'Google' }
+  return { tenant, tid, base, user, tel, wa, waText, maps, embed, docs, href, dental, src: site.reviewSource || 'Google' }
 }
 
 function videosFor(section) {
@@ -177,7 +181,7 @@ function Slider({ site, x, go }) {
         <h1>{s.title}</h1>
         <p className="cs-lead">{s.text}</p>
         <div className="cs-cta">
-          <a className="cs-btn primary" href={s.service ? x.waText(`Hello ${site.name}, I would like to know about ${s.service}.`) : x.wa} target="_blank" rel="noopener noreferrer"><CalendarCheck /> Book appointment</a>
+          <button className="cs-btn primary" onClick={() => go('book', s.service || '')}><CalendarCheck /> Book appointment</button>
           {s.service ? <button className="cs-btn ghost" onClick={() => go('services')}>Learn more <ChevronRight /></button>
             : <a className="cs-btn ghost" href={x.tel}><Phone /> {site.phone}</a>}
         </div>
@@ -342,7 +346,7 @@ function Services({ site, x, go, focus }) {
                   </div>
                 )}
                 <div className="cw-svc-act">
-                  <a className="cs-btn primary sm" href={x.waText(`Hello ${site.name}, I would like to book an appointment for ${title}.`)} target="_blank" rel="noopener noreferrer"><CalendarCheck /> Book for {title.split(/[&,(]/)[0].trim().toLowerCase()}</a>
+                  <button className="cs-btn primary sm" onClick={() => go('book', title)}><CalendarCheck /> Book for {title.split(/[&,(]/)[0].trim().toLowerCase()}</button>
                   {vids.map((v) => <a key={v.id} className="cs-btn ghost sm" href={v.url} target="_blank" rel="noopener noreferrer"><PlayCircle /> {v.lang === 'Hindi' ? 'वीडियो देखें' : 'Watch video'}</a>)}
                 </div>
               </div>
@@ -405,25 +409,197 @@ function Diagnosis({ site, x, go }) {
   )
 }
 
-function Contact({ site, x, go, status }) {
-  const [f, setF] = useState({ name: '', phone: '', day: '', note: '' })
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
-  const msg = `Hello ${site.name}, I would like to book an appointment.\nName: ${f.name}\nMobile: ${f.phone}${f.day ? `\nPreferred day: ${f.day}` : ''}${f.note ? `\nProblem: ${f.note}` : ''}`
-  const ok = f.name.trim() && /^\d{10}$/.test(f.phone.replace(/\D/g, '').slice(-10))
+// Online booking: the patient registers (or says they have visited before), picks a doctor, day and free time.
+// The request waits in the clinic's app as "requested" until the doctor or front desk confirms it on WhatsApp.
+function Book({ site, x, go, focus }) {
+  const { tid, tenant } = x
+  const live = db.onServer(tid)
+  const [who, setWho] = useState('new')
+  const [f, setF] = useState({ name: '', phone: '', age: '', gender: '', email: '', consent: false })
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
+  const reasons = ['Check-up', 'Tooth pain', ...site.services.map(([, t]) => t)]
+  const [reason, setReason] = useState(focus && reasons.includes(focus) ? focus : '')
+  const days = useMemo(() => {
+    const out = []
+    for (let i = 0; out.length < 10 && i < 30; i++) { const d = addDays(today(), i); if (hoursOn(tenant, d).length) out.push(d) }
+    return out
+  }, [tenant])
+  const [date, setDate] = useState(days[0] || today())
+  const [doctors, setDoctors] = useState([])
+  const [doctorId, setDoctorId] = useState('')
+  const [busy, setBusy] = useState(null)
+  const [time, setTime] = useState('')
+  const [err, setErr] = useState('')
+  const [sending, setSending] = useState(false)
+  const [done, setDone] = useState(null)
+  useEffect(() => { window.scrollTo({ top: 0 }) }, [])
+  useEffect(() => {
+    let off = false
+    setTime(''); setBusy(null)
+    if (live) {
+      server.slots(tid, date).then((r) => { if (!off) { setBusy(r.busy || []); setDoctors(r.doctors || []) } }).catch((e) => { if (!off) { setBusy([]); setErr(e.message) } })
+    } else {
+      setBusy(db.list(tid, 'appointments').filter((a) => a.date === date))
+      setDoctors(db.list(tid, 'staff').filter((s) => s.role === 'doctor').map((s) => ({ id: s.id, name: s.name, title: s.title })))
+    }
+    return () => { off = true }
+  }, [date, live, tid])
+  useEffect(() => { if (doctors.length && !doctors.some((d) => d.id === doctorId)) setDoctorId(doctors[0].id) }, [doctors]) // eslint-disable-line react-hooks/exhaustive-deps
+  const now = new Date()
+  const nowHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  const taken = busy ? busyMap(busy.filter((a) => a.doctorId === doctorId), tenant) : {}
+  const free = busy ? slotsOn(tenant, date).filter((t) => !taken[t] && (date !== today() || t > nowHM)) : []
+  const phone = f.phone.replace(/\D/g, '').slice(-10)
+  const doc = doctors.find((d) => d.id === doctorId)
+  const problems = [
+    f.name.trim().length < 2 && 'your full name',
+    !/^[6-9]\d{9}$/.test(phone) && 'a 10-digit mobile number',
+    !time && 'a time',
+    !f.consent && 'your consent',
+  ].filter(Boolean)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setErr('')
+    if (problems.length) { setErr(`Please add ${problems.join(', ')}.`); return }
+    const ageYears = who === 'new' && f.age !== '' ? String(Math.round(+f.age)) : ''
+    const dob = ageYears ? `${new Date().getFullYear() - +ageYears}-01-01` : ''
+    const rec = { name: f.name.trim(), phone, email: who === 'new' ? f.email.trim().toLowerCase() : '', ageYears, dob, dobApprox: !!dob, gender: who === 'new' ? f.gender : '', visitReason: reason }
+    const appt = { date, time, doctorId, reason }
+    setSending(true)
+    try {
+      if (live) {
+        const r = await server.book(tid, rec, appt)
+        setDone({ id: r.id, existing: r.existing })
+      } else {
+        const existing = db.list(tid, 'patients').find((p) => samePerson(p, rec))
+        let pid
+        if (existing) { db.update(tid, 'patients', existing.id, { ...Object.fromEntries(Object.entries(rec).filter(([, v]) => v !== '' && v !== false)), name: longerName(existing.name, rec.name) }); pid = existing.id }
+        else pid = db.add(tid, 'patients', { ...rec, blood: '', allergies: '', conditions: '', address: '', emergencyContact: '', consentOn: today(), selfRegistered: true, regDate: today() }).id
+        const a = db.add(tid, 'appointments', { patientId: pid, ...appt, procedure: 'Consultation', status: 'requested', source: 'website', requestedAt: new Date().toISOString() })
+        setDone({ id: a.id, existing: !!existing })
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (e2) {
+      setErr(e2.message)
+      if (/taken/i.test(e2.message)) setDate((d) => d) // refresh happens on the next pick
+    } finally { setSending(false) }
+  }
+
+  if (done) {
+    const msg = `Hello ${site.name}, I booked on your website.\nName: ${f.name.trim()}\nMobile: ${phone}\nWhen: ${fmtDate(date)}, ${fmtTime(time)}${doc ? ` with ${doc.name}` : ''}${reason ? `\nFor: ${reason}` : ''}\nRef: ${done.id}\nPlease confirm.`
+    return (
+      <>
+        <PageBanner title="Request sent" crumb="Book appointment" go={go} />
+        <section className="cs-in cs-sec">
+          <div className="cs-card cw-done">
+            <CheckCircle2 className="cw-done-ic" />
+            <h2>Thank you, {f.name.trim().split(' ')[0]}. Your request is with the clinic.</h2>
+            <div className="cw-done-when"><CalendarCheck /> <strong>{fmtDate(date)} · {fmtTime(time)}</strong>{doc && <span> with {doc.name}</span>}</div>
+            <p>{doc ? doc.name : 'The doctor'} or the front desk will confirm your time on WhatsApp or by phone shortly. Reference: <strong>{done.id}</strong>.</p>
+            <p className="small muted">Need it sooner? Send your request on WhatsApp, or call the clinic directly.</p>
+            <div className="cs-cta">
+              <a className="cs-btn wa" href={x.waText(msg)} target="_blank" rel="noopener noreferrer"><MessageCircle /> Send on WhatsApp</a>
+              <a className="cs-btn ghost" href={x.tel}><Phone /> Call {site.phone}</a>
+              <button className="cs-btn ghost" onClick={() => go('home')}>Back to home</button>
+            </div>
+          </div>
+        </section>
+      </>
+    )
+  }
+
   return (
     <>
-      <PageBanner title="Contact us" sub="Call, WhatsApp or send a request. We reply during clinic hours." go={go} />
+      <PageBanner title="Book an appointment" crumb="Book appointment" sub="Pick a time that suits you. The clinic confirms it on WhatsApp or by phone." go={go} />
+      <form className="cs-in cs-sec cw-book" onSubmit={submit} noValidate>
+        <div className="cw-book-main">
+          <div className="cs-card">
+            <h3><span className="cw-num">1</span> Your details</h3>
+            <div className="cw-seg" role="radiogroup" aria-label="Have you visited before?">
+              <button type="button" role="radio" aria-checked={who === 'new'} className={who === 'new' ? 'on' : ''} onClick={() => setWho('new')}>New patient</button>
+              <button type="button" role="radio" aria-checked={who === 'old'} className={who === 'old' ? 'on' : ''} onClick={() => setWho('old')}>I have visited before</button>
+            </div>
+            {who === 'old' && <p className="small muted" style={{ margin: 0 }}>Use the same name and mobile number you gave the clinic. We will find your file.</p>}
+            <div className="cw-form cw-form-2">
+              <label>Full name<input value={f.name} onChange={set('name')} autoComplete="name" required /></label>
+              <label>Mobile number<input value={f.phone} onChange={set('phone')} inputMode="tel" autoComplete="tel" placeholder="10 digits" required /></label>
+              {who === 'new' && <label>Age (years)<input value={f.age} onChange={set('age')} inputMode="numeric" placeholder="Optional" /></label>}
+              {who === 'new' && (
+                <label>Gender
+                  <select value={f.gender} onChange={set('gender')}><option value="">Choose (optional)</option><option value="F">Female</option><option value="M">Male</option><option value="O">Other</option></select>
+                </label>
+              )}
+              {who === 'new' && <label className="wide">Email<input type="email" value={f.email} onChange={set('email')} autoComplete="email" placeholder="Optional, for reports and bills" /></label>}
+            </div>
+          </div>
+
+          <div className="cs-card">
+            <h3><span className="cw-num">2</span> What is it for?</h3>
+            <div className="cw-since">
+              {reasons.map((r) => <button type="button" key={r} className={reason === r ? 'on' : ''} onClick={() => setReason(reason === r ? '' : r)}>{r}</button>)}
+            </div>
+          </div>
+
+          <div className="cs-card">
+            <h3><span className="cw-num">3</span> Pick a day and time</h3>
+            {doctors.length > 1 && (
+              <div className="cw-docpick">
+                {doctors.map((d) => <button type="button" key={d.id} className={doctorId === d.id ? 'on' : ''} onClick={() => { setDoctorId(d.id); setTime('') }}><strong>{d.name}</strong><span className="small muted">{d.title}</span></button>)}
+              </div>
+            )}
+            <div className="cw-days">
+              {days.map((d) => {
+                const dt = new Date(`${d}T12:00:00`)
+                return (
+                  <button type="button" key={d} className={date === d ? 'on' : ''} onClick={() => setDate(d)}>
+                    <span>{d === today() ? 'Today' : d === addDays(today(), 1) ? 'Tomorrow' : dt.toLocaleDateString('en-IN', { weekday: 'short' })}</span>
+                    <strong>{dt.getDate()}</strong>
+                    <span>{dt.toLocaleDateString('en-IN', { month: 'short' })}</span>
+                  </button>
+                )
+              })}
+            </div>
+            {busy === null ? <p className="small muted">Checking free times…</p>
+              : free.length ? (
+                <div className="cw-times">
+                  {free.map((t) => <button type="button" key={t} className={time === t ? 'on' : ''} onClick={() => setTime(t)}>{fmtTime(t)}</button>)}
+                </div>
+              ) : <p className="small muted">No free times left on this day. Please pick another day, or call {site.phone}.</p>}
+          </div>
+        </div>
+
+        <aside className="cs-card cw-book-side">
+          <h3><CalendarCheck /> Your booking</h3>
+          <dl>
+            <dt>Patient</dt><dd>{f.name.trim() || '—'}{who === 'old' ? ' (visited before)' : ''}</dd>
+            <dt>For</dt><dd>{reason || 'Consultation'}</dd>
+            {doc && <><dt>Doctor</dt><dd>{doc.name}</dd></>}
+            <dt>When</dt><dd>{time ? `${fmtDate(date)}, ${fmtTime(time)}` : 'Pick a time'}</dd>
+          </dl>
+          <label className="cw-consent"><input type="checkbox" checked={f.consent} onChange={set('consent')} /> <span>I agree that {site.name} can keep these details for my treatment.</span></label>
+          {err && <div className="cw-urgent" role="alert"><AlertTriangle /> {err}</div>}
+          <button className="cs-btn primary block" type="submit" disabled={sending}><Send /> {sending ? 'Sending…' : 'Request this time'}</button>
+          <p className="small muted" style={{ margin: 0 }}>The clinic confirms on WhatsApp or by phone. In a hurry? Call <a href={x.tel}>{site.phone}</a>.</p>
+        </aside>
+      </form>
+    </>
+  )
+}
+
+function Contact({ site, x, go, status }) {
+  return (
+    <>
+      <PageBanner title="Contact us" sub="Book online, call or WhatsApp. We reply during clinic hours." go={go} />
       <section className="cs-in cs-sec cw-contact">
-        <div className="cs-card">
-          <h3><CalendarCheck /> Request an appointment</h3>
-          <form className="cw-form" onSubmit={(e) => { e.preventDefault(); if (ok) window.open(x.waText(msg), '_blank', 'noopener') }}>
-            <label>Your name<input value={f.name} onChange={set('name')} autoComplete="name" required /></label>
-            <label>Mobile number<input value={f.phone} onChange={set('phone')} inputMode="tel" autoComplete="tel" placeholder="10 digits" required /></label>
-            <label>Preferred day<input type="date" value={f.day} onChange={set('day')} /></label>
-            <label>What is the problem? (optional)<textarea rows={3} value={f.note} onChange={set('note')} placeholder="e.g. toothache on the left side" /></label>
-            <button className="cs-btn wa" type="submit" disabled={!ok}><Send /> Send on WhatsApp</button>
-            <span className="small muted">Opens WhatsApp with your request ready. Press Send there.</span>
-          </form>
+        <div className="cs-card cw-book-cta">
+          <h3><CalendarCheck /> Book an appointment online</h3>
+          <p>Pick a doctor, a day and a free time. The clinic confirms your visit on WhatsApp or by phone.</p>
+          <ul className="cw-checks cw-checks-plain">
+            {['New patients register in the same step', 'See free times for the next 10 days', 'Confirmation on WhatsApp'].map((t) => <li key={t}><CheckCircle2 /> {t}</li>)}
+          </ul>
+          <button className="cs-btn primary" onClick={() => go('book')}><CalendarCheck /> Book appointment</button>
+          <a className="cs-btn ghost" href={x.waText(`Hello ${site.name}, I have a question.`)} target="_blank" rel="noopener noreferrer"><MessageCircle /> Ask a question on WhatsApp</a>
         </div>
         <div className="cw-contact-side">
           <a className="cw-cline" href={x.tel}><Phone /><span><strong>{site.phone}</strong><span className="small muted">Call the clinic</span></span></a>
@@ -469,11 +645,11 @@ export default function ClinicSite({ site, page = 'home' }) {
   const [menu, setMenu] = useState(false)
   const [focus, setFocus] = useState('')
   const go = (p, f = '') => { setMenu(false); setFocus(f); nav(x.href(p)) }
-  const cur = PAGES.some(([k]) => k === page) ? page : 'home'
+  const cur = [...PAGES, ['book']].some(([k]) => k === page) ? page : 'home'
 
   useEffect(() => {
     const before = document.title
-    const label = PAGES.find(([k]) => k === cur)?.[1]
+    const label = cur === 'book' ? 'Book appointment' : PAGES.find(([k]) => k === cur)?.[1]
     document.title = `${cur === 'home' ? '' : `${label} · `}${site.name} · ${site.area}`
     return () => { document.title = before }
   }, [site.name, cur])
@@ -499,7 +675,7 @@ export default function ClinicSite({ site, page = 'home' }) {
             <button className="cw-staff" onClick={() => { setMenu(false); nav(x.user ? x.base : `${x.base}/login`) }}><LogIn size={15} /> {x.user ? 'Dashboard' : 'Staff sign in'}</button>
           </nav>
           <div className="cw-nav-cta">
-            <a className="cs-btn primary sm" href={x.wa} target="_blank" rel="noopener noreferrer"><CalendarCheck /> <span className="cw-hide-s">Book appointment</span><span className="cw-show-s">Book</span></a>
+            <button className="cs-btn primary sm" onClick={() => go('book')}><CalendarCheck /> <span className="cw-hide-s">Book appointment</span><span className="cw-show-s">Book</span></button>
             <button className="cw-burger" aria-label={menu ? 'Close menu' : 'Open menu'} aria-expanded={menu} onClick={() => setMenu(!menu)}>{menu ? <X /> : <Menu />}</button>
           </div>
         </div>
@@ -510,6 +686,7 @@ export default function ClinicSite({ site, page = 'home' }) {
         {cur === 'about' && <About site={site} x={x} go={go} status={status} />}
         {cur === 'services' && <Services site={site} x={x} go={go} focus={focus} />}
         {cur === 'diagnosis' && <Diagnosis site={site} x={x} go={go} />}
+        {cur === 'book' && <Book site={site} x={x} go={go} focus={focus} />}
         {cur === 'contact' && <Contact site={site} x={x} go={go} status={status} />}
       </main>
 

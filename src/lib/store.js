@@ -612,6 +612,13 @@ export const server = {
   async register(tid, patient) {
     return post(tid, 'register', { patient })
   },
+  // Online booking from the clinic website (no sign-in): taken times for a day, then the request itself.
+  async slots(tid, date) {
+    return post(tid, 'slots', { date })
+  },
+  async book(tid, patient, appt) {
+    return post(tid, 'book', { patient, appt })
+  },
   async upload(tid, dataUrl) {
     return (await post(tid, 'upload', { data: dataUrl })).fileId
   },

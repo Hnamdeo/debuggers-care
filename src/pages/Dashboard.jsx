@@ -7,6 +7,7 @@ import { InsightsCard } from '../components/insights'
 import RegisterQR from '../components/RegisterQR'
 import { TodayTimings } from './Appointments'
 import { ReminderCard } from '../components/reminders'
+import { BookingRequests } from '../components/bookingrequests'
 import { TodayVisits, sendToDoctor } from '../components/visits'
 import { PatientFinder } from '../components/summary'
 import { AskBar, callName } from '../components/assistant'
@@ -169,6 +170,7 @@ function AdminDash() {
         can('ipd') && { icon: BedDouble, label: 'Admit patient', hint: `${beds.length - occupied.length} beds free`, onClick: () => nav(`${base}/ipd`) },
       ]} />
       <AskBar />
+      <BookingRequests />
       <div className="grid g4">
         <Stat label="Appointments today" value={todays.length} sub={`${todays.filter((a) => a.status === 'completed').length} seen · ${todays.filter((a) => a.status === 'scheduled').length} waiting`} icon={CalendarDays} />
         <Stat label="Collected this month" value={money(collectedMonth)} sub={`${money(due)} still due`} icon={IndianRupee} />
@@ -268,6 +270,7 @@ function DoctorDash() {
         { icon: CalendarDays, label: 'My patients today', hint: `${todays.length} booked · ${todays.filter((a) => a.status === 'completed').length} seen`, onClick: () => nav(`${base}/appointments?view=calendar`) },
       ]} />
       <AskBar />
+      <BookingRequests doctorId={shared ? undefined : me.id} />
       <DoctorTrends appts={mine} rxs={list('prescriptions').filter((r) => shared || r.doctorId === me.id)} patients={list('patients')} />
       <BirthdaysCard />
       <InsightsCard doctorId={shared ? undefined : me.id} />

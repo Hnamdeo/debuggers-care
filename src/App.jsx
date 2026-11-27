@@ -10,6 +10,7 @@ import {
 import { useClinicManifest, standalone, lastClinic } from './lib/install'
 import { InstallButton } from './components/install'
 import { SyncBadge } from './components/syncbadge'
+import { BookingAlert, useRequests } from './components/bookingrequests'
 import { LabWorkPage, MaterialsPage } from './components/dentalplus'
 import { OTPage, ClaimsPage } from './components/hospitalplus'
 import { AppBar } from './components/appbar'
@@ -166,6 +167,7 @@ function Shell() {
   const loc = useLocation()
   const [look] = useLook()
   const role = user.role
+  const reqCount = useRequests(role === 'doctor' && !tenant.live ? me?.id : undefined).length
   // In a clinic's own live space there is no admin login: the doctor gets everything the admin had.
   const boss = role === 'admin' || (tenant.live && role === 'doctor')
   const mods = tenant.live && role === 'doctor' ? [...new Set([...ROLE_MODULES.doctor, ...ROLE_MODULES.admin])] : ROLE_MODULES[role]
@@ -213,7 +215,7 @@ function Shell() {
                 return (
                   <div key={m}>
                     {sep && <div className="nav-sep">{sep}</div>}
-                    <NavItem to={`${base}/${m}`} icon={ICONS[m]} label={MODULES[m].label} locked={locked} />
+                    <NavItem to={`${base}/${m}`} icon={ICONS[m]} label={MODULES[m].label} locked={locked} count={m === 'appointments' ? reqCount : 0} />
                   </div>
                 )
               })}
@@ -293,6 +295,7 @@ function Shell() {
           )}
           {!isPatient && <NotesFab />}
           {!isPatient && <Assistant />}
+          {!isPatient && <BookingAlert />}
         </div>
       </div>
     </>
@@ -300,10 +303,10 @@ function Shell() {
 }
 
 
-function NavItem({ to, icon: Icon, label, locked, fresh }) {
+function NavItem({ to, icon: Icon, label, locked, fresh, count }) {
   return (
     <NavLink to={to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''} ${locked ? 'locked' : ''}`} title={locked ? `Available on the ${PLANS[planFor(to.split('/').pop())]?.name} plan` : undefined}>
-      <Icon /> {label} {locked && <Lock className="lock" />}{fresh && <span className="nav-new">AI</span>}
+      <Icon /> {label} {locked && <Lock className="lock" />}{fresh && <span className="nav-new">AI</span>}{count > 0 && <span className="nav-count" title="Website booking requests">{count}</span>}
     </NavLink>
   )
 }

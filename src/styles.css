@@ -2692,3 +2692,56 @@ a.cw-cline:hover { border-color: var(--brand); }
   .cw .cs-callbar { margin-top: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .cw-slide, .cw-res { animation: none !important; } }
+
+/* Website booking requests (staff) */
+.nav-count { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: #f59e0b; color: #fff; font: 800 11px/20px var(--font-head); text-align: center; }
+.req-card { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+.req-count { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 99px; background: var(--warn); color: #fff; font-size: 12px; line-height: 22px; text-align: center; }
+.req-list { display: grid; gap: 8px; padding: 12px 16px 16px; }
+.req-row { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--warn-soft); }
+.req-when, .req-who { display: flex; flex-direction: column; min-width: 0; }
+.req-who .small { overflow: hidden; text-overflow: ellipsis; }
+.req-act { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 640px) { .req-row { grid-template-columns: 72px minmax(0, 1fr); } .req-act { grid-column: 1 / -1; justify-content: stretch; } .req-act .btn { flex: 1; } }
+
+/* Clinic website: online booking */
+.cw-book { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.cw-book-main { display: grid; gap: 14px; min-width: 0; }
+.cw-book h3 { display: flex; align-items: center; gap: 10px; }
+.cw-num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: #fff; font-size: 14px; flex: none; }
+.cw-seg { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); gap: 4px; align-self: flex-start; flex-wrap: wrap; }
+.cw-seg button { border: 0; background: none; padding: 9px 16px; border-radius: 999px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.cw-seg button.on { background: var(--surface); color: var(--brand); box-shadow: var(--shadow); }
+.cw-form-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cw-form-2 .wide { grid-column: 1 / -1; }
+.cw-form select { font: inherit; font-weight: 400; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); width: 100%; }
+.cw-docpick { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 8px; }
+.cw-docpick button { text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.cw-docpick button.on { border-color: var(--brand); background: var(--brand-soft); }
+.cw-days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.cw-days button { flex: none; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 12.5px; }
+.cw-days button strong { font-family: var(--font-head); font-size: 22px; color: var(--fg); }
+.cw-days button.on { border-color: var(--brand); background: var(--brand); color: rgb(255 255 255 / 85%); }
+.cw-days button.on strong { color: #fff; }
+.cw-times { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.cw-times button { padding: 10px 6px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); font-weight: 700; cursor: pointer; }
+.cw-times button:hover { border-color: var(--brand); }
+.cw-times button.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.cw-book-side { position: sticky; top: 80px; }
+.cw-book-side dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 14px; margin: 0; font-size: 14px; }
+.cw-book-side dt { color: var(--muted); }
+.cw-book-side dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.cw-consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; cursor: pointer; }
+.cw-consent input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--brand); flex: none; }
+.cw-done { align-items: center; text-align: center; max-width: 640px; margin: 0 auto; }
+.cw-done h2 { font-family: var(--font-head); margin: 0; font-size: clamp(1.3rem, 3vw, 1.7rem); }
+.cw-done .cw-done-ic { width: 56px; height: 56px; color: var(--ok); }
+.cw-done-when { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 10px 16px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+.cw-done .cs-cta { justify-content: center; }
+.cw-book-cta { align-items: flex-start; }
+.cw-checks-plain { padding: 0; border: 0; box-shadow: none; background: none; }
+@media (max-width: 860px) {
+  .cw-book { grid-template-columns: minmax(0, 1fr); }
+  .cw-book-side { position: static; }
+}
+@media (max-width: 560px) { .cw-form-2 { grid-template-columns: minmax(0, 1fr); } }
