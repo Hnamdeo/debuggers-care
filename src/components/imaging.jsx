@@ -114,7 +114,7 @@ export function ImageViewer({ im, onClose }) {
           {im.treatment && !v && <div className="muted no-print">No video for “{im.treatment}” yet. Add one on the Patient education page and it will show here.</div>}
         </div>
         </div>
-        {user.role !== 'patient' && <ImageAI im={im} />}
+        {user.role !== 'patient' && <ImageAI im={im} src={imgSrc(tid, im)} />}
       </Modal>
       {play && <VideoPlayer video={play} patientId={im.patientId} onClose={() => setPlay(null)} />}
     </>

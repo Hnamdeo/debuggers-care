@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Sparkles, MessageCircle, Copy, MonitorPlay, ShieldCheck } from 'lucide-react'
 import { useTenant, toast } from './ui'
+import { db, auth } from '../lib/store'
 import { whatsappLink, VideoPlayer } from './videos'
 
 // AI analysis of lab and imaging reports.
@@ -122,35 +123,102 @@ export function ReportAI({ rep }) {
 }
 
 // X-ray or photo: explain what the doctor tagged in simple words; demo clinics also show a sample AI read.
-export function ImageAI({ im }) {
-  const { tenant } = useTenant()
-  const [stage, setStage] = useState(-1)
-  const demo = !tenant.live
-  const sample = {
-    'Root canal treatment': 'Deep decay reaching the nerve, with a dark area at the root tip (infection).',
-    'Tooth extraction': 'Tooth badly broken down / impacted; cannot be saved.',
-    'Scaling & polishing': 'Tartar deposits along the gum line; early bone loss.',
-    'Composite filling': 'Small cavity in the enamel, not near the nerve.',
+// Real AI read of an X-ray, photo or photographed lab report (api/ai.php, Claude vision).
+// If AI is not switched on for the server yet, it says so and shows a clearly labelled sample.
+async function asDataUrl(src) {
+  if (src.startsWith('data:')) return src
+  const b = await (await fetch(src)).blob()
+  return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(b) })
+}
+export async function aiRead(tenant, token, payload) {
+  const r = await fetch(`${import.meta.env.BASE_URL}api/ai.php?t=${encodeURIComponent(tenant.slug)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify(payload),
+  })
+  let res = {}
+  try { res = await r.json() } catch {}
+  if (res.off) return { off: true }
+  if (!r.ok || res.error) throw new Error(res.error || 'The AI could not read this just now. Please try again.')
+  return res
+}
+
+const SEV = { normal: 'ok', mild: 'mild', moderate: 'marked', urgent: 'marked' }
+const SEV_TEXT = { mild: 'Mild', moderate: 'Needs attention', urgent: 'Urgent' }
+
+export function ImageAI({ im, src }) {
+  const { tid, tenant, patient, list } = useTenant()
+  const [stage, setStage] = useState(im.ai ? 'done' : 'idle') // idle | busy | done | sample | error
+  const [read, setRead] = useState(im.ai || null)
+  const [err, setErr] = useState('')
+  const [hindi, setHindi] = useState(false)
+  const p = patient(im.patientId)
+  const run = async () => {
+    setStage('busy')
+    setErr('')
+    try {
+      const age = p?.dob ? `${Math.floor((Date.now() - new Date(p.dob)) / 3.156e10)} years` : p?.ageYears ? `${p.ageYears} years` : ''
+      const res = await aiRead(tenant, auth.token(tid), { kind: im.kind, area: im.area, note: im.note, age, gender: p?.gender, clinic: tenant.kind, image: await asDataUrl(src) })
+      if (res.off) return setStage('sample')
+      setRead(res.read)
+      setStage('done')
+      db.update(tid, 'images', im.id, { ai: res.read, aiAt: res.at })
+    } catch (e) {
+      setErr(e.message)
+      setStage('error')
+    }
   }
-  const run = () => { setStage(0); setTimeout(() => setStage(1), 1600) }
-  const finding = sample[im.treatment] || (im.note ? im.note : 'No clear problem marked.')
-  const a = analyseReport({ findings: `${finding}. ${im.note || ''}` })
+  const saveReport = () => {
+    const results = read.lab_values.map((v) => ({ param: v.test, value: isNaN(parseFloat(v.value)) ? v.value : parseFloat(v.value), unit: v.unit, range: v.range, flag: v.flag }))
+    db.add(tid, 'reports', { patientId: im.patientId, doctorId: '', date: im.date, test: read.kind_detected || 'Lab report', category: 'Pathology', price: 0, status: 'completed', results, findings: read.summary, completedDate: im.date, source: 'AI read of report photo', imageId: im.id })
+    db.update(tid, 'images', im.id, { reportSaved: true })
+    toast('Saved as a lab report on the patient’s file')
+  }
+  const text = read && `Hello ${p?.name?.split(' ')[0] || ''}, about your ${im.kind.toLowerCase()} from ${tenant.short || tenant.name}:\n${hindi ? read.patient_explanation_hi : read.patient_explanation}\nPlease follow your doctor's advice.`
+  // The old sample, kept for servers where AI is not switched on yet; always labelled as a sample.
+  const sample = { 'Root canal treatment': 'Deep decay reaching the nerve, with a dark area at the root tip (infection).', 'Tooth extraction': 'Tooth badly broken down / impacted; cannot be saved.', 'Scaling & polishing': 'Tartar deposits along the gum line; early bone loss.', 'Composite filling': 'Small cavity in the enamel, not near the nerve.' }
+  const sampleA = analyseReport({ findings: `${sample[im.treatment] || im.note || ''}. ${im.note || ''}` })
+  const v = read && list('videos').find((x) => read.findings.some((f) => x.procedure && (f.title + f.detail).toLowerCase().includes(x.procedure.toLowerCase())))
   return (
     <div className="ai-box no-print">
-      <div className="ai-head"><Sparkles size={16} /> AI X-ray read <span className="ai-tag">{demo ? 'demo' : 'suggestion'}</span></div>
-      {stage === -1 && <button className="btn sm primary" onClick={run}><Sparkles /> Analyse this {im.kind.toLowerCase()}</button>}
-      {stage === 0 && <div className="ai-think"><span /><span /><span /> Scanning the image…</div>}
-      {stage === 1 && (
+      <div className="ai-head"><Sparkles size={16} /> AI read <span className="ai-tag">suggestion for the doctor</span></div>
+      {stage === 'idle' && <div style={{ padding: 12 }}><button className="btn sm primary" onClick={run}><Sparkles /> Read this {im.kind.toLowerCase()} with AI</button><div className="small muted" style={{ marginTop: 6 }}>Takes about 20 to 40 seconds.</div></div>}
+      {stage === 'busy' && <div className="ai-think"><span /><span /><span /> Reading the {im.kind.toLowerCase()}… this takes about half a minute</div>}
+      {stage === 'error' && <div style={{ padding: 12 }} className="stack"><div className="small" style={{ color: 'var(--bad)' }}>{err}</div><button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={run}>Try again</button></div>}
+      {stage === 'sample' && (
         <>
-          <p className="ai-sum warn">{demo ? finding : `Doctor's finding: ${finding}`}</p>
-          {a.items.filter((i) => i.level !== 'ok').map((i) => (
-            <div key={i.title} className="ai-item marked">
-              <strong>{i.title}</strong>
-              <div className="small"><b>For the patient:</b> {i.patient}</div>
-              <div className="small"><b>Suggested next step:</b> {i.next}</div>
+          <p className="ai-sum warn">Live AI reading is not switched on yet. Sample read: {sample[im.treatment] || im.note || 'no finding marked'}</p>
+          {sampleA.items.filter((i) => i.level !== 'ok').map((i) => <div key={i.title} className="ai-item marked"><strong>{i.title}</strong><div className="small"><b>For the patient:</b> {i.patient}</div></div>)}
+        </>
+      )}
+      {stage === 'done' && read && (
+        <>
+          <p className={`ai-sum ${read.findings.some((f) => f.severity !== 'normal') || read.lab_values.some((l) => l.flag) ? 'warn' : 'ok'}`}><b>{read.kind_detected}.</b> {read.summary}</p>
+          {read.findings.map((f, k) => (
+            <div key={k} className={`ai-item ${SEV[f.severity] || 'mild'}`}>
+              <div className="ai-item-head"><strong>{f.title}</strong>{f.severity !== 'normal' && <span className={`ai-level ${SEV[f.severity]}`}>{SEV_TEXT[f.severity]}</span>}</div>
+              {f.location && <div className="small muted">{f.location}</div>}
+              <div className="small">{f.detail}</div>
             </div>
           ))}
-          <div className="small muted ai-safe"><ShieldCheck size={13} /> {demo ? 'Sample AI read for the demo. Full image AI comes with the Super AI add-on.' : 'Explains the doctor’s finding in simple words. AI image reading comes with Super AI.'}</div>
+          {read.lab_values.length > 0 && (
+            <table className="mini-table" style={{ margin: '8px 0' }}><tbody>
+              {read.lab_values.map((l, k) => <tr key={k}><td>{l.test}</td><td className="tabular" style={{ fontWeight: l.flag ? 700 : 400, color: l.flag ? 'var(--bad)' : undefined }}>{l.value} {l.unit}</td><td className="muted small">{l.range}</td><td>{l.flag}</td></tr>)}
+            </tbody></table>
+          )}
+          {read.next_steps.length > 0 && <div className="small" style={{ padding: '4px 2px' }}><b>Suggested next steps:</b><ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{read.next_steps.map((n, k) => <li key={k}>{n}</li>)}</ul></div>}
+          <div className="ai-item ok">
+            <div className="ai-item-head"><strong>For the patient</strong><button className="btn sm ghost" onClick={() => setHindi(!hindi)}>{hindi ? 'English' : 'हिंदी'}</button></div>
+            <div className="small">{hindi ? read.patient_explanation_hi : read.patient_explanation}</div>
+          </div>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+            {p?.phone && <a className="btn sm primary" href={whatsappLink(p.phone, text)} target="_blank" rel="noreferrer"><MessageCircle /> Send explanation on WhatsApp</a>}
+            {v && <span className="small muted"><MonitorPlay size={13} /> Related video: {v.title}</span>}
+            {read.lab_values.length > 0 && !im.reportSaved && <button className="btn sm" onClick={saveReport}>Save values as a lab report</button>}
+            <button className="btn sm ghost" onClick={run}>Read again</button>
+          </div>
+          {read.limitations && <div className="small muted" style={{ marginTop: 6 }}>Limits: {read.limitations}</div>}
+          <div className="small muted ai-safe"><ShieldCheck size={13} /> AI only suggests. The doctor checks the image before anything is told to the patient.</div>
         </>
       )}
     </div>

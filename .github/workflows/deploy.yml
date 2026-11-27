@@ -35,6 +35,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # The AI key never goes into the repository: it is written next to the API at deploy time
+      # from the ANTHROPIC_API_KEY secret (Settings > Secrets and variables > Actions).
+      - name: Add the AI key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            printf '<?php return %s;\n' "'$(printf %s "$ANTHROPIC_API_KEY" | tr -cd 'A-Za-z0-9_-')'" > dist/api/ai-key.php
+            echo "AI key added"
+          else
+            echo "No ANTHROPIC_API_KEY secret: AI reading stays off"
+          fi
       - name: Upload to Hostinger
         if: env.FTP_SERVER != ''
         env:

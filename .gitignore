@@ -2,3 +2,4 @@ node_modules
 dist
 dist-single
 public/api/data/*.sqlite*
+public/api/ai-key.php
