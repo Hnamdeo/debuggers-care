@@ -4,7 +4,7 @@ import {
   Phone, MapPin, Navigation, Star, Clock, LogIn, Stethoscope, Sparkles, Crown, Smile, GraduationCap, BadgeCheck, MessageCircle, ShieldCheck, HeartHandshake, Heart, CalendarCheck, ScanLine, ClipboardList, BellRing, FileText, Languages, Wallet, PlayCircle, ChevronDown, ChevronLeft, ChevronRight, Menu, X, Mail, Award, Users, CheckCircle2, AlertTriangle, Send,
 } from 'lucide-react'
 import { Tooth3D } from '../components/tooth3d'
-import { HEALTH_VIDEOS, CURATED_VIDEOS } from '../lib/healthvideos'
+import { HEALTH_VIDEOS } from '../lib/healthvideos'
 import { useTenant, BrandMark, SiteFooter } from '../components/ui'
 import { DentalScreen } from '../components/dentalscreen'
 
@@ -141,7 +141,7 @@ function useSite(site) {
 }
 
 function videosFor(section) {
-  return [...HEALTH_VIDEOS, ...CURATED_VIDEOS].filter((v) => v.section === section).slice(0, 3)
+  return HEALTH_VIDEOS.filter((v) => v.section === section).slice(0, 3)
 }
 
 function PageBanner({ title, sub, crumb, go }) {

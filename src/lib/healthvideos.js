@@ -33,45 +33,6 @@ export const OLD_HEALTH_VIDEOS = [
   { id: 'DSH-ENhAaTxOtTo', title: 'Dental Filling Explained', procedure: 'Composite filling', speciality: 'Dental', topic: 'Restorative', lang: 'English', minutes: 1.4, url: 'https://youtu.be/CtNpg38gnpc' },
   { id: 'DSH-mTSZkdI6ubQ', title: 'दाँत की फ़िलिंग: कैविटी क्या है?', procedure: 'Composite filling', speciality: 'Dental', topic: 'Restorative', lang: 'Hindi', minutes: 1.9, url: 'https://youtu.be/5oQlHkBthMU' },
 ].map((v) => ({ ...v, source: SOURCE, builtIn: true }))
-// Hand-picked videos from other YouTube channels (dental animation studios, hospitals and dentists),
-// so every section has something to show. Each "card" pairs an English and a Hindi video.
-// minutes left out where we have not timed the video.
-const C = (card, section, procedure, topic, lang, id, title, source, minutes) => ({ id: `YT-${id}`, card, section, procedure, speciality: 'Dental', topic, lang, url: `https://youtu.be/${id}`, title, source, minutes, builtIn: true, curated: true })
-export const CURATED_VIDEOS = [
-  C('rct-2', 'Root canal', 'Root canal treatment', 'Endodontics', 'English', '0s35QCFg7p0', 'Root Canal Treatment, Step by Step Animation', 'Dr Jignesh Mehta', 1.8),
-  C('rct-2', 'Root canal', 'Root canal treatment', 'Endodontics', 'Hindi', 'sjvLy9vCS9k', 'RCT in Hindi: what is root canal treatment?', 'Easy Dentistry', 3.4),
-  C('rct-3', 'Root canal', 'Root canal treatment', 'Endodontics', 'English', 'wZ1MtdkkZXg', 'Root Canal Treatment (3D animation)', 'Scientific Animations', 1.6),
-  C('implant-1', 'Implants', 'Dental implant', 'Implantology', 'English', 'gMycqoQrlBs', 'Dental Implant Procedure, Two Stage', 'Consult-PRO', 1.5),
-  C('implant-1', 'Implants', 'Dental implant', 'Implantology', 'Hindi', 'N_8htjuGeC4', 'डेंटल इम्प्लांट | Dental Implant in Hindi', 'Dr Amit Patil', 1.6),
-  C('implant-2', 'Implants', 'Dental implant', 'Implantology', 'English', 'g-i3P-D6p7M', 'Dental Implant Procedure, Medical Animation', 'Gebrüder Betz Medical Animation', 5.7),
-  C('implant-2', 'Implants', 'Dental implant', 'Implantology', 'Hindi', 'Wq85QQEayow', 'Dental Implant Procedure Step by Step in Hindi', 'Eledent Dental Hospitals'),
-  C('implant-3', 'Implants', 'Implant or bridge', 'Implantology', 'English', 'kT68nibzonY', 'Dental Implants vs Bridges for Missing Teeth', 'Gebrüder Betz Medical Animation', 5.7),
-  C('ext-1', 'Extraction & wisdom teeth', 'Tooth extraction', 'Oral surgery', 'English', 'RIhr32Ko-uY', 'Tooth Extraction (3D Animation)', 'Riverside Oral Surgery', 0.3),
-  C('wisdom-1', 'Extraction & wisdom teeth', 'Impacted tooth extraction', 'Oral surgery', 'English', 'fqoD3l_yvos', 'Impacted Wisdom Teeth Removal Animation', 'Smash-Hit Solutions', 4.1),
-  C('wisdom-1', 'Extraction & wisdom teeth', 'Impacted tooth extraction', 'Oral surgery', 'Hindi', 'xEoC24RzFx0', 'अक्कल दाढ़ निकलवाएँ या नहीं? Wisdom teeth', 'Dr. Bhadage’s Shree Dental Clinic', 2.1),
-  C('wisdom-2', 'Extraction & wisdom teeth', 'Impacted tooth extraction', 'Oral surgery', 'English', 'MmRGCqqCt6s', 'Wisdom Teeth Removal Explained (3D)', 'Health Decide'),
-  C('crown-1', 'Crowns & bridges', 'Crown (ceramic)', 'Prosthodontics', 'English', 'VXTJPFRzkvk', 'Dental Crown Procedure', 'Dental Health Society', 2.1),
-  C('crown-1', 'Crowns & bridges', 'Crown (ceramic)', 'Prosthodontics', 'Hindi', 'EhSVT3SIU0A', 'क्या आपको Dental Crown लगवाना चाहिए?', 'Dr. Navita Sharma', 4.6),
-  C('bridge-1', 'Crowns & bridges', 'Dental bridge', 'Prosthodontics', 'English', 'V5sOfs_R0AA', 'How Does a Dental Bridge Work? 3D Animation', 'Dentalk!', 1.3),
-  C('braces-1', 'Braces & aligners', 'Braces adjustment', 'Orthodontics', 'English', 'TagMnBFU4UY', 'How Do Braces Move Your Teeth?', 'DentalVision3D', 2),
-  C('braces-1', 'Braces & aligners', 'Braces adjustment', 'Orthodontics', 'Hindi', 'OXs-Dogx2jQ', 'How Do Braces Work (Hindi)', 'Orthodontic animation'),
-  C('braces-2', 'Braces & aligners', 'Braces', 'Orthodontics', 'Hindi', 'pYup0XEfmzM', 'ब्रेसेस लगवाने से पहले जानने योग्य 10 बातें', 'Family Dental Clinic'),
-  C('aligner-1', 'Braces & aligners', 'Clear aligners', 'Orthodontics', 'English', '_qoimCQ7O7k', 'How Clear Aligners Work, Step by Step', 'Curveia Dental Animation'),
-  C('denture-1', 'Dentures', 'Complete denture', 'Prosthodontics', 'Hindi', 'M0jySLUHZ-U', 'नकली दांत (denture) कैसे बनते हैं', 'SmileWithDrNeetu', 8.3),
-  C('denture-2', 'Dentures', 'Implant-supported denture', 'Prosthodontics', 'English', 'uiSVd2kx9ag', 'Implant Supported Denture Procedure', 'Apollo Medical Travel'),
-  C('denture-3', 'Dentures', 'Denture care', 'Prosthodontics', 'Hindi', '_MGSBHeDl0Y', 'नकली दाँतों की सफ़ाई कैसे करें', 'SmileWithDrNeetu'),
-  C('gum-1', 'Cleaning & gum care', 'Gum disease', 'Periodontics', 'English', '22KTcqBEXtc', 'Periodontitis: Gum Disease', 'Triangle Dental', 1),
-  C('gum-1', 'Cleaning & gum care', 'Gum disease', 'Periodontics', 'Hindi', 'gOnOFnHvWIw', 'पायरिया: लक्षण और इलाज', 'Swasthya Plus Hindi'),
-  C('flap-1', 'Cleaning & gum care', 'Flap surgery', 'Periodontics', 'English', 'MY6EVADIBcE', 'Periodontal Flap Surgery', 'Lapointe Dental Centres', 2.4),
-  C('white-1', 'Smile & cosmetic', 'Teeth whitening', 'Cosmetic', 'English', '9iCUMh7gRRQ', 'How Teeth Whitening Works', 'Ultradent Products', 5),
-  C('veneer-1', 'Smile & cosmetic', 'Veneers', 'Cosmetic', 'English', 'mAQ95sC2m_o', 'Veneers Process Animation', 'Reigate Dental Centre', 0.8),
-  C('kids-1', 'Children', 'Pulpectomy (milk tooth)', 'Paediatric dentistry', 'English', 's8QKc8QNY2A', 'Why Your Child’s Tooth Needs a Pulpectomy', 'Sparkle Dental', 1.1),
-  C('kids-2', 'Children', 'Pit and fissure sealant', 'Paediatric dentistry', 'English', 'qGpSejMuhQg', 'Seal It Before Decay Starts', 'Surgery in Seconds', 0.6),
-  C('brush-1', 'Brushing & prevention', 'Brushing', 'Prevention', 'English', 'BapR9J86ZZw', 'How to Brush Your Teeth', 'NHS England', 2.2),
-  C('brush-1', 'Brushing & prevention', 'Brushing', 'Prevention', 'Hindi', 'z4QHVVgtfDk', 'दांतों की सफाई करने का सही तरीका', 'Dr. Maithili Deshpande', 5.9),
-  C('brush-2', 'Brushing & prevention', 'Brushing', 'Prevention', 'Hindi', 'nPtuHlJCmAI', 'दांत साफ़ करने के लिए क्या करें (World Oral Health Day)', 'BBC News Hindi', 4.6),
-]
-
 export const findOldVideo = (id) => OLD_HEALTH_VIDEOS.find((v) => v.id === id)
 
 const isSearch = (url = '') => url.includes('/results?')
@@ -79,7 +40,7 @@ const isSearch = (url = '') => url.includes('/results?')
 // The clinic's own videos plus ours. A starter "search YouTube" item is hidden once we have a real video for that treatment.
 export function withHealthVideos(tenant, own) {
   const dental = /dental/i.test(tenant.kind || '')
-  const ours = [...HEALTH_VIDEOS, ...(dental ? CURATED_VIDEOS : [])]
+  const ours = HEALTH_VIDEOS
     .filter((v) => !dental || v.speciality === 'Dental')
   const covered = new Set(ours.map((v) => v.procedure.toLowerCase()))
   const urls = new Set(own.map((v) => v.url))
